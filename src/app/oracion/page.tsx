@@ -111,7 +111,7 @@ export default function OracionPage() {
         <button
           type="submit"
           disabled={!text.trim()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           <Send size={16} /> Publicar
         </button>

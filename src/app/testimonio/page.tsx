@@ -75,7 +75,7 @@ export default function TestimonioPage() {
         />
         <button
           type="submit"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           <MessageCircle size={16} /> Quiero compartir mi historia
         </button>

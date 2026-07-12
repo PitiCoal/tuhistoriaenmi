@@ -25,7 +25,7 @@ export default function Header() {
             alt="Tu Historia En Mí"
             className="h-10 w-10"
           />
-          <span className="font-heading text-lg font-bold text-primary hidden sm:inline">
+          <span className="font-heading text-lg font-bold text-primary-dark hidden sm:inline">
             Tu Historia En Mí
           </span>
         </Link>
@@ -35,14 +35,14 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-gray-600 hover:text-accent transition-colors"
+              className="text-text-light hover:text-primary transition-colors"
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <button className="md:hidden text-gray-600" onClick={() => setOpen(!open)} aria-label="Menú">
+        <button className="md:hidden text-text-light" onClick={() => setOpen(!open)} aria-label="Menú">
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
@@ -53,7 +53,7 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="block py-2.5 text-sm text-gray-600 hover:text-accent transition-colors"
+              className="block py-2.5 text-sm text-text-light hover:text-primary transition-colors"
               onClick={() => setOpen(false)}
             >
               {link.label}
