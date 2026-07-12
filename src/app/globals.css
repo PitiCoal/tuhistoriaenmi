@@ -4,8 +4,8 @@
   --color-primary: #0085C2;
   --color-primary-dark: #1A3A5C;
   --color-secondary: #5BA3A8;
-  --color-bg: #D4C8BB;
-  --color-bg-section: #E8E0D6;
+  --color-bg: rgba(255, 255, 255, 0.85);
+  --color-bg-card: rgba(255, 255, 255, 0.95);
   --color-card: #FFFFFF;
   --color-text: #1A1A1A;
   --color-text-light: #6B6358;
@@ -15,6 +15,8 @@
   --color-spotify: #1DB954;
   --color-apple: #6C3FE7;
   --color-amazon: #FF9900;
+  --color-whatsapp: #25D366;
+  --color-instagram: #E4405F;
 
   --font-heading: Georgia, serif;
   --font-body: Inter, system-ui, sans-serif;
@@ -23,5 +25,20 @@
 body {
   font-family: var(--font-body);
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background-image: url('/images/fondo-podcast.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+main {
+  backdrop-filter: blur(2px);
+}
+
+main > div {
+  background-color: rgba(255, 255, 255, 0.88);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }

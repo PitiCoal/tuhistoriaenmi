@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
-import { episodes, getEpisodeById } from '@/lib/episodes';
+import { getAllEpisodes, getEpisodeById } from '@/lib/episodes';
 import PlatformLinks from '@/components/PlatformLinks';
 import Link from 'next/link';
 import { ArrowLeft, Share2 } from 'lucide-react';
 
 export function generateStaticParams() {
-  return episodes.map(e => ({ id: e.id }));
+  return getAllEpisodes().map(e => ({ id: e.id }));
 }
 
 export default async function EpisodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,10 +19,8 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
         <ArrowLeft size={16} /> Volver a episodios
       </Link>
 
-      <div className="aspect-video bg-primary/10 rounded-xl flex items-center justify-center">
-        <span className="font-heading text-2xl text-primary/30">
-          T{episode.season} &bull; E{episode.episode}
-        </span>
+      <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
+        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" />
       </div>
 
       <div>

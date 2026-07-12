@@ -3,7 +3,7 @@ import EpisodeCard from '@/components/EpisodeCard';
 import PlatformShowcase from '@/components/PlatformShowcase';
 import Link from 'next/link';
 import { Heart, MessageCircle, Users, HandHeart, ArrowRight } from 'lucide-react';
-import { episodes } from '@/lib/episodes';
+import { getAllEpisodes } from '@/lib/episodes';
 
 const quickLinks = [
   { href: '/oracion', icon: Heart, label: 'Muro de Oración', desc: 'Deja tu intención' },
@@ -13,13 +13,14 @@ const quickLinks = [
 ];
 
 export default function HomePage() {
-  const latest = episodes[episodes.length - 1];
+  const allEpisodes = getAllEpisodes();
+  const latest = allEpisodes[allEpisodes.length - 1];
 
   return (
     <div className="space-y-10">
       <section className="relative rounded-2xl overflow-hidden min-h-[340px] flex items-center">
         <img
-          src="/images/fondo-podcast.jpg"
+          src="/images/hero-bg.png"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
