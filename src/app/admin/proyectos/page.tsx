@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic } from 'lucide-react';
+import { episodes as defaultEpisodes } from '@/lib/episodes';
 
 type Tab = 'proyectos' | 'episodios';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
@@ -144,6 +145,24 @@ function ProjectsTab({ projects, setProjects, storageKey, form, setForm, editing
 }
 
 function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editingId, setEditingId }: any) {
+  function getMergedEpisodes(): EpisodeData[] {
+    const defaults: EpisodeData[] = defaultEpisodes.map(e => ({
+      id: e.id, season: e.season, episode: e.episode,
+      title: e.title, guest: e.guest, description: e.description,
+      image: e.image, youtube: e.links.youtube || '', spotify: e.links.spotify || '',
+      apple: e.links.apple || '', amazon: e.links.amazon || '',
+    }));
+    const admin = episodes;
+    const merged = [...defaults];
+    for (const ae of admin) {
+      const idx = merged.findIndex((e: EpisodeData) => e.id === ae.id);
+      if (idx >= 0) merged[idx] = ae;
+      else merged.push(ae);
+    }
+    return merged;
+  }
+  const mergedEpisodes = getMergedEpisodes();
+
   function save(updated: EpisodeData[]) { setEpisodes(updated); saveToStorage(storageKey, updated); }
   function add() {
     if (!form.title.trim() || !form.guest.trim()) return;
@@ -152,7 +171,8 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
   }
   function update() {
     if (!editingId || !form.title.trim()) return;
-    save(episodes.map((e: EpisodeData) => e.id === editingId ? { ...e, ...form, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim() } : e));
+    const updated = episodes.filter((e: EpisodeData) => e.id !== editingId);
+    save([...updated, { id: editingId, season: form.season, episode: form.episode, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() }]);
     setEditingId(null); setForm(emptyEpisode);
   }
   function del(id: string) { if (confirm('¿Eliminar episodio?')) save(episodes.filter((e: EpisodeData) => e.id !== id)); }
@@ -206,20 +226,26 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
       </div>
 
       <div className="space-y-3">
-        {episodes.map((e: EpisodeData) => (
-          <div key={e.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4 items-center">
-            <img src={e.image || '/images/logo.png'} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-50" />
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-primary-dark">{e.title}</h3>
-              <p className="text-sm text-text-light">T{e.season} E{e.episode} — con {e.guest}</p>
+        {mergedEpisodes.map((e: EpisodeData) => {
+          const isAdmin = episodes.some((ae: EpisodeData) => ae.id === e.id);
+          return (
+            <div key={e.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4 items-center">
+              <img src={e.image || '/images/logo.png'} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-50" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-primary-dark">{e.title}</h3>
+                  {!isAdmin && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-text-light">original</span>}
+                </div>
+                <p className="text-sm text-text-light">T{e.season} E{e.episode} — con {e.guest}</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <button onClick={() => edit(e)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
+                <button onClick={() => del(e.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <button onClick={() => edit(e)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
-              <button onClick={() => del(e.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
-            </div>
-          </div>
-        ))}
-        {episodes.length === 0 && <p className="text-center text-text-light py-8">Aún no hay episodios. Agrega el primero.</p>}
+          );
+        })}
+        {mergedEpisodes.length === 0 && <p className="text-center text-text-light py-8">Aún no hay episodios.</p>}
       </div>
     </div>
   );
