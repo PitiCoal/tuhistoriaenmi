@@ -167,7 +167,29 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
           <input type="number" placeholder="Episodio" value={form.episode} onChange={e => setForm({ ...form, episode: parseInt(e.target.value) || 1 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <input type="text" placeholder="Título" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <input type="text" placeholder="Invitado" value={form.guest} onChange={e => setForm({ ...form, guest: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <input type="text" placeholder="URL imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <div className="col-span-2 space-y-2">
+            <div className="flex items-center gap-3">
+              <label className="flex-1">
+                <span className="text-xs text-text-light block mb-1">Subir imagen desde tu compu:</span>
+                <input type="file" accept="image/*" onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setForm({ ...form, image: ev.target?.result as string || '' });
+                    reader.readAsDataURL(file);
+                  }
+                }} className="w-full text-sm text-text-light file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary/90" />
+              </label>
+              <span className="text-xs text-text-light">o</span>
+              <input type="text" placeholder="Pegar URL de imagen" value={form.image.startsWith('data:') ? '' : form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            {form.image && (
+              <div className="flex items-center gap-2">
+                <img src={form.image} alt="Preview" className="h-16 w-16 rounded-lg object-cover border border-gray-200" />
+                <button onClick={() => setForm({ ...form, image: '' })} className="text-xs text-red-500 hover:underline">Quitar imagen</button>
+              </div>
+            )}
+          </div>
           <input type="text" placeholder="YouTube URL" value={form.youtube} onChange={e => setForm({ ...form, youtube: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <input type="text" placeholder="Spotify URL" value={form.spotify} onChange={e => setForm({ ...form, spotify: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <input type="text" placeholder="Apple URL" value={form.apple} onChange={e => setForm({ ...form, apple: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
