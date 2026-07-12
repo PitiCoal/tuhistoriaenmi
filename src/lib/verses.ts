@@ -185,7 +185,7 @@ export const verses = [
   { day: 184, verse: 'Habla, Señor, que tu siervo escucha.', reference: '1 Samuel 3,10' },
   { day: 185, verse: 'El Señor no mira lo que mira el hombre; el hombre mira las apariencias, pero el Señor mira el corazón.', reference: '1 Samuel 16,7' },
   { day: 186, verse: 'Enséñanos a contar nuestros días, para que adquiramos un corazón sabio.', reference: 'Salmo 90,12' },
-  { day: 187, verse: '¿Qué es el hombre para que te acuerdes de él, el ser humano para que de él te ocupes?', reference: 'Salmo 8,5' },
+  { day: 187, verse: 'Qué es el hombre para que te acuerdes de él, el ser humano para que de él te ocupes?', reference: 'Salmo 8,5' },
   { day: 188, verse: 'Lo hiciste poco inferior a los ángeles, lo coronaste de gloria y esplendor.', reference: 'Salmo 8,6' },
   { day: 189, verse: 'Los que confían en el Señor son como el monte Sión: no cae, sino que permanece para siempre.', reference: 'Salmo 125,1' },
   { day: 190, verse: 'El Señor guarda tus entradas y salidas, ahora y para siempre.', reference: 'Salmo 121,8' },
