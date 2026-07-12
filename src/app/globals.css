@@ -32,7 +32,5 @@ body {
 }
 
 main {
-  background-color: rgba(250, 247, 243, 0.88);
-  backdrop-filter: blur(3px);
   min-height: calc(100vh - 8rem);
 }
