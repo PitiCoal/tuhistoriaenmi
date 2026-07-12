@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -74,6 +74,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('proyectos')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'proyectos' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FolderKanban size={16} /> Proyectos</button>
         <button onClick={() => setTab('episodios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'episodios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Mic size={16} /> Episodios</button>
         <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
+        <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participa</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -91,6 +92,8 @@ export default function AdminProyectosPage() {
       )}
 
       {tab === 'inicio' && <HeroSettingsTab />}
+
+      {tab === 'participa' && <ParticipaTab />}
     </div>
   );
 }
@@ -325,6 +328,85 @@ function HeroSettingsTab() {
         </button>
       </div>
       {saved && <p className="text-green-600 text-xs">¡Guardado! Recarga la página de inicio para ver el cambio.</p>}
+    </div>
+  );
+}
+
+function ParticipaTab() {
+  const [entries, setEntries] = useState<any[]>([]);
+  const [filterTab, setFilterTab] = useState<string>('todas');
+
+  useEffect(() => {
+    try {
+      const data = localStorage.getItem('tm_participa');
+      if (data) setEntries(JSON.parse(data));
+    } catch {}
+  }, []);
+
+  function deleteEntry(id: string) {
+    if (!confirm('¿Eliminar esta publicación?')) return;
+    const updated = entries.filter(e => e.id !== id);
+    setEntries(updated);
+    localStorage.setItem('tm_participa', JSON.stringify(updated));
+  }
+
+  function clearAll() {
+    if (!confirm('¿Eliminar TODAS las publicaciones? Esta acción no se puede deshacer.')) return;
+    setEntries([]);
+    localStorage.removeItem('tm_participa');
+  }
+
+  const filtered = filterTab === 'todas' ? entries : entries.filter(e => e.tab === filterTab);
+  const tabLabels: Record<string, string> = { oraciones: 'Oraciones', reflexiones: 'Reflexiones', sugerencias: 'Sugerencias' };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-primary-dark">Moderar Participa</h2>
+          {entries.length > 0 && (
+            <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+              <Trash2 size={12} /> Eliminar todo
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-text-light">Total: {entries.length} publicaciones</p>
+
+        <div className="flex gap-1.5 flex-wrap">
+          <button onClick={() => setFilterTab('todas')} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterTab === 'todas' ? 'bg-primary text-white' : 'bg-gray-100 text-text-light hover:bg-gray-200'}`}>Todas</button>
+          {['oraciones', 'reflexiones', 'sugerencias'].map(t => (
+            <button key={t} onClick={() => setFilterTab(t)} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterTab === t ? 'bg-primary text-white' : 'bg-gray-100 text-text-light hover:bg-gray-200'}`}>{tabLabels[t]}</button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-center text-text-light py-8">No hay publicaciones.</p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(e => (
+            <div key={e.id} className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm flex gap-3 items-start">
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                    e.tab === 'oraciones' ? 'bg-red-100 text-red-700' :
+                    e.tab === 'reflexiones' ? 'bg-blue-100 text-blue-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {e.tab === 'oraciones' ? '🙏' : e.tab === 'reflexiones' ? '💬' : '🎤'} {tabLabels[e.tab]}
+                  </span>
+                  <span className="text-[10px] text-text-light">{new Date(e.createdAt).toLocaleDateString('es-CL')}</span>
+                  <span className="text-[10px] text-text-light">{e.name || 'Anónimo'}</span>
+                </div>
+                <p className="text-sm text-text">{e.text}</p>
+              </div>
+              <button onClick={() => deleteEntry(e.id)} className="p-1.5 text-text-light hover:text-red-500 shrink-0 transition-colors" title="Eliminar">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
