@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/episodios', label: 'Episodios' },
   { href: '/participa', label: 'Participa' },
   { href: '/comunidad', label: 'Comunidad' },
+  { href: '/nosotros', label: 'Nosotros' },
   { href: '/proyectos', label: 'Proyectos' },
   { href: '/donar', label: 'Donar' },
 ];

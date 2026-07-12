@@ -28,10 +28,10 @@ export default function NosotrosPage() {
           </h2>
         </div>
         <p className="text-text leading-relaxed">
-          Tu Historia En M&iacute; nace del deseo de crear un espacio donde las personas puedan
-          compartir y escuchar historias reales de vida. Un lugar donde el testimonio se
-          convierte en puente entre quienes han vivido y quienes necesitan escuchar que
-          no est&aacute;n solos.
+          Tu Historia En M&iacute; nace del deseo de ser un <strong>puente de uni&oacute;n y
+          comunicaci&oacute;n de fe</strong>. Un espacio donde los testimonios reales de vida
+          se convierten en una invitaci&oacute;n a conocer a Dios, a redescubrirlo o
+          simplemente a recordar que nunca es tarde para acercarse a &Eacute;l.
         </p>
         <p className="text-text leading-relaxed">
           Cada episodio es una conversaci&oacute;n &iacute;ntima, sin guion, sin juicios. Solo
@@ -49,14 +49,10 @@ export default function NosotrosPage() {
           </h2>
         </div>
         <p className="text-text leading-relaxed">
-          Ser una comunidad donde cada historia sea un puente de esperanza y acompa&ntilde;amiento.
-          Donde las personas puedan encontrar consuelo, inspiraci&oacute;n y fe al saber que
-          otros han atravesado caminos similares.
-        </p>
-        <p className="text-text leading-relaxed">
-          Queremos que nadie se sienta solo en sus luchas. Que cada testimonio compartido
-          sea una luz para quien lo necesita. Y que esta comunidad sea un lugar seguro
-          donde todos son bienvenidos.
+          Ser un puente que conecte a las personas con Dios a trav&eacute;s de historias
+          reales de fe y vida. Buscamos que m&aacute;s personas conozcan a Dios, se
+          acerquen a &Eacute;l y descubran que en sus luchas nunca est&aacute;n solos. Cada
+          testimonio compartido es una semilla de fe sembrada en quien lo escucha.
         </p>
       </section>
 
@@ -67,9 +63,9 @@ export default function NosotrosPage() {
           </div>
           <h3 className="font-heading font-bold text-primary-dark">Misi&oacute;n</h3>
           <p className="text-sm text-text-light leading-relaxed">
-            Crear un espacio donde las personas puedan compartir y escuchar historias reales
-            de vida que inspiren, conecten y fortalezcan la fe, para que nadie se sienta
-            solo en sus luchas.
+            Ser un puente de uni&oacute;n y comunicaci&oacute;n de fe, donde testimonios reales
+            acerquen a m&aacute;s personas a Dios, inspir&aacute;ndolas a confiar en &Eacute;l y
+            a descubrir que cada historia tiene un prop&oacute;sito en Su plan.
           </p>
         </div>
         <div className="bg-card rounded-xl p-6 border border-gray-100 shadow-sm space-y-3">
@@ -78,9 +74,9 @@ export default function NosotrosPage() {
           </div>
           <h3 className="font-heading font-bold text-primary-dark">Visi&oacute;n</h3>
           <p className="text-sm text-text-light leading-relaxed">
-            Ser una comunidad donde cada historia sea un puente de esperanza y
-            acompa&ntilde;amiento, creciendo como referente de testimonio y fe en
-            habla hispana.
+            Ser un referente de fe en habla hispana, donde cada episodio sea una puerta
+            abierta para que alguien encuentre a Dios, se reconcilie con &Eacute;l o
+            fortalezca su camino espiritual.
           </p>
         </div>
         <div className="bg-card rounded-xl p-6 border border-gray-100 shadow-sm space-y-3">
@@ -110,6 +106,9 @@ export default function NosotrosPage() {
               un prop&oacute;sito y que al compartirla, alguien encuentra luz en la suya.
               Este proyecto nace de la fe y del deseo de crear un espacio donde todos
               se sientan escuchados.
+            </p>
+            <p className="text-sm text-text-light/70">
+              📧 contacto.tuhistoriaenmi@gmail.com
             </p>
           </div>
         </div>
