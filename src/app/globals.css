@@ -4,8 +4,8 @@
   --color-primary: #0085C2;
   --color-primary-dark: #1A3A5C;
   --color-secondary: #5BA3A8;
-  --color-bg: #FFFFFF;
-  --color-bg-alt: #F5F2EE;
+  --color-bg: #EDE8E3;
+  --color-bg-alt: #FFFFFF;
   --color-card: #FFFFFF;
   --color-text: #1C1C1C;
   --color-text-light: #6B7280;
@@ -15,8 +15,6 @@
   --color-spotify: #1DB954;
   --color-apple: #6C3FE7;
   --color-amazon: #FF9900;
-  --color-whatsapp: #25D366;
-  --color-instagram: #E4405F;
 
   --font-heading: Georgia, serif;
   --font-body: Inter, system-ui, sans-serif;
@@ -26,5 +24,5 @@ body {
   font-family: var(--font-body);
   color: var(--color-text);
   background-color: var(--color-bg);
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230085C2' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230085C2' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }

@@ -86,7 +86,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-bg-alt rounded-2xl p-8 text-center space-y-4 border border-gray-200/50">
+      <section className="bg-card rounded-2xl p-8 text-center space-y-4 border border-gray-200/70 shadow-md">
         <h2 className="font-heading text-xl font-bold text-primary-dark">Comparte tu historia</h2>
         <p className="text-text-light max-w-md mx-auto leading-relaxed">
           Tu testimonio puede ser la luz que alguien necesita hoy.

@@ -20,7 +20,7 @@ export default function NosotrosPage() {
         </div>
       </section>
 
-      <section className="bg-bg-alt rounded-2xl p-8 border border-gray-200/50 space-y-4">
+      <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md space-y-4">
         <div className="flex items-center gap-3">
           <Sparkles size={20} className="text-primary" />
           <h2 className="font-heading text-xl font-bold text-primary-dark">
@@ -41,7 +41,7 @@ export default function NosotrosPage() {
         </p>
       </section>
 
-      <section className="bg-bg-alt rounded-2xl p-8 border border-gray-200/50 space-y-4">
+      <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md space-y-4">
         <div className="flex items-center gap-3">
           <Heart size={20} className="text-primary" />
           <h2 className="font-heading text-xl font-bold text-primary-dark">
@@ -95,7 +95,7 @@ export default function NosotrosPage() {
         </div>
       </div>
 
-      <section className="bg-bg-alt rounded-2xl p-8 border border-gray-200/50 space-y-4">
+      <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-heading text-xl font-bold text-primary-dark">Creadora</h2>
         <div className="flex flex-col sm:flex-row items-start gap-5">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">

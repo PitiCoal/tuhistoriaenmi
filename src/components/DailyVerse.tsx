@@ -13,7 +13,7 @@ export default function DailyVerse() {
   if (!verse.verse) return null;
 
   return (
-    <div className="bg-bg-alt rounded-2xl p-6 md:p-8 text-center border border-gray-200/50">
+    <div className="bg-card rounded-2xl p-6 md:p-8 text-center border border-gray-200/70 shadow-md">
       <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">
         Versículo del Día
       </p>

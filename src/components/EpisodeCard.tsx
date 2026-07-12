@@ -6,7 +6,7 @@ export default function EpisodeCard({ episode }: { episode: Episode }) {
   return (
     <Link
       href={`/episodios/${episode.id}`}
-      className="block bg-card rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 overflow-hidden group"
+      className="block bg-card rounded-xl border border-gray-200/70 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 overflow-hidden group"
     >
       <div className="aspect-video bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center overflow-hidden">
         <img

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X, LogIn, LogOut, User } from 'lucide-react';
+import { Menu, X, LogIn, LogOut, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
@@ -15,17 +15,26 @@ const navLinks = [
   { href: '/donar', label: 'Donar' },
 ];
 
+const ADMIN_EMAIL = 'piti.coal@gmail.com';
+
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const unsub = onAuthStateChanged(auth, u => setUser(u));
     return unsub;
   }, []);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  const allLinks = isAdmin
+    ? [...navLinks, { href: '/admin/proyectos', label: 'Admin', icon: Shield }]
+    : navLinks;
+
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+    <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b border-gray-200/70">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <img
@@ -38,37 +47,44 @@ export default function Header() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          {navLinks.map(link => (
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
+          {allLinks.map(link => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-text-light hover:text-primary transition-colors"
+              className={`transition-colors ${
+                link.label === 'Admin'
+                  ? 'flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 text-primary font-semibold hover:bg-primary/20'
+                  : 'text-text-light hover:text-primary'
+              }`}
             >
+              {link.label === 'Admin' && <Shield size={14} />}
               {link.label}
             </Link>
           ))}
-          {user ? (
-            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
-              <span className="text-xs text-text-light truncate max-w-[100px]">
-                {user.displayName || user.email}
-              </span>
+          <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+            {user ? (
+              <>
+                <span className="text-xs text-text-light truncate max-w-[100px]">
+                  {user.displayName || user.email}
+                </span>
+                <button
+                  onClick={signOutUser}
+                  className="p-1.5 text-text-light hover:text-primary transition-colors"
+                  title="Cerrar sesión"
+                >
+                  <LogOut size={16} />
+                </button>
+              </>
+            ) : (
               <button
-                onClick={signOutUser}
-                className="p-1.5 text-text-light hover:text-primary transition-colors"
-                title="Cerrar sesión"
+                onClick={signInWithGoogle}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
               >
-                <LogOut size={16} />
+                <LogIn size={14} /> Entrar
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={signInWithGoogle}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              <LogIn size={14} /> Entrar
-            </button>
-          )}
+            )}
+          </div>
         </nav>
 
         <button className="md:hidden text-text-light" onClick={() => setOpen(!open)} aria-label="Menú">
@@ -78,13 +94,18 @@ export default function Header() {
 
       {open && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 pb-4 space-y-2">
-          {navLinks.map(link => (
+          {allLinks.map(link => (
             <Link
               key={link.href}
               href={link.href}
-              className="block py-2.5 text-sm text-text-light hover:text-primary transition-colors"
+              className={`block py-2.5 text-sm transition-colors ${
+                link.label === 'Admin'
+                  ? 'text-primary font-semibold flex items-center gap-1.5'
+                  : 'text-text-light hover:text-primary'
+              }`}
               onClick={() => setOpen(false)}
             >
+              {link.label === 'Admin' && <Shield size={14} />}
               {link.label}
             </Link>
           ))}

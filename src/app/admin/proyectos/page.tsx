@@ -126,7 +126,7 @@ export default function AdminProyectosPage() {
         </button>
       </div>
 
-      <div className="bg-bg-alt rounded-xl p-6 border border-gray-200/50 space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-semibold text-primary-dark">
           {editingId ? 'Editar proyecto' : 'Agregar proyecto'}
         </h2>
