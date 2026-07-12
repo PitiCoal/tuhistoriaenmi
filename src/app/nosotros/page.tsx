@@ -1,4 +1,5 @@
 import { Heart, Target, Eye, Sparkles } from 'lucide-react';
+import UserCounter from '@/components/UserCounter';
 
 export default function NosotrosPage() {
   return (
@@ -90,6 +91,8 @@ export default function NosotrosPage() {
           </p>
         </div>
       </div>
+
+      <UserCounter />
 
       <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-heading text-xl font-bold text-primary-dark">Creadora</h2>

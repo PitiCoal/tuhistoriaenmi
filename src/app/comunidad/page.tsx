@@ -21,75 +21,89 @@ export default function ComunidadPage() {
         <p className="text-text-light text-xs md:text-sm mt-1">Tu Historia En Mí es más que un podcast.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
-          className="bg-card rounded-xl p-5 md:p-6 shadow-md hover:shadow-lg transition-shadow border border-gray-200/70">
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-instagram flex items-center justify-center mb-3 md:mb-4">
-            <Camera size={20} className="text-white" />
+      {!user ? (
+        <div className="bg-card rounded-xl md:rounded-2xl p-6 md:p-10 border border-primary/20 shadow-md text-center space-y-4 bg-gradient-to-br from-primary/[0.03] to-primary/[0.07]">
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary flex items-center justify-center mx-auto shadow-lg shadow-primary/20">
+            <Users size={28} className="text-white" />
           </div>
-          <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg mb-1 md:mb-2">Instagram</h2>
-          <p className="text-xs md:text-sm text-text-light leading-relaxed mb-3 md:mb-4">Síguenos en Instagram y entérate de nuevas historias.</p>
-          <span className="inline-flex items-center gap-1 text-xs md:text-sm font-medium text-instagram hover:underline">Seguir <ArrowRight size={12} /></span>
-        </a>
-
-        {user ? (
-          <Link href="/participa"
-            className="bg-card rounded-xl p-5 md:p-6 shadow-md hover:shadow-lg transition-shadow border border-primary/20 bg-primary/[0.03]">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary flex items-center justify-center mb-3 md:mb-4">
-              <Heart size={20} className="text-white" />
-            </div>
-            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg mb-1 md:mb-2">Participa</h2>
-            <p className="text-xs md:text-sm text-text-light leading-relaxed mb-3 md:mb-4">Comparte oraciones, reflexiones y sé parte del Muro comunitario.</p>
-            <span className="inline-flex items-center gap-1 text-xs md:text-sm font-medium text-primary hover:underline">Ir a Participa <ArrowRight size={12} /></span>
-          </Link>
-        ) : (
-          <div className="bg-card rounded-xl p-5 md:p-6 shadow-md border border-gray-200/70">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
-              <Users size={20} className="text-primary" />
-            </div>
-            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg mb-1 md:mb-2">Sé parte de esta comunidad</h2>
-            <p className="text-xs md:text-sm text-text-light leading-relaxed mb-3 md:mb-4">
-              Aquí cada historia importa. Crea tu cuenta para compartir oraciones, dejar tus reflexiones, participar en el Muro, conectar con otros que caminan historias similares y ser parte de algo más grande. Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.
-            </p>
-            <button onClick={() => signInWithGoogle()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
-              <LogIn size={14} /> Crear cuenta
-            </button>
+          <h2 className="font-heading text-xl md:text-2xl font-bold text-primary-dark">
+            Sé parte de esta comunidad
+          </h2>
+          <p className="text-sm md:text-base text-text-light leading-relaxed max-w-md mx-auto">
+            Aquí cada historia importa. Crea tu cuenta para compartir oraciones, dejar tus reflexiones, 
+            participar en el Muro, conectar con otros que caminan historias similares y ser parte de 
+            algo más grande. Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.
+          </p>
+          <button onClick={() => signInWithGoogle()}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors shadow-md">
+            <LogIn size={16} /> Crear cuenta gratis
+          </button>
+          <p className="text-xs text-text-light/60">Solo con tu correo de Google</p>
+        </div>
+      ) : (
+        <div className="bg-card rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Heart size={24} className="text-primary" />
           </div>
-        )}
-      </div>
-
-      {user && (
-        <div className="space-y-3 md:space-y-4">
-          <Link href="/perfil"
-            className="block bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md hover:shadow-lg transition-shadow">
-            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg">Mi Perfil</h2>
-            <p className="text-xs md:text-sm text-text-light mt-1">Edita tu foto, país, edad y bio.</p>
-          </Link>
-
-          <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
-            className="block bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-whatsapp flex items-center justify-center shrink-0">
-                <MessageCircle size={18} className="text-white" />
-              </div>
-              <div>
-                <h2 className="font-heading font-bold text-primary-dark text-base">Grupo de WhatsApp</h2>
-                <p className="text-xs md:text-sm text-text-light">Únete a nuestra comunidad de fe y conversación.</p>
-              </div>
-              <ArrowRight size={16} className="text-text-light ml-auto shrink-0" />
-            </div>
-          </a>
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Bienvenido de vuelta</h2>
+          <p className="text-sm text-text-light">Explora todo lo que la comunidad tiene para ti.</p>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <Link href="/participa"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+              Ir a Participa <ArrowRight size={14} />
+            </Link>
+            <Link href="/perfil"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-card text-primary rounded-lg text-sm font-semibold border border-primary/30 hover:bg-primary/5">
+              Mi Perfil
+            </Link>
+          </div>
         </div>
       )}
 
-      {!user && (
-        <div className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md text-center">
-          <p className="text-xs md:text-sm text-text-light">
-            ¿Ya tienes cuenta?{' '}
-            <button onClick={() => signInWithGoogle()} className="text-primary font-medium hover:underline">Inicia sesión</button>
-          </p>
+      {/* Instagram preview */}
+      <div className="bg-card rounded-xl overflow-hidden border border-gray-200/70 shadow-md">
+        <div className="flex flex-col sm:flex-row">
+          <div className="sm:w-48 h-40 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] flex items-center justify-center relative">
+            <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/50">
+              <Camera size={32} className="text-white" />
+            </div>
+          </div>
+          <div className="flex-1 p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-instagram flex items-center justify-center shrink-0">
+                <Camera size={16} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-primary-dark">@tuhistoria.enmi</h3>
+                <p className="text-xs text-text-light">Instagram</p>
+              </div>
+            </div>
+            <p className="text-sm text-text-light leading-relaxed">
+              Testimonios reales de vida, fe y superación. Cada historia importa. 
+              &ldquo;Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.&rdquo;
+            </p>
+            <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-instagram text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm">
+              <Camera size={14} /> Seguir en Instagram <ArrowRight size={12} />
+            </a>
+          </div>
         </div>
+      </div>
+
+      {user && (
+        <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
+          className="block bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-whatsapp flex items-center justify-center shrink-0">
+              <MessageCircle size={18} className="text-white" />
+            </div>
+            <div>
+              <h2 className="font-heading font-bold text-primary-dark text-base">Grupo de WhatsApp</h2>
+              <p className="text-xs md:text-sm text-text-light">Únete a nuestra comunidad de fe y conversación.</p>
+            </div>
+            <ArrowRight size={16} className="text-text-light ml-auto shrink-0" />
+          </div>
+        </a>
       )}
 
       <div className="bg-card rounded-xl p-5 md:p-6 border border-gray-200/70 shadow-md text-center">
