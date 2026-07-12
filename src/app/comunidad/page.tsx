@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, signInWithGoogle } from '@/lib/firebase';
-import { Camera, LogIn, ArrowRight, Heart } from 'lucide-react';
+import { Camera, LogIn, ArrowRight, Heart, Users, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ComunidadPage() {
@@ -45,11 +45,11 @@ export default function ComunidadPage() {
         ) : (
           <div className="bg-card rounded-xl p-5 md:p-6 shadow-md border border-gray-200/70">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
-              <LogIn size={20} className="text-primary" />
+              <Users size={20} className="text-primary" />
             </div>
-            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg mb-1 md:mb-2">Únete a la comunidad</h2>
+            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg mb-1 md:mb-2">Sé parte de esta comunidad</h2>
             <p className="text-xs md:text-sm text-text-light leading-relaxed mb-3 md:mb-4">
-              Crea tu cuenta para compartir oraciones, dejar reflexiones, participar en el Muro y tener tu perfil.
+              Aquí cada historia importa. Crea tu cuenta para compartir oraciones, dejar tus reflexiones, participar en el Muro, conectar con otros que caminan historias similares y ser parte de algo más grande. Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.
             </p>
             <button onClick={() => signInWithGoogle()}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
@@ -69,18 +69,27 @@ export default function ComunidadPage() {
 
           <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
             className="block bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md hover:shadow-lg transition-shadow">
-            <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg">WhatsApp</h2>
-            <p className="text-xs md:text-sm text-text-light mt-1">Únete a nuestro grupo de la comunidad.</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-whatsapp flex items-center justify-center shrink-0">
+                <MessageCircle size={18} className="text-white" />
+              </div>
+              <div>
+                <h2 className="font-heading font-bold text-primary-dark text-base">Grupo de WhatsApp</h2>
+                <p className="text-xs md:text-sm text-text-light">Únete a nuestra comunidad de fe y conversación.</p>
+              </div>
+              <ArrowRight size={16} className="text-text-light ml-auto shrink-0" />
+            </div>
           </a>
         </div>
       )}
 
       {!user && (
-        <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
-          className="block bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md hover:shadow-lg transition-shadow">
-          <h2 className="font-heading font-bold text-primary-dark text-base md:text-lg">WhatsApp</h2>
-          <p className="text-xs md:text-sm text-text-light mt-1">Únete a nuestro grupo de la comunidad.</p>
-        </a>
+        <div className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md text-center">
+          <p className="text-xs md:text-sm text-text-light">
+            ¿Ya tienes cuenta?{' '}
+            <button onClick={() => signInWithGoogle()} className="text-primary font-medium hover:underline">Inicia sesión</button>
+          </p>
+        </div>
       )}
 
       <div className="bg-card rounded-xl p-5 md:p-6 border border-gray-200/70 shadow-md text-center">

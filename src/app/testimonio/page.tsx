@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { MessageCircle, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, signInWithGoogle } from '@/lib/firebase';
+import { MessageCircle, CheckCircle, LogIn } from 'lucide-react';
 
 const steps = [
   { number: 1, title: 'Cuéntanos tu historia', description: 'Llena el formulario con tus datos.' },
@@ -10,13 +12,42 @@ const steps = [
 ];
 
 export default function TestimonioPage() {
+  const [user, setUser] = useState<any | null | 'loading'>('loading');
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    return unsub;
+  }, []);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSent(true);
     setForm({ name: '', email: '', phone: '', message: '' });
     setTimeout(() => setSent(false), 5000);
+  }
+
+  if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
+
+  if (!user) {
+    return (
+      <div className="max-w-lg mx-auto space-y-6">
+        <div className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md text-center">
+          <h1 className="font-heading text-2xl md:text-3xl font-bold text-primary-dark">Dar Testimonio</h1>
+          <p className="text-text-light text-sm mt-1">Comparte tu historia para inspirar a otros.</p>
+        </div>
+        <div className="bg-card rounded-xl p-8 border border-gray-200/70 shadow-md text-center space-y-3">
+          <MessageCircle size={48} className="mx-auto text-text-light" />
+          <h2 className="font-heading text-lg font-bold text-primary-dark">Inicia sesión</h2>
+          <p className="text-sm text-text-light">Necesitas una cuenta para compartir tu testimonio.</p>
+          <button onClick={() => signInWithGoogle()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+            <LogIn size={16} /> Iniciar sesión
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

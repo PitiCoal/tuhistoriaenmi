@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, signInWithGoogle } from '@/lib/firebase';
 import DailyVerse from '@/components/DailyVerse';
 import EpisodeCard from '@/components/EpisodeCard';
 import PlatformShowcase from '@/components/PlatformShowcase';
 import Link from 'next/link';
-import { Heart, MessageCircle, Users, HandHeart, ArrowRight } from 'lucide-react';
+import { Heart, MessageCircle, Users, HandHeart, ArrowRight, LogIn, User } from 'lucide-react';
 import { getAllEpisodes } from '@/lib/episodes';
 
 const quickLinks = [
@@ -17,12 +19,15 @@ const quickLinks = [
 
 export default function HomePage() {
   const [heroImage, setHeroImage] = useState('/images/hero-bg.png');
+  const [user, setUser] = useState<any>(null);
   const allEpisodes = getAllEpisodes();
   const latest = allEpisodes[allEpisodes.length - 1];
 
   useEffect(() => {
     const saved = localStorage.getItem('tm_hero_image');
     if (saved) setHeroImage(saved);
+    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    return unsub;
   }, []);
 
   return (
@@ -41,6 +46,15 @@ export default function HomePage() {
             <Link href="/oracion" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
               Dejar oraci&oacute;n <Heart size={14} />
             </Link>
+            {user ? (
+              <Link href="/participa" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
+                Participar <User size={14} />
+              </Link>
+            ) : (
+              <button onClick={() => signInWithGoogle()} className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
+                Crear cuenta <LogIn size={14} />
+              </button>
+            )}
           </div>
         </div>
       </section>
