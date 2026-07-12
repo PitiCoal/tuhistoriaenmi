@@ -20,7 +20,7 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
       </Link>
 
       <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
-        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" />
+        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" style={{ objectPosition: (episode as any).image_position || 'center' }} />
       </div>
 
       <div>

@@ -8,11 +8,12 @@ export default function EpisodeCard({ episode }: { episode: Episode }) {
       href={`/episodios/${episode.id}`}
       className="block bg-card rounded-xl border border-gray-200/70 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 overflow-hidden group"
     >
-      <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+      <div className="aspect-video bg-gray-100 overflow-hidden">
         <img
           src={episode.image}
           alt={episode.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          style={{ objectPosition: (episode as any).image_position || 'center' }}
         />
       </div>
       <div className="p-4 space-y-1.5">

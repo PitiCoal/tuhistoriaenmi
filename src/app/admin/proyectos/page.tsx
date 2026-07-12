@@ -5,10 +5,11 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
+import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
-type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; youtube: string; spotify: string; apple: string; amazon: string; };
+type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
 const ADMIN_EMAIL = 'piti.coal@gmail.com';
 const STORAGE_PROJECTS = 'tm_projects';
@@ -25,7 +26,7 @@ function saveToStorage(key: string, data: any) {
 }
 
 const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '' };
-const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description: '', image: '', youtube: '', spotify: '', apple: '', amazon: '' };
+const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description: '', image: '', image_position: 'center', youtube: '', spotify: '', apple: '', amazon: '' };
 const HERO_KEY = 'tm_hero_image';
 
 export default function AdminProyectosPage() {
@@ -156,7 +157,8 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
     const defaults: EpisodeData[] = defaultEpisodes.map(e => ({
       id: e.id, season: e.season, episode: e.episode,
       title: e.title, guest: e.guest, description: e.description,
-      image: e.image, youtube: e.links.youtube || '', spotify: e.links.spotify || '',
+      image: e.image, image_position: 'center',
+      youtube: e.links.youtube || '', spotify: e.links.spotify || '',
       apple: e.links.apple || '', amazon: e.links.amazon || '',
     }));
     const admin = episodes;
@@ -173,17 +175,25 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
   function save(updated: EpisodeData[]) { setEpisodes(updated); saveToStorage(storageKey, updated); }
   function add() {
     if (!form.title.trim() || !form.guest.trim()) return;
-    save([...episodes, { id: Date.now().toString(), ...form, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() }]);
+    const newEp = { id: Date.now().toString(), ...form, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), image_position: form.image_position || 'center', youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() };
+    save([...episodes, newEp]);
+    saveEpisodeToCloud(newEp);
     setForm(emptyEpisode);
   }
   function update() {
     if (!editingId || !form.title.trim()) return;
     const updated = episodes.filter((e: EpisodeData) => e.id !== editingId);
-    save([...updated, { id: editingId, season: form.season, episode: form.episode, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() }]);
+    const updatedEp = { id: editingId, season: form.season, episode: form.episode, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), image_position: form.image_position || 'center', youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() };
+    save([...updated, updatedEp]);
+    saveEpisodeToCloud(updatedEp);
     setEditingId(null); setForm(emptyEpisode);
   }
-  function del(id: string) { if (confirm('¿Eliminar episodio?')) save(episodes.filter((e: EpisodeData) => e.id !== id)); }
-  function edit(e: EpisodeData) { setEditingId(e.id); setForm({ season: e.season, episode: e.episode, title: e.title, guest: e.guest, description: e.description, image: e.image, youtube: e.youtube, spotify: e.spotify, apple: e.apple, amazon: e.amazon }); }
+  function del(id: string) {
+    if (!confirm('¿Eliminar episodio?')) return;
+    save(episodes.filter((e: EpisodeData) => e.id !== id));
+    deleteEpisodeFromCloud(id);
+  }
+  function edit(e: EpisodeData) { setEditingId(e.id); setForm({ season: e.season, episode: e.episode, title: e.title, guest: e.guest, description: e.description, image: e.image, image_position: e.image_position || 'center', youtube: e.youtube, spotify: e.spotify, apple: e.apple, amazon: e.amazon }); }
 
   return (
     <div className="space-y-4">
@@ -216,6 +226,19 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
                 <button onClick={() => setForm({ ...form, image: '' })} className="text-xs text-red-500 hover:underline">Quitar imagen</button>
               </div>
             )}
+          </div>
+          <div className="col-span-2 flex items-center gap-3">
+            <span className="text-xs text-text-light whitespace-nowrap">Posición imagen:</span>
+            {['superior', 'centro', 'inferior'].map(pos => (
+              <button key={pos} onClick={() => setForm({ ...form, image_position: pos === 'superior' ? 'top' : pos === 'centro' ? 'center' : 'bottom' })}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  (pos === 'superior' && form.image_position === 'top') ||
+                  (pos === 'centro' && form.image_position === 'center') ||
+                  (pos === 'inferior' && form.image_position === 'bottom')
+                    ? 'bg-primary text-white' : 'bg-gray-100 text-text-light hover:bg-gray-200'
+                }`}
+              >{pos === 'superior' ? '▲ Sup.' : pos === 'centro' ? '⊙ Centro' : '▼ Inf.'}</button>
+            ))}
           </div>
           <input type="text" placeholder="YouTube URL" value={form.youtube} onChange={e => setForm({ ...form, youtube: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <input type="text" placeholder="Spotify URL" value={form.spotify} onChange={e => setForm({ ...form, spotify: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
