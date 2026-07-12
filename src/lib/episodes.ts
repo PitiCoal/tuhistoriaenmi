@@ -23,7 +23,7 @@ export const episodes: Episode[] = [
     title: "No Comprendo",
     guest: "Flo Ramírez",
     description: "Flo nos comparte su historia de fe y preguntas sin respuesta. Un testimonio honesto sobre aprender a confiar cuando no entendemos.",
-    image: "/images/t1e1.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -39,7 +39,7 @@ export const episodes: Episode[] = [
     title: "Cuando aceptar no es resignación ni rendirse",
     guest: "Piedad Alcalde",
     description: "Piedad nos habla sobre la diferencia entre aceptar lo que viene y rendirse ante las dificultades. Una reflexión profunda sobre la fortaleza interior.",
-    image: "/images/t1e2.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -55,7 +55,7 @@ export const episodes: Episode[] = [
     title: "Ver con el Corazón",
     guest: "Rosario Rivera",
     description: "Rosario nos invita a mirar más allá de lo visible. Un testimonio sobre encontrar belleza y propósito donde otros solo ven dificultad.",
-    image: "/images/t1e3.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -71,7 +71,7 @@ export const episodes: Episode[] = [
     title: "Un Punto seguido en mi historia",
     guest: "Berni Daniels",
     description: "Berni nos recuerda que cada historia tiene un punto seguido, no un punto final. Un mensaje de esperanza para quienes creen que todo terminó.",
-    image: "/images/t1e4.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -87,7 +87,7 @@ export const episodes: Episode[] = [
     title: "Kilómetros de Historia",
     guest: "Santiago Cruzat",
     description: "Santiago nos lleva por un viaje de kilómetros recorridos y lecciones aprendidas. Un testimonio sobre el camino y lo que encontramos en él.",
-    image: "/images/t1e5.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -103,7 +103,7 @@ export const episodes: Episode[] = [
     title: "Historia del Corazón de Rodrigo",
     guest: "Rodrigo Bello",
     description: "Rodrigo abre su corazón y comparte su historia de superación. Un relato de cómo el amor y la fe pueden transformar una vida.",
-    image: "/images/t1e6.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -119,7 +119,7 @@ export const episodes: Episode[] = [
     title: "Aunque no tengas Fe",
     guest: "Xime Vallejos",
     description: "Xime nos habla de la fe en medio de la duda. Un testimonio para quienes no tienen todas las respuestas pero siguen buscando.",
-    image: "/images/t2e7.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -135,7 +135,7 @@ export const episodes: Episode[] = [
     title: "Del abandono al propósito",
     guest: "Kristian Brione",
     description: "Kristian comparte cómo pasó del abandono a encontrar su propósito. Un testimonio de redención y de cómo Dios escribe recto sobre líneas torcidas.",
-    image: "/images/t2e8.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",
@@ -151,7 +151,7 @@ export const episodes: Episode[] = [
     title: "Del vacío a la libertad",
     guest: "Benja Ramírez",
     description: "Benja nos cuenta cómo encontró libertad donde solo había vacío. Un testimonio poderoso sobre soltar el pasado y abrazar una nueva vida.",
-    image: "/images/t2e9.jpg",
+    image: "/images/episode-placeholder.png",
     links: {
       youtube: "https://youtube.com/@tuHistoria-EnMi",
       spotify: "https://open.spotify.com/show/5BVlJIWDq8hEBvluzLs5DO",

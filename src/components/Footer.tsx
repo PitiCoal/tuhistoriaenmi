@@ -14,7 +14,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-heading text-lg font-bold mb-3">Tu Historia en Mí</h3>
+            <h3 className="font-heading text-lg font-bold mb-3">Tu Historia En Mí</h3>
             <p className="text-sm text-white/70 leading-relaxed">
               &ldquo;Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.&rdquo;
             </p>

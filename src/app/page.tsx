@@ -5,9 +5,9 @@ import { Heart, MessageCircle, Users, HandHeart, ArrowRight } from 'lucide-react
 import { episodes } from '@/lib/episodes';
 
 const quickLinks = [
-  { href: '/donar', icon: HandHeart, label: 'Aportar', color: 'bg-accent hover:bg-accent/90' },
-  { href: '/oracion', icon: Heart, label: 'Muro de Oración', color: 'bg-gold/80 hover:bg-gold text-primary' },
-  { href: '/testimonio', icon: MessageCircle, label: 'Dar Testimonio', color: 'bg-primary hover:bg-primary/90' },
+  { href: '/donar', icon: HandHeart, label: 'Aportar', color: 'bg-primary hover:bg-primary/90' },
+  { href: '/oracion', icon: Heart, label: 'Muro de Oración', color: 'bg-accent2 hover:bg-accent2/90' },
+  { href: '/testimonio', icon: MessageCircle, label: 'Dar Testimonio', color: 'bg-primary/80 hover:bg-primary/90' },
   { href: '/comunidad', icon: Users, label: 'Comunidad', color: 'bg-secondary hover:bg-secondary/90' },
 ];
 
@@ -18,7 +18,7 @@ export default function HomePage() {
     <div className="space-y-8">
       <section className="text-center space-y-4">
         <h1 className="font-heading text-3xl md:text-4xl font-bold text-primary">
-          Tu Historia en Mí
+          Tu Historia En Mí
         </h1>
         <p className="text-secondary max-w-xl mx-auto leading-relaxed">
           Donde tu historia encuentra eco. Un espacio de testimonios reales de vida, fe y superaci&oacute;n.

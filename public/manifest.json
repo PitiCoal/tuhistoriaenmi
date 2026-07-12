@@ -4,8 +4,8 @@
   "description": "Espacio de testimonios reales de vida, fe y superación. Podcast y comunidad chilena.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5E6D3",
-  "theme_color": "#2C3E50",
+  "background_color": "#FAF4F4",
+  "theme_color": "#0085C2",
   "icons": [
     {
       "src": "/images/logo.png",

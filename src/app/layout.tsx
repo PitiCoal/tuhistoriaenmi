@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Tu Historia en Mí',
+  title: 'Tu Historia En Mí',
   description:
     'Un espacio de escucha y encuentro donde compartimos testimonios reales de vida, fe y superación. Podcast chileno.',
   icons: { icon: '/images/logo.png' },

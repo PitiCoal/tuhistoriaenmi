@@ -20,8 +20,7 @@ export default function Header() {
     <header className="bg-primary text-white sticky top-0 z-50 shadow-md">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-heading text-lg font-bold">
-          <span className="text-gold">TM</span>
-          <span className="hidden sm:inline">Tu Historia en Mí</span>
+          <span>Tu Historia En Mí</span>
         </Link>
 
         <nav className="hidden md:flex gap-6 text-sm font-medium">
