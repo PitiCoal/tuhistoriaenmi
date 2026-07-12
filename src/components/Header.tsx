@@ -6,14 +6,18 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 
-const navLinks = [
+const publicLinks = [
   { href: '/', label: 'Inicio' },
   { href: '/episodios', label: 'Episodios' },
-  { href: '/participa', label: 'Participa' },
   { href: '/comunidad', label: 'Comunidad' },
   { href: '/nosotros', label: 'Nosotros' },
   { href: '/proyectos', label: 'Proyectos' },
   { href: '/donar', label: 'Donar' },
+];
+
+const authLinks = [
+  { href: '/participa', label: 'Participa' },
+  { href: '/perfil', label: 'Mi Perfil' },
 ];
 
 const ADMIN_EMAIL = 'piti.coal@gmail.com';
@@ -28,9 +32,10 @@ export default function Header() {
   }, []);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const userLinks = user ? [...publicLinks, ...authLinks] : publicLinks;
   const allLinks = isAdmin
-    ? [...navLinks, { href: '/admin/proyectos', label: 'Admin', icon: Shield }]
-    : navLinks;
+    ? [...userLinks, { href: '/admin/proyectos', label: 'Admin', icon: Shield }]
+    : userLinks;
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b border-gray-200/70">

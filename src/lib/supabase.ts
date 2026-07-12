@@ -47,3 +47,56 @@ export async function saveParticipaEntry(entry: any) {
 export async function deleteParticipaEntry(id: string) {
   return supabase.from('participa').delete().eq('id', id);
 }
+
+// ===== PROFILES =====
+export async function getProfile(userId: string) {
+  const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+  return data;
+}
+
+export async function upsertProfile(profile: { user_id: string; display_name?: string; photo_url?: string; country?: string; age?: number; bio?: string }) {
+  return supabase.from('profiles').upsert(profile, { onConflict: 'user_id' });
+}
+
+export async function getAllProfiles() {
+  const { data } = await supabase.from('profiles').select('*').order('display_name');
+  return data || [];
+}
+
+// ===== MURO POSTS =====
+export async function getMuroPosts() {
+  const { data } = await supabase.from('muro_posts').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createMuroPost(post: { user_id?: string | null; author_name?: string | null; content: string; image_url?: string | null }) {
+  return supabase.from('muro_posts').insert(post).select().single();
+}
+
+export async function deleteMuroPost(id: string) {
+  return supabase.from('muro_posts').delete().eq('id', id);
+}
+
+// ===== MURO REPLIES =====
+export async function getMuroReplies(postId: string) {
+  const { data } = await supabase.from('muro_replies').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+  return data || [];
+}
+
+export async function createMuroReply(reply: { post_id: string; user_id?: string | null; author_name?: string | null; content: string }) {
+  return supabase.from('muro_replies').insert(reply).select().single();
+}
+
+export async function deleteMuroReply(id: string) {
+  return supabase.from('muro_replies').delete().eq('id', id);
+}
+
+// ===== STORAGE UPLOAD =====
+export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `${folder}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file);
+  if (error) { console.error('Upload error:', error); return null; }
+  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
+  return publicUrl;
+}
