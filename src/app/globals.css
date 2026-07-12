@@ -4,8 +4,7 @@
   --color-primary: #0085C2;
   --color-primary-dark: #1A3A5C;
   --color-secondary: #5BA3A8;
-  --color-bg: rgba(255, 255, 255, 0.85);
-  --color-bg-card: rgba(255, 255, 255, 0.95);
+  --color-bg: #D4C8BB;
   --color-card: #FFFFFF;
   --color-text: #1A1A1A;
   --color-text-light: #6B6358;
@@ -25,20 +24,12 @@
 body {
   font-family: var(--font-body);
   color: var(--color-text);
-  background-image: url('/images/fondo-podcast.jpg');
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-main {
-  backdrop-filter: blur(2px);
+  background-color: var(--color-bg);
 }
 
 main > div {
-  background-color: rgba(255, 255, 255, 0.88);
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  background-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
 }

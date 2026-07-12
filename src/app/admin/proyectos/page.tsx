@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 
-type Tab = 'proyectos' | 'episodios';
+type Tab = 'proyectos' | 'episodios' | 'inicio';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -26,6 +26,7 @@ function saveToStorage(key: string, data: any) {
 
 const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '' };
 const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description: '', image: '', youtube: '', spotify: '', apple: '', amazon: '' };
+const HERO_KEY = 'tm_hero_image';
 
 export default function AdminProyectosPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -72,6 +73,7 @@ export default function AdminProyectosPage() {
       <div className="flex gap-2">
         <button onClick={() => setTab('proyectos')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'proyectos' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FolderKanban size={16} /> Proyectos</button>
         <button onClick={() => setTab('episodios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'episodios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Mic size={16} /> Episodios</button>
+        <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -87,6 +89,8 @@ export default function AdminProyectosPage() {
           form={eForm} setForm={setEForm} editingId={eEditingId} setEditingId={setEEditingId}
         />
       )}
+
+      {tab === 'inicio' && <HeroSettingsTab />}
     </div>
   );
 }
@@ -247,6 +251,80 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
         })}
         {mergedEpisodes.length === 0 && <p className="text-center text-text-light py-8">Aún no hay episodios.</p>}
       </div>
+    </div>
+  );
+}
+
+function HeroSettingsTab() {
+  const [heroImage, setHeroImage] = useState('');
+  const [preview, setPreview] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(HERO_KEY);
+    if (saved) { setPreview(saved); setHeroImage(saved); }
+    else setPreview('/images/hero-bg.png');
+  }, []);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const data = ev.target?.result as string;
+        setHeroImage(data);
+        setPreview(data);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleSave() {
+    if (heroImage) {
+      localStorage.setItem(HERO_KEY, heroImage);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+  }
+
+  function handleReset() {
+    localStorage.removeItem(HERO_KEY);
+    setHeroImage('');
+    setPreview('/images/hero-bg.png');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  return (
+    <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+      <h2 className="font-semibold text-primary-dark">Imagen de inicio (Hero)</h2>
+      <p className="text-sm text-text-light">Esta imagen aparece en la pantalla principal de la página de inicio.</p>
+
+      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+        {preview && <img src={preview} alt="Hero preview" className="w-full h-full object-cover" />}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <label className="flex-1">
+          <span className="text-xs text-text-light block mb-1">Subir imagen desde tu compu:</span>
+          <input type="file" accept="image/*" onChange={handleFile}
+            className="w-full text-sm text-text-light file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary/90" />
+        </label>
+        <span className="text-xs text-text-light pt-5">o</span>
+        <input type="text" placeholder="Pegar URL de imagen" value={heroImage.startsWith('data:') ? '' : heroImage}
+          onChange={e => { setHeroImage(e.target.value); setPreview(e.target.value); }}
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={handleSave} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+          <Save size={14} /> Guardar imagen
+        </button>
+        <button onClick={handleReset} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-colors">
+          Restaurar imagen original
+        </button>
+      </div>
+      {saved && <p className="text-green-600 text-xs">¡Guardado! Recarga la página de inicio para ver el cambio.</p>}
     </div>
   );
 }
