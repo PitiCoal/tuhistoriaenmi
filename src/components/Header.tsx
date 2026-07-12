@@ -5,6 +5,7 @@ import { Menu, X, LogIn, LogOut, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
+import { upsertProfile } from '@/lib/supabase';
 
 const publicLinks = [
   { href: '/', label: 'Inicio' },
@@ -27,7 +28,10 @@ export default function Header() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    const unsub = onAuthStateChanged(auth, u => {
+      setUser(u);
+      if (u) upsertProfile({ user_id: u.uid, display_name: u.displayName || undefined }).catch(() => {});
+    });
     return unsub;
   }, []);
 

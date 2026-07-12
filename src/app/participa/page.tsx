@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles } from '@/lib/supabase';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction as supabaseToggleReaction, getReactionCount, getUserReactions } from '@/lib/supabase';
 import { signInWithGoogle } from '@/lib/firebase';
 import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply } from 'lucide-react';
 import Link from 'next/link';
@@ -39,10 +39,31 @@ export default function ParticipaPage() {
   const [repliesData, setRepliesData] = useState<Record<string, any[]>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Reaction state
+  const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [muroReactions, setMuroReactions] = useState<Set<string>>(new Set());
+  const [muroReactionCounts, setMuroReactionCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && tabs.some(t => t.id === hash)) setActiveTab(hash as Tab);
+  }, []);
+
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u?.displayName) setName(u.displayName);
+      if (u) {
+        const reacted = await getUserReactions('participa', u.uid);
+        setUserReactions(reacted);
+        const reactedMuro = await getUserReactions('muro_post', u.uid);
+        setMuroReactions(reactedMuro);
+      }
     });
     try { const d = localStorage.getItem('tm_participa'); if (d) setEntries(JSON.parse(d)); } catch {}
     return unsub;
@@ -59,6 +80,12 @@ export default function ParticipaPage() {
     setMuroPosts(posts);
     const all = await getAllProfiles();
     setProfiles(all);
+    posts.forEach(p => loadMuroReactionCount(p.id));
+  }
+
+  async function loadMuroReactionCount(postId: string) {
+    const count = await getReactionCount('muro_post', postId);
+    setMuroReactionCounts(prev => ({ ...prev, [postId]: count }));
   }
 
   function getUserProfile(userId: string | null) {
@@ -152,7 +179,6 @@ export default function ParticipaPage() {
     reader.readAsDataURL(file);
   }
 
-  // --- existing participa handlers ---
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
@@ -161,6 +187,30 @@ export default function ParticipaPage() {
     setEntries(updated);
     localStorage.setItem('tm_participa', JSON.stringify(updated));
     setText(''); setName('');
+  }
+
+  async function handleReact(entryId: string) {
+    if (!user || user === 'loading') return;
+    const added = await supabaseToggleReaction('participa', entryId, user.uid);
+    if (added) {
+      setUserReactions(prev => new Set(prev).add(entryId));
+      setReactionCounts(prev => ({ ...prev, [entryId]: (prev[entryId] || 0) + 1 }));
+    } else {
+      setUserReactions(prev => { const n = new Set(prev); n.delete(entryId); return n; });
+      setReactionCounts(prev => ({ ...prev, [entryId]: Math.max(0, (prev[entryId] || 0) - 1) }));
+    }
+  }
+
+  async function handleMuroReact(postId: string) {
+    if (!user || user === 'loading') return;
+    const added = await supabaseToggleReaction('muro_post', postId, user.uid);
+    if (added) {
+      setMuroReactions(prev => new Set(prev).add(postId));
+      setMuroReactionCounts(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+    } else {
+      setMuroReactions(prev => { const n = new Set(prev); n.delete(postId); return n; });
+      setMuroReactionCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
+    }
   }
 
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
@@ -203,7 +253,6 @@ export default function ParticipaPage() {
             </div>
           ) : (
             <>
-              {/* Post form */}
               <form onSubmit={handleMuroSubmit} className="bg-card rounded-xl p-4 md:p-6 border border-gray-200/70 shadow-md space-y-3">
                 <textarea placeholder="Comparte algo con la comunidad..." value={muroText} onChange={e => setMuroText(e.target.value)} maxLength={1000} rows={3}
                   className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" required />
@@ -233,7 +282,6 @@ export default function ParticipaPage() {
                 </button>
               </form>
 
-              {/* Posts feed */}
               {muroPosts.length === 0 ? (
                 <p className="text-center text-text-light py-8 md:py-12 text-xs md:text-sm">Aún no hay nada aquí. Sé el primero.</p>
               ) : (
@@ -242,8 +290,9 @@ export default function ParticipaPage() {
                     const authorPhoto = getAuthorPhoto(post);
                     const authorName = getAuthorName(post);
                     const canDelete = (user as any)?.uid && post.user_id === (user as any).uid;
-                    const hasReplies = repliesData[post.id]?.length > 0;
                     const replyCount = repliesData[post.id]?.length || 0;
+                    const prayed = muroReactions.has(post.id);
+                    const prayCount = muroReactionCounts[post.id] || 0;
 
                     return (
                       <div key={post.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-3">
@@ -281,6 +330,12 @@ export default function ParticipaPage() {
                         )}
 
                         <div className="flex items-center gap-2 pt-1">
+                          <button onClick={() => handleMuroReact(post.id)}
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              prayed ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary'
+                            }`}>
+                            🙏 {prayCount > 0 ? prayCount : 'Rezar'}
+                          </button>
                           <button onClick={() => toggleReplies(post.id)}
                             className="inline-flex items-center gap-1 text-xs text-text-light hover:text-primary transition-colors">
                             <Reply size={12} /> {replyCount > 0 ? `${replyCount} respuestas` : 'Responder'}
@@ -320,7 +375,6 @@ export default function ParticipaPage() {
         </>
       ) : (
         <>
-          {/* Existing participa tabs (oraciones, reflexiones, sugerencias) */}
           {!user ? (
             <div className="bg-card rounded-xl p-6 md:p-8 border border-gray-200/70 shadow-md text-center space-y-3">
               <User size={48} className="mx-auto text-text-light" />
@@ -360,24 +414,24 @@ export default function ParticipaPage() {
                 <p className="text-center text-text-light py-8 md:py-12 text-xs md:text-sm">Aún no hay nada aquí. Sé el primero.</p>
               ) : (
                 <div className="space-y-2 md:space-y-3">
-                  {filtered.map(e => (
-                    <div key={e.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-1.5 md:space-y-2">
-                      <p className="text-xs md:text-sm text-text leading-relaxed">{e.text}</p>
-                      <div className="flex items-center justify-between text-[11px] md:text-sm text-text-light">
-                        <span className="flex items-center gap-1"><User size={12} /> {e.name || 'Anónimo'}</span>
-                        <button onClick={() => {
-                          if (localStorage.getItem(`participa_reacted_${e.id}`)) return;
-                          const upd = entries.map(ee => ee.id === e.id ? { ...ee, reactions: ee.reactions + 1 } : ee);
-                          setEntries(upd);
-                          localStorage.setItem('tm_participa', JSON.stringify(upd));
-                          localStorage.setItem(`participa_reacted_${e.id}`, 'true');
-                        }}
-                          className="inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors">
-                          <Heart size={10} /> {e.reactions}
-                        </button>
+                  {filtered.map(e => {
+                    const prayed = userReactions.has(e.id);
+                    const count = reactionCounts[e.id] ?? e.reactions;
+                    return (
+                      <div key={e.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-1.5 md:space-y-2">
+                        <p className="text-xs md:text-sm text-text leading-relaxed">{e.text}</p>
+                        <div className="flex items-center justify-between text-[11px] md:text-sm text-text-light">
+                          <span className="flex items-center gap-1"><User size={12} /> {e.name || 'Anónimo'}</span>
+                          <button onClick={() => handleReact(e.id)}
+                            className={`inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium transition-colors ${
+                              prayed ? 'bg-primary/10 text-primary' : 'bg-gray-100 hover:bg-primary/10 hover:text-primary'
+                            }`}>
+                            🙏 {count > 0 ? count : 'Rezar'}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>

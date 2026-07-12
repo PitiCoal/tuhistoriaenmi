@@ -92,6 +92,33 @@ export async function deleteMuroReply(id: string) {
 }
 
 // ===== STORAGE UPLOAD =====
+// ===== REACTIONS =====
+export async function toggleReaction(targetType: string, targetId: string, userId: string) {
+  const existing = await supabase.from('reactions').select('id')
+    .eq('target_type', targetType).eq('target_id', targetId).eq('user_id', userId)
+    .maybeSingle();
+  if (existing.data) {
+    await supabase.from('reactions').delete().eq('id', existing.data.id);
+    return false;
+  }
+  await supabase.from('reactions').insert({ target_type: targetType, target_id: targetId, user_id: userId });
+  return true;
+}
+
+export async function getReactionCount(targetType: string, targetId: string) {
+  const { count } = await supabase.from('reactions')
+    .select('*', { count: 'exact', head: true })
+    .eq('target_type', targetType).eq('target_id', targetId);
+  return count || 0;
+}
+
+export async function getUserReactions(targetType: string, userId: string) {
+  const { data } = await supabase.from('reactions')
+    .select('target_id').eq('target_type', targetType).eq('user_id', userId);
+  return new Set(data?.map(r => r.target_id) || []);
+}
+
+// ===== STORAGE UPLOAD =====
 export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';
   const path = `${folder}/${Date.now()}.${ext}`;

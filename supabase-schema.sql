@@ -130,6 +130,32 @@ CREATE POLICY IF NOT EXISTS "Lectura pública replies" ON muro_replies FOR SELEC
 CREATE POLICY IF NOT EXISTS "Inserción autenticada replies" ON muro_replies FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY IF NOT EXISTS "Eliminación propia replies" ON muro_replies FOR DELETE USING (auth.uid()::text = user_id);
 
+-- ============================================
+-- REACTIONS
+-- ============================================
+CREATE TABLE IF NOT EXISTS reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  user_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(target_type, target_id, user_id)
+);
+
+ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Lectura pública reactions" ON reactions;
+CREATE POLICY "Lectura pública reactions" ON reactions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Inserción autenticada reactions" ON reactions;
+CREATE POLICY "Inserción autenticada reactions" ON reactions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Eliminación propia reactions" ON reactions;
+CREATE POLICY "Eliminación propia reactions" ON reactions FOR DELETE USING (auth.uid()::text = user_id);
+
 -- Storage public access
-CREATE POLICY IF NOT EXISTS "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images'));
-CREATE POLICY IF NOT EXISTS "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images'));
+
+DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;
+CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (auth.role() = 'authenticated');
