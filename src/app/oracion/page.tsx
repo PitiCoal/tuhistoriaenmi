@@ -3,68 +3,67 @@
 import { useState, useEffect } from 'react';
 import { Heart, Send } from 'lucide-react';
 
-type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedBy: string[] };
-const STORAGE_KEY = 'tm_intentions';
-
-function load(): Intention[] {
-  if (typeof window === 'undefined') return [];
-  try { const d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
-}
+type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedBy: string[]; };
 
 export default function OracionPage() {
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [text, setText] = useState(''); const [anonymous, setAnonymous] = useState(false); const [name, setName] = useState('');
-  useEffect(() => { setIntentions(load()); }, []);
 
-  function save(n: Intention[]) { setIntentions(n); localStorage.setItem(STORAGE_KEY, JSON.stringify(n)); }
+  useEffect(() => {
+    try { const d = localStorage.getItem('tm_intentions'); if (d) setIntentions(JSON.parse(d)); } catch {}
+  }, []);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
-    save([{ id: Date.now().toString(), text: text.trim(), name: anonymous ? null : name.trim() || null, createdAt: Date.now(), reactions: 0, prayedBy: [] }, ...intentions]);
+    const updated = [{ id: Date.now().toString(), text: text.trim(), name: anonymous ? null : name.trim() || null, createdAt: Date.now(), reactions: 0, prayedBy: [] }, ...intentions];
+    setIntentions(updated);
+    localStorage.setItem('tm_intentions', JSON.stringify(updated));
     setText(''); setName('');
-  }
-  function handleReact(id: string) {
-    if (localStorage.getItem(`reacted_${id}`)) return;
-    save(intentions.map(i => i.id === id ? { ...i, reactions: i.reactions + 1 } : i));
-    localStorage.setItem(`reacted_${id}`, 'true');
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md text-center">
-        <h1 className="font-heading text-2xl md:text-3xl font-bold text-primary-dark">Muro de Oración</h1>
-        <p className="text-text-light text-sm mt-1">Deja tu intención para que otros oren por ti.</p>
+    <div className="space-y-4 md:space-y-6 max-w-2xl mx-auto">
+      <div className="bg-card rounded-xl md:rounded-2xl p-5 md:p-8 border border-gray-200/70 shadow-md text-center">
+        <h1 className="font-heading text-xl md:text-3xl font-bold text-primary-dark">Muro de Oración</h1>
+        <p className="text-text-light text-xs md:text-sm mt-1">Deja tu intención para que otros oren por ti.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
-        <textarea placeholder="Escribe tu intención de oración..." value={text} onChange={e => setText(e.target.value)}
-          maxLength={500} rows={3} className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" required />
-        <div className="flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-text-light cursor-pointer">
+      <form onSubmit={handleSubmit} className="bg-card rounded-xl p-4 md:p-6 border border-gray-200/70 shadow-md space-y-3 md:space-y-4">
+        <textarea placeholder="Escribe tu intención..." value={text} onChange={e => setText(e.target.value)} maxLength={500} rows={3}
+          className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" required />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs md:text-sm text-text-light cursor-pointer">
             <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)}
               className="rounded border-gray-300 text-primary focus:ring-primary" /> Anónimo
           </label>
-          {!anonymous && <input type="text" placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)}
-            maxLength={50} className="flex-1 min-w-[150px] px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />}
+          {!anonymous && <input type="text" placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)} maxLength={50}
+            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />}
         </div>
         <button type="submit" disabled={!text.trim()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
-          <Send size={16} /> Publicar
+          className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <Send size={14} /> Publicar
         </button>
       </form>
 
       {intentions.length === 0 ? (
-        <p className="text-center text-text-light py-12 bg-card rounded-xl border border-gray-200/70 shadow-md">Aún no hay intenciones. ¡Sé el primero!</p>
+        <p className="text-center text-text-light py-8 md:py-12 text-xs md:text-sm bg-card rounded-xl border border-gray-200/70 shadow-md">Aún no hay intenciones.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {intentions.map(i => (
-            <div key={i.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md space-y-2">
-              <p className="text-text leading-relaxed">{i.text}</p>
-              <div className="flex items-center justify-between text-sm text-text-light">
+            <div key={i.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-1.5 md:space-y-2">
+              <p className="text-xs md:text-sm text-text leading-relaxed">{i.text}</p>
+              <div className="flex items-center justify-between text-[11px] md:text-sm text-text-light">
                 <span>{i.name || 'Anónimo'}</span>
-                <button onClick={() => handleReact(i.id)} disabled={!!localStorage.getItem(`reacted_${i.id}`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors disabled:bg-primary/10 disabled:text-primary">
-                  <Heart size={14} fill={localStorage.getItem(`reacted_${i.id}`) ? 'currentColor' : 'none'} /> {i.reactions}
+                <button onClick={() => {
+                  if (localStorage.getItem(`reacted_${i.id}`)) return;
+                  const upd = intentions.map(ii => ii.id === i.id ? { ...ii, reactions: ii.reactions + 1 } : ii);
+                  setIntentions(upd);
+                  localStorage.setItem('tm_intentions', JSON.stringify(upd));
+                  localStorage.setItem(`reacted_${i.id}`, 'true');
+                }}
+                  className="inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors">
+                  <Heart size={10} /> {i.reactions}
                 </button>
               </div>
             </div>

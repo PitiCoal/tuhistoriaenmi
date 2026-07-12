@@ -26,62 +26,53 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <section className="relative rounded-2xl overflow-hidden min-h-[320px] flex items-center">
+    <div className="space-y-6 md:space-y-8">
+      <section className="relative rounded-xl md:rounded-2xl overflow-hidden min-h-[260px] md:min-h-[340px] flex items-center">
         <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
-        <div className="relative z-10 p-8 md:p-12 w-full space-y-5">
-          <img src="/images/logo.png" alt="" className="h-14 w-14 brightness-0 invert opacity-90" />
-          <h1 className="font-heading text-3xl md:text-4xl font-bold text-white leading-tight max-w-lg">
-            Tu Historia En Mí
-          </h1>
-          <p className="text-white/70 text-lg leading-relaxed max-w-md">
-            Donde tu historia encuentra eco. Testimonios reales de vida, fe y superaci&oacute;n.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/episodios" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm">
-              Escuchar episodios <ArrowRight size={16} />
+        <div className="relative z-10 p-5 md:p-12 w-full space-y-3 md:space-y-5">
+          <img src="/images/logo.png" alt="" className="h-10 w-10 md:h-14 md:w-14 brightness-0 invert opacity-90" />
+          <h1 className="font-heading text-2xl md:text-4xl font-bold text-white leading-tight max-w-lg">Tu Historia En Mí</h1>
+          <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-md">Donde tu historia encuentra eco. Testimonios reales de vida, fe y superaci&oacute;n.</p>
+          <div className="flex flex-wrap gap-2 md:gap-3">
+            <Link href="/episodios" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white font-semibold rounded-lg text-xs md:text-sm hover:bg-primary/90 transition-colors shadow-sm">
+              Escuchar episodios <ArrowRight size={14} />
             </Link>
-            <Link href="/oracion" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/15 text-white font-semibold rounded-lg text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
-              Dejar oraci&oacute;n <Heart size={16} />
+            <Link href="/oracion" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
+              Dejar oraci&oacute;n <Heart size={14} />
             </Link>
           </div>
         </div>
       </section>
 
       <PlatformShowcase />
-
       <DailyVerse />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         {quickLinks.map(link => (
           <Link key={link.href} href={link.href}
-            className="bg-primary text-white rounded-xl p-5 flex flex-col items-center gap-2 text-center transition-all hover:bg-primary/90 hover:scale-[1.02] shadow-lg shadow-primary/20"
+            className="bg-primary text-white rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 text-center transition-all hover:bg-primary/90 hover:scale-[1.02] shadow-lg shadow-primary/20"
           >
-            <link.icon size={24} />
-            <span className="text-sm font-semibold">{link.label}</span>
-            <span className="text-xs text-white/60">{link.desc}</span>
+            <link.icon size={20} />
+            <span className="text-xs md:text-sm font-semibold leading-tight">{link.label}</span>
+            <span className="text-[10px] md:text-xs text-white/60 hidden md:block">{link.desc}</span>
           </Link>
         ))}
       </div>
 
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-xl font-bold text-primary-dark">Último Episodio</h2>
-          <Link href="/episodios" className="text-sm text-primary flex items-center gap-1 hover:underline font-medium">
-            Ver todos <ArrowRight size={14} />
-          </Link>
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <h2 className="font-heading text-lg md:text-xl font-bold text-primary-dark">Último Episodio</h2>
+          <Link href="/episodios" className="text-xs md:text-sm text-primary flex items-center gap-1 hover:underline font-medium">Ver todos <ArrowRight size={12} /></Link>
         </div>
-        <div className="max-w-sm">
-          <EpisodeCard episode={latest} />
-        </div>
+        <div className="max-w-sm mx-auto md:mx-0"><EpisodeCard episode={latest} /></div>
       </section>
 
-      <section className="bg-card rounded-2xl p-8 text-center space-y-4 border border-gray-200/70 shadow-md">
-        <h2 className="font-heading text-xl font-bold text-primary-dark">Comparte tu historia</h2>
-        <p className="text-text-light max-w-md mx-auto leading-relaxed">Tu testimonio puede ser la luz que alguien necesita hoy.</p>
-        <Link href="/testimonio" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm hover:bg-primary/90 transition-colors shadow-sm">
-          <MessageCircle size={16} /> Quiero compartir
+      <section className="bg-card rounded-xl md:rounded-2xl p-5 md:p-8 text-center space-y-3 md:space-y-4 border border-gray-200/70 shadow-md">
+        <h2 className="font-heading text-lg md:text-xl font-bold text-primary-dark">Comparte tu historia</h2>
+        <p className="text-text-light text-sm md:text-base max-w-md mx-auto leading-relaxed">Tu testimonio puede ser la luz que alguien necesita hoy.</p>
+        <Link href="/testimonio" className="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white font-semibold rounded-lg text-xs md:text-sm hover:bg-primary/90 transition-colors shadow-sm">
+          <MessageCircle size={14} /> Quiero compartir
         </Link>
       </section>
     </div>
