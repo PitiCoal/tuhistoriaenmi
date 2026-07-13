@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
 import InstallPrompt from '@/components/InstallPrompt';
+import NotificationPrompt from '@/components/NotificationPrompt';
 import { AuthProvider } from '@/lib/AuthContext';
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <MobileNav />
           <InstallPrompt />
+          <NotificationPrompt />
           <Footer />
         </AuthProvider>
       </body>

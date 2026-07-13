@@ -236,6 +236,24 @@ export async function getTestimonios() {
   return data || [];
 }
 
+// ===== PUSH SUBSCRIPTIONS =====
+export async function savePushSubscription(sub: { user_id?: string | null; endpoint: string; keys: Record<string, string> }) {
+  return supabase.from('push_subscriptions').upsert(
+    { user_id: sub.user_id || null, endpoint: sub.endpoint, keys: sub.keys },
+    { onConflict: 'endpoint' }
+  );
+}
+
+export async function getAllPushSubscriptions() {
+  const { data } = await supabase.from('push_subscriptions').select('endpoint, keys');
+  return data || [];
+}
+
+export async function getPushSubscriptionCount() {
+  const { count } = await supabase.from('push_subscriptions').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
 // ===== STORAGE UPLOAD =====
 export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -77,6 +77,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
         <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
         <button onClick={() => setTab('impacto')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'impacto' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Impacto</button>
+        <button onClick={() => setTab('notificaciones')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'notificaciones' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Bell size={16} /> Notificaciones</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -104,6 +105,8 @@ export default function AdminProyectosPage() {
       {tab === 'paginas' && <PaginasTab />}
 
       {tab === 'impacto' && <ImpactoTab />}
+
+      {tab === 'notificaciones' && <NotificacionesTab />}
     </div>
   );
 }
@@ -595,6 +598,83 @@ function PaginasTab() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function NotificacionesTab() {
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [url, setUrl] = useState('/');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [subCount, setSubCount] = useState(0);
+
+  useEffect(() => { getPushSubscriptionCount().then(setSubCount); }, []);
+
+  async function handleSend() {
+    if (!title.trim()) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/notifications/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim(), body: body.trim(), url: url.trim() || '/' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult({ ok: true, msg: `Enviada a ${data.sent} dispositivos${data.failed > 0 ? ` (${data.failed} fallaron)` : ''}` });
+        setTitle(''); setBody('');
+      } else {
+        setResult({ ok: false, msg: data.error || 'Error al enviar' });
+      }
+    } catch {
+      setResult({ ok: false, msg: 'Error de conexión' });
+    }
+    setSending(false);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell size={18} className="text-primary" />
+          <h2 className="font-semibold text-primary-dark">Enviar notificación</h2>
+        </div>
+        <p className="text-xs text-text-light">{subCount} dispositivos suscritos</p>
+
+        {result && (
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
+            result.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {result.ok ? <Bell size={16} /> : <Send size={16} />} {result.msg}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Título *</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={50}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Nuevo episodio disponible" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Mensaje</label>
+            <textarea value={body} onChange={e => setBody(e.target.value)} maxLength={200} rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Ya puedes escuchar el nuevo episodio..." />
+            <p className="text-xs text-text-light/60 mt-1">{body.length}/200</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">URL al abrir</label>
+            <input type="text" value={url} onChange={e => setUrl(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="/" />
+          </div>
+        </div>
+
+        <button onClick={handleSend} disabled={sending || !title.trim()}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
+          <Send size={16} /> {sending ? 'Enviando...' : `Enviar a ${subCount} dispositivos`}
+        </button>
+      </div>
     </div>
   );
 }

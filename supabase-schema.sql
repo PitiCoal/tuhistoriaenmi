@@ -274,6 +274,24 @@ DROP POLICY IF EXISTS "Escritura pública impact_metrics" ON impact_metrics;
 CREATE POLICY "Lectura pública impact_metrics" ON impact_metrics FOR SELECT USING (true);
 CREATE POLICY "Escritura pública impact_metrics" ON impact_metrics FOR ALL USING (true);
 
+-- ============================================
+-- PUSH SUBSCRIPTIONS (notificaciones)
+-- ============================================
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT,
+  endpoint TEXT UNIQUE NOT NULL,
+  keys JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Inserción pública push_subscriptions" ON push_subscriptions;
+DROP POLICY IF EXISTS "Escritura pública push_subscriptions" ON push_subscriptions;
+CREATE POLICY "Inserción pública push_subscriptions" ON push_subscriptions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Escritura pública push_subscriptions" ON push_subscriptions FOR ALL USING (true);
+
 -- Storage buckets access (profile-photos, muro-images)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
