@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth, signInWithGoogle } from '@/lib/firebase';
+import { useAuth } from '@/lib/AuthContext';
 import { getProfile, upsertProfile, uploadFile } from '@/lib/supabase';
-import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight } from 'lucide-react';
+import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PerfilPage() {
-  const [user, setUser] = useState<FirebaseUser | null | 'loading'>('loading');
+  const { user, signIn } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [displayName, setDisplayName] = useState('');
   const [country, setCountry] = useState('');
@@ -16,34 +15,40 @@ export default function PerfilPage() {
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (!u) { setUser(null); return; }
-      const p = await getProfile(u.uid);
+    if (!user || user === 'loading') return;
+    getProfile(user.uid).then(p => {
       if (p) {
         setProfile(p);
-        setDisplayName(p.display_name || u.displayName || '');
+        setDisplayName(p.display_name || user.displayName || '');
         setCountry(p.country || '');
         setAge(p.age?.toString() || '');
         setBio(p.bio || '');
       } else {
-        setDisplayName(u.displayName || '');
+        setDisplayName(user.displayName || '');
       }
     });
-    return unsub;
-  }, []);
+  }, [user]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !user || user === 'loading') return;
     setUploading(true);
+    setFeedback(null);
     const url = await uploadFile('profile-photos', user.uid, file);
     if (url) {
       setProfile((p: any) => ({ ...p, photo_url: url }));
-      await upsertProfile({ user_id: user.uid, photo_url: url });
+      const { error } = await upsertProfile({ user_id: user.uid, photo_url: url });
+      if (error) {
+        setFeedback({ ok: false, msg: 'Error al guardar la foto: ' + error.message });
+      } else {
+        setFeedback({ ok: true, msg: 'Foto actualizada correctamente' });
+      }
+    } else {
+      setFeedback({ ok: false, msg: 'Error al subir la imagen' });
     }
     setUploading(false);
   }
@@ -51,13 +56,21 @@ export default function PerfilPage() {
   async function handleSave() {
     if (!user || user === 'loading') return;
     setSaving(true);
-    await upsertProfile({
+    setFeedback(null);
+    const { error } = await upsertProfile({
       user_id: user.uid,
       display_name: displayName.trim() || undefined,
+      photo_url: profile?.photo_url || undefined,
       country: country.trim() || undefined,
       age: age ? parseInt(age) : undefined,
       bio: bio.trim() || undefined,
     });
+    if (error) {
+      setFeedback({ ok: false, msg: 'Error al guardar: ' + error.message });
+    } else {
+      setFeedback({ ok: true, msg: 'Perfil guardado correctamente' });
+      setProfile((p: any) => ({ ...p, display_name: displayName.trim() || undefined }));
+    }
     setSaving(false);
   }
 
@@ -69,8 +82,8 @@ export default function PerfilPage() {
         <User size={48} className="mx-auto text-text-light" />
         <h1 className="font-heading text-2xl font-bold text-primary-dark">Inicia sesión</h1>
         <p className="text-text-light text-sm">Necesitas iniciar sesión para tener un perfil.</p>
-        <button onClick={() => signInWithGoogle()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+        <button onClick={() => signIn()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-95">
           <LogIn size={16} /> Iniciar sesión
         </button>
       </div>
@@ -92,13 +105,22 @@ export default function PerfilPage() {
               </div>
             )}
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow hover:bg-primary/90 disabled:opacity-50">
+              className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow hover:bg-primary/90 disabled:opacity-50 active:scale-90">
               <Camera size={14} />
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
           </div>
           {uploading && <p className="text-xs text-text-light">Subiendo imagen...</p>}
         </div>
+
+        {feedback && (
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
+            feedback.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {feedback.ok ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+            {feedback.msg}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -127,7 +149,7 @@ export default function PerfilPage() {
         </div>
 
         <button onClick={handleSave} disabled={saving}
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
           <Save size={16} /> {saving ? 'Guardando...' : 'Guardar perfil'}
         </button>
       </div>
