@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3 } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -75,6 +75,8 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participa</button>
         <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
         <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
+        <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
+        <button onClick={() => setTab('impacto')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'impacto' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Impacto</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -98,6 +100,10 @@ export default function AdminProyectosPage() {
       {tab === 'auspiciadores' && <AuspiciadoresTab />}
 
       {tab === 'perfiles' && <PerfilesTab />}
+
+      {tab === 'paginas' && <PaginasTab />}
+
+      {tab === 'impacto' && <ImpactoTab />}
     </div>
   );
 }
@@ -494,6 +500,182 @@ function PerfilesTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+const PAGINAS_SECTIONS: Record<string, { label: string; sections: { key: string; label: string; type: 'text' | 'textarea' | 'image' }[] }> = {
+  nosotros: {
+    label: 'Nosotros',
+    sections: [
+      { key: 'hero_title', label: 'Título del hero', type: 'text' },
+      { key: 'hero_subtitle', label: 'Subtítulo del hero', type: 'text' },
+      { key: 'como_empezo', label: 'Cómo empezó', type: 'textarea' },
+      { key: 'que_buscamos', label: 'Qué buscamos', type: 'textarea' },
+      { key: 'mision', label: 'Misión', type: 'textarea' },
+      { key: 'vision', label: 'Visión', type: 'textarea' },
+      { key: 'valores', label: 'Valores', type: 'textarea' },
+      { key: 'creadora_bio', label: 'Bio de la creadora', type: 'textarea' },
+      { key: 'oracion', label: 'Oración', type: 'textarea' },
+    ],
+  },
+};
+
+function PaginasTab() {
+  const [page, setPage] = useState('nosotros');
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { load(); }, [page]);
+
+  async function load() {
+    const data = await getPageContent(page);
+    setContent(data);
+  }
+
+  async function handleSave(key: string) {
+    setSaving(true);
+    await upsertPageContent(page, key, content[key] || '');
+    setSaving(false);
+  }
+
+  async function handleSaveAll() {
+    setSaving(true);
+    for (const section of PAGINAS_SECTIONS[page].sections) {
+      await upsertPageContent(page, section.key, content[section.key] || '');
+    }
+    setSaving(false);
+  }
+
+  const sections = PAGINAS_SECTIONS[page]?.sections || [];
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-primary-dark">Editor de contenido</h2>
+          <select value={page} onChange={e => setPage(e.target.value)}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+            {Object.entries(PAGINAS_SECTIONS).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+        <p className="text-xs text-text-light">Edita el contenido de cada página. Los cambios se guardan en Supabase.</p>
+      </div>
+
+      <div className="space-y-4">
+        {sections.map(s => (
+          <div key={s.key} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-primary-dark">{s.label}</label>
+            </div>
+            {s.type === 'text' ? (
+              <input type="text" value={content[s.key] || ''} onChange={e => setContent({ ...content, [s.key]: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            ) : s.type === 'textarea' ? (
+              <textarea value={content[s.key] || ''} onChange={e => setContent({ ...content, [s.key]: e.target.value })}
+                rows={4} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            ) : null}
+            <div className="flex justify-end">
+              <button onClick={() => handleSave(s.key)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                <Save size={12} /> Guardar sección
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {sections.length > 0 && (
+        <div className="flex justify-center">
+          <button onClick={handleSaveAll} disabled={saving}
+            className="inline-flex items-center gap-1.5 px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
+            <Save size={14} /> {saving ? 'Guardando...' : 'Guardar todas las secciones'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImpactoTab() {
+  const [metrics, setMetrics] = useState<any[]>([]);
+  const [form, setForm] = useState({ label: '', value: '', icon: 'heart' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => { loadMetrics(); }, []);
+
+  async function loadMetrics() { setMetrics(await getImpactMetrics()); }
+
+  async function add() {
+    if (!form.label.trim() || !form.value.trim()) return;
+    await createImpactMetric({ label: form.label.trim(), value: form.value.trim(), icon: form.icon, sort_order: metrics.length });
+    setForm({ label: '', value: '', icon: 'heart' });
+    await loadMetrics();
+  }
+
+  async function update() {
+    if (!editingId || !form.label.trim() || !form.value.trim()) return;
+    await updateImpactMetric(editingId, { label: form.label.trim(), value: form.value.trim(), icon: form.icon });
+    setEditingId(null); setForm({ label: '', value: '', icon: 'heart' });
+    await loadMetrics();
+  }
+
+  async function del(id: string) {
+    if (!confirm('¿Eliminar métrica?')) return;
+    await deleteImpactMetric(id);
+    await loadMetrics();
+  }
+
+  function edit(m: any) {
+    setEditingId(m.id);
+    setForm({ label: m.label, value: m.value, icon: m.icon || 'heart' });
+  }
+
+  const icons = ['heart', 'users', 'globe', 'book-open', 'message-circle', 'eye', 'star', 'trending-up'];
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar métrica' : 'Agregar métrica de impacto'}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" placeholder="Etiqueta (ej: Personas alcanzadas)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input type="text" placeholder="Valor (ej: 1,000+)" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <select value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+            {icons.map(i => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          {editingId ? (
+            <><button onClick={update} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Save size={14} /> Guardar</button><button onClick={() => { setEditingId(null); setForm({ label: '', value: '', icon: 'heart' }); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300"><X size={14} /> Cancelar</button></>
+          ) : (
+            <button onClick={add} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Plus size={14} /> Agregar métrica</button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {metrics.map(m => (
+          <div key={m.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <BarChart3 size={18} className="text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-primary-dark">{m.label}</h3>
+              <p className="text-2xl font-bold text-primary">{m.value}</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <button onClick={() => edit(m)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
+              <button onClick={() => del(m.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+        {metrics.length === 0 && <p className="text-center text-text-light py-8">No hay métricas. Agrega la primera.</p>}
+      </div>
     </div>
   );
 }

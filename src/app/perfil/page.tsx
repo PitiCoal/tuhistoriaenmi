@@ -2,36 +2,64 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { getProfile, upsertProfile, uploadFile } from '@/lib/supabase';
+import { getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities } from '@/lib/supabase';
 import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+
+const ACTIVITIES_OPTIONS = [
+  'Cachipun de la Gratitud',
+  'Merch TM',
+  'Voluntariado',
+  'Grupos de fe',
+  'Eventos especiales',
+  'Talleres',
+  'Retiros espirituales',
+  'Otro',
+];
 
 export default function PerfilPage() {
   const { user, signIn } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
-  const [age, setAge] = useState('');
+  const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user || user === 'loading') return;
+    setEmail(user.email || '');
     getProfile(user.uid).then(p => {
       if (p) {
         setProfile(p);
         setDisplayName(p.display_name || user.displayName || '');
+        setDateOfBirth(p.date_of_birth || '');
+        setPhone(p.phone || '');
         setCountry(p.country || '');
-        setAge(p.age?.toString() || '');
+        setCity(p.city || '');
         setBio(p.bio || '');
       } else {
         setDisplayName(user.displayName || '');
       }
     });
+    getUserActivities(user.uid).then(setSelectedActivities);
   }, [user]);
+
+  function toggleActivity(a: string) {
+    setSelectedActivities(prev => {
+      const next = new Set(prev);
+      if (next.has(a)) next.delete(a); else next.add(a);
+      return next;
+    });
+  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -53,24 +81,42 @@ export default function PerfilPage() {
     setUploading(false);
   }
 
+  function validate(): string[] {
+    const errors: string[] = [];
+    if (!displayName.trim()) errors.push('El nombre es obligatorio');
+    if (!dateOfBirth) errors.push('La fecha de nacimiento es obligatoria');
+    if (!country.trim()) errors.push('El país es obligatorio');
+    if (!city.trim()) errors.push('La ciudad es obligatoria');
+    return errors;
+  }
+
   async function handleSave() {
     if (!user || user === 'loading') return;
+    const errors = validate();
+    setValidationErrors(errors);
+    if (errors.length > 0) return;
+
     setSaving(true);
     setFeedback(null);
     const { error } = await upsertProfile({
       user_id: user.uid,
-      display_name: displayName.trim() || undefined,
+      display_name: displayName.trim(),
+      email: email,
       photo_url: profile?.photo_url || undefined,
-      country: country.trim() || undefined,
-      age: age ? parseInt(age) : undefined,
+      date_of_birth: dateOfBirth || undefined,
+      phone: phone.trim() || undefined,
+      country: country.trim(),
+      city: city.trim(),
       bio: bio.trim() || undefined,
     });
     if (error) {
       setFeedback({ ok: false, msg: 'Error al guardar: ' + error.message });
-    } else {
-      setFeedback({ ok: true, msg: 'Perfil guardado correctamente' });
-      setProfile((p: any) => ({ ...p, display_name: displayName.trim() || undefined }));
+      setSaving(false);
+      return;
     }
+    await setUserActivities(user.uid, [...selectedActivities]);
+    setFeedback({ ok: true, msg: 'Perfil guardado correctamente' });
+    setProfile((p: any) => ({ ...p, display_name: displayName.trim() }));
     setSaving(false);
   }
 
@@ -122,22 +168,48 @@ export default function PerfilPage() {
           </div>
         )}
 
+        {validationErrors.length > 0 && (
+          <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-2.5 space-y-1">
+            {validationErrors.map((e, i) => (
+              <p key={i} className="text-sm flex items-center gap-1.5"><AlertCircle size={14} /> {e}</p>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-text-light mb-1">Nombre</label>
+            <label className="block text-xs font-medium text-text-light mb-1">Nombre *</label>
             <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={60}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Email</label>
+            <input type="email" value={email} readOnly
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-text-light cursor-not-allowed" />
+            <p className="text-[10px] text-text-light/60 mt-0.5">Correo sincronizado con tu cuenta de Google</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text-light mb-1">País</label>
+              <label className="block text-xs font-medium text-text-light mb-1">Fecha de nacimiento *</label>
+              <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Teléfono</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} maxLength={20}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="+56 9 1234 5678" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">País *</label>
               <input type="text" value={country} onChange={e => setCountry(e.target.value)} maxLength={50}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Chile" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-light mb-1">Edad</label>
-              <input type="number" value={age} onChange={e => setAge(e.target.value)} min={1} max={120}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="25" />
+              <label className="block text-xs font-medium text-text-light mb-1">Ciudad *</label>
+              <input type="text" value={city} onChange={e => setCity(e.target.value)} maxLength={50}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Santiago" />
             </div>
           </div>
           <div>
@@ -145,6 +217,26 @@ export default function PerfilPage() {
             <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Cuéntanos de ti..." />
             <p className="text-xs text-text-light/60 mt-1">{bio.length}/300</p>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-xs font-medium text-text-light mb-3">
+              ¿A qué actividades o eventos te gustaría participar?
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {ACTIVITIES_OPTIONS.map(a => (
+                <label key={a}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                    selectedActivities.has(a)
+                      ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
+                      : 'bg-card border-gray-200 text-text-light hover:border-gray-300'
+                  }`}>
+                  <input type="checkbox" checked={selectedActivities.has(a)} onChange={() => toggleActivity(a)}
+                    className="accent-primary" />
+                  {a}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -157,7 +249,6 @@ export default function PerfilPage() {
       <div className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm">
         <p className="text-xs text-text-light text-center">
           Tu perfil es visible para otros usuarios de la comunidad.
-          <br />Correo: {user.email}
         </p>
       </div>
 
@@ -165,7 +256,7 @@ export default function PerfilPage() {
         <div className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
           <div className="flex items-center gap-2">
             <Shield size={18} className="text-primary" />
-            <h2 className="font-heading text-xl font-bold text-primary-dark">Administraci&oacute;n</h2>
+            <h2 className="font-heading text-xl font-bold text-primary-dark">Administración</h2>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

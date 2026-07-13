@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u);
-      if (u) upsertProfile({ user_id: u.uid, display_name: u.displayName || undefined }).catch(() => {});
+      if (u) upsertProfile({ user_id: u.uid, display_name: u.displayName || undefined, email: u.email || undefined }).catch(() => {});
     });
     return unsub;
   }, []);

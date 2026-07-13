@@ -57,13 +57,63 @@ CREATE TABLE IF NOT EXISTS profiles (
   user_id TEXT PRIMARY KEY,
   display_name TEXT,
   photo_url TEXT,
+  email TEXT,
+  date_of_birth DATE,
+  phone TEXT,
   country TEXT,
-  age INTEGER,
+  city TEXT,
   bio TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Migrate old age data: if age exists, set date_of_birth roughly
+UPDATE profiles SET date_of_birth = (CURRENT_DATE - (age || ' years')::INTERVAL)::DATE WHERE age IS NOT NULL AND date_of_birth IS NULL;
+
+-- Drop old age column
+ALTER TABLE profiles DROP COLUMN IF EXISTS age;
+
+-- ============================================
+-- USER ACTIVITIES (intereses del usuario)
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  activity TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, activity)
+);
+
+ALTER TABLE user_activities ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- PAGE CONTENT (CMS para admin)
+-- ============================================
+CREATE TABLE IF NOT EXISTS page_content (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  page TEXT NOT NULL,
+  section TEXT NOT NULL,
+  content TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(page, section)
+);
+
+ALTER TABLE page_content ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- IMPACT METRICS
+-- ============================================
+CREATE TABLE IF NOT EXISTS impact_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  label TEXT NOT NULL,
+  value TEXT NOT NULL,
+  icon TEXT DEFAULT 'heart',
+  sort_order INTEGER DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE impact_metrics ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- MURO POSTS
@@ -203,6 +253,26 @@ DROP POLICY IF EXISTS "Lectura pública testimonios" ON testimonios;
 DROP POLICY IF EXISTS "Inserción pública testimonios" ON testimonios;
 CREATE POLICY "Lectura pública testimonios" ON testimonios FOR SELECT USING (true);
 CREATE POLICY "Inserción pública testimonios" ON testimonios FOR INSERT WITH CHECK (true);
+
+-- User activities
+DROP POLICY IF EXISTS "Lectura pública user_activities" ON user_activities;
+DROP POLICY IF EXISTS "Inserción pública user_activities" ON user_activities;
+DROP POLICY IF EXISTS "Eliminación pública user_activities" ON user_activities;
+CREATE POLICY "Lectura pública user_activities" ON user_activities FOR SELECT USING (true);
+CREATE POLICY "Inserción pública user_activities" ON user_activities FOR INSERT WITH CHECK (true);
+CREATE POLICY "Eliminación pública user_activities" ON user_activities FOR DELETE USING (true);
+
+-- Page content
+DROP POLICY IF EXISTS "Lectura pública page_content" ON page_content;
+DROP POLICY IF EXISTS "Escritura pública page_content" ON page_content;
+CREATE POLICY "Lectura pública page_content" ON page_content FOR SELECT USING (true);
+CREATE POLICY "Escritura pública page_content" ON page_content FOR ALL USING (true);
+
+-- Impact metrics
+DROP POLICY IF EXISTS "Lectura pública impact_metrics" ON impact_metrics;
+DROP POLICY IF EXISTS "Escritura pública impact_metrics" ON impact_metrics;
+CREATE POLICY "Lectura pública impact_metrics" ON impact_metrics FOR SELECT USING (true);
+CREATE POLICY "Escritura pública impact_metrics" ON impact_metrics FOR ALL USING (true);
 
 -- Storage buckets access (profile-photos, muro-images)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;

@@ -54,13 +54,82 @@ export async function getProfile(userId: string) {
   return data;
 }
 
-export async function upsertProfile(profile: { user_id: string; display_name?: string; photo_url?: string; country?: string; age?: number; bio?: string }) {
+export async function upsertProfile(profile: {
+  user_id: string;
+  display_name?: string;
+  photo_url?: string;
+  email?: string;
+  date_of_birth?: string;
+  phone?: string;
+  country?: string;
+  city?: string;
+  bio?: string;
+}) {
   return supabase.from('profiles').upsert(profile, { onConflict: 'user_id' });
 }
 
 export async function getAllProfiles() {
   const { data } = await supabase.from('profiles').select('*').order('display_name');
   return data || [];
+}
+
+// ===== USER ACTIVITIES =====
+export async function getUserActivities(userId: string) {
+  const { data } = await supabase.from('user_activities').select('activity').eq('user_id', userId);
+  return new Set(data?.map(r => r.activity) || []);
+}
+
+export async function setUserActivities(userId: string, activities: string[]) {
+  // Delete all current, insert new
+  await supabase.from('user_activities').delete().eq('user_id', userId);
+  if (activities.length > 0) {
+    const rows = activities.map(a => ({ user_id: userId, activity: a }));
+    return supabase.from('user_activities').insert(rows);
+  }
+  return { error: null };
+}
+
+export async function getAllUserActivities() {
+  const { data } = await supabase.from('user_activities').select('user_id, activity');
+  return data || [];
+}
+
+// ===== PAGE CONTENT (CMS) =====
+export async function getPageContent(page: string) {
+  const { data } = await supabase.from('page_content').select('section, content').eq('page', page);
+  const map: Record<string, string> = {};
+  (data || []).forEach(r => { map[r.section] = r.content || ''; });
+  return map;
+}
+
+export async function upsertPageContent(page: string, section: string, content: string) {
+  return supabase.from('page_content').upsert(
+    { page, section, content, updated_at: new Date().toISOString() },
+    { onConflict: 'page,section' }
+  );
+}
+
+export async function getAllPagesContent() {
+  const { data } = await supabase.from('page_content').select('*').order('page').order('section');
+  return data || [];
+}
+
+// ===== IMPACT METRICS =====
+export async function getImpactMetrics() {
+  const { data } = await supabase.from('impact_metrics').select('*').order('sort_order');
+  return data || [];
+}
+
+export async function createImpactMetric(m: { label: string; value: string; icon?: string; sort_order?: number }) {
+  return supabase.from('impact_metrics').insert(m).select().single();
+}
+
+export async function updateImpactMetric(id: string, m: { label?: string; value?: string; icon?: string; sort_order?: number }) {
+  return supabase.from('impact_metrics').update(m).eq('id', id);
+}
+
+export async function deleteImpactMetric(id: string) {
+  return supabase.from('impact_metrics').delete().eq('id', id);
 }
 
 // ===== MURO POSTS =====
