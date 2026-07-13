@@ -1,25 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle } from '@/lib/firebase';
+import { useAuth } from '@/lib/AuthContext';
 import { Heart, Send, LogIn, User } from 'lucide-react';
 
 type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedBy: string[]; };
 
 export default function OracionPage() {
-  const [user, setUser] = useState<any | null | 'loading'>('loading');
+  const { user, signIn } = useAuth();
   const [intentions, setIntentions] = useState<Intention[]>([]);
   const [text, setText] = useState(''); const [anonymous, setAnonymous] = useState(false); const [name, setName] = useState('');
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
-      setUser(u);
-      if (u?.displayName) setName(u.displayName);
-    });
+    if (user && user !== 'loading' && user.displayName) setName(user.displayName);
     try { const d = localStorage.getItem('tm_intentions'); if (d) setIntentions(JSON.parse(d)); } catch {}
-    return unsub;
-  }, []);
+  }, [user]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,8 +39,8 @@ export default function OracionPage() {
           <Heart size={48} className="mx-auto text-text-light" />
           <h2 className="font-heading text-lg font-bold text-primary-dark">Inicia sesión</h2>
           <p className="text-sm text-text-light">Necesitas una cuenta para dejar tus intenciones de oración.</p>
-          <button onClick={() => signInWithGoogle()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+          <button onClick={() => signIn()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-95">
             <LogIn size={16} /> Iniciar sesión
           </button>
         </div>
@@ -68,7 +63,7 @@ export default function OracionPage() {
               )}
             </div>
             <button type="submit" disabled={!text.trim()}
-              className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
               <Send size={14} /> Publicar
             </button>
           </form>
@@ -89,7 +84,7 @@ export default function OracionPage() {
                       localStorage.setItem('tm_intentions', JSON.stringify(upd));
                       localStorage.setItem(`reacted_${i.id}`, 'true');
                     }}
-                      className="inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors">
+                      className="inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors active:scale-90">
                       <Heart size={10} /> {i.reactions}
                     </button>
                   </div>

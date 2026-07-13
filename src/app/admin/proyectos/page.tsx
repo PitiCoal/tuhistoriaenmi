@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
+import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
@@ -31,8 +30,7 @@ const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description:
 const HERO_KEY = 'tm_hero_image';
 
 export default function AdminProyectosPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, signIn, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('proyectos');
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -44,23 +42,21 @@ export default function AdminProyectosPage() {
   const [eEditingId, setEEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => { setUser(u); setLoading(false); });
     setProjects(loadFromStorage(STORAGE_PROJECTS, [
       { id: 'p1', title: 'Cachipun de la Gratitud', description: 'Intervención urbana.', date: 'Julio 2026', status: 'próximo', image: '/images/logo.png' },
       { id: 'p2', title: 'Merch TM', description: 'Polerón y polera oficial.', date: 'Julio 2026', status: 'en curso', image: '/images/logo.png' },
       { id: 'p3', title: 'App Comunidad TM', description: 'Plataforma web.', date: 'Julio-Agosto 2026', status: 'en curso', image: '/images/logo.png' },
     ]));
     setEpisodes(loadFromStorage(STORAGE_EPISODES, []));
-    return unsub;
   }, []);
 
-  if (loading) return <div className="text-center py-20 text-text-light">Cargando...</div>;
+  if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
   if (!user || user.email !== ADMIN_EMAIL) {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-6">
         <h1 className="font-heading text-2xl font-bold text-primary-dark">Acceso restringido</h1>
         <p className="text-text-light">Inicia sesión para administrar.</p>
-        <button onClick={signInWithGoogle} className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"><LogIn size={16} /> Iniciar sesión con Google</button>
+        <button onClick={() => signIn()} className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"><LogIn size={16} /> Iniciar sesión con Google</button>
       </div>
     );
   }
@@ -69,7 +65,7 @@ export default function AdminProyectosPage() {
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-bold text-primary-dark">Panel Admin</h1>
-        <button onClick={signOutUser} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-light hover:text-primary transition-colors"><LogOut size={14} /> Cerrar sesión</button>
+        <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-light hover:text-primary transition-colors"><LogOut size={14} /> Cerrar sesión</button>
       </div>
 
       <div className="flex gap-2">

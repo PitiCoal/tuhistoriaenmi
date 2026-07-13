@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle } from '@/lib/firebase';
+import { useAuth } from '@/lib/AuthContext';
 import { Calendar, LogIn, Lightbulb } from 'lucide-react';
 
 type Project = { id: string; title: string; description: string; date: string; status: 'próximo' | 'en curso' | 'completado'; image: string; };
@@ -23,13 +22,11 @@ const statusColors: Record<string, string> = {
 };
 
 export default function ProyectosPage() {
-  const [user, setUser] = useState<any | null | 'loading'>('loading');
+  const { user, signIn } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u));
     setProjects(loadProjects());
-    return unsub;
   }, []);
 
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
@@ -46,8 +43,8 @@ export default function ProyectosPage() {
           <Lightbulb size={48} className="mx-auto text-text-light" />
           <h2 className="font-heading text-lg font-bold text-primary-dark">Inicia sesión</h2>
           <p className="text-sm text-text-light">Necesitas una cuenta para ver y ser parte de los proyectos comunitarios.</p>
-          <button onClick={() => signInWithGoogle()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+          <button onClick={() => signIn()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-95">
             <LogIn size={16} /> Iniciar sesión
           </button>
         </div>

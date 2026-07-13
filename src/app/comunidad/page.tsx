@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction as supabaseToggleReaction, getReactionCount, getUserReactions } from '@/lib/supabase';
-import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, Quote, MessageCircle as WhatsAppIcon } from 'lucide-react';
+import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon } from 'lucide-react';
 import Link from 'next/link';
 
 type Tab = 'oraciones' | 'reflexiones' | 'sugerencias' | 'muro';

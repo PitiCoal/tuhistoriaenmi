@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, signInWithGoogle } from '@/lib/firebase';
+import { useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { saveTestimonio } from '@/lib/supabase';
 import { MessageCircle, CheckCircle, LogIn } from 'lucide-react';
 
 const steps = [
@@ -12,20 +12,44 @@ const steps = [
 ];
 
 export default function TestimonioPage() {
-  const [user, setUser] = useState<any | null | 'loading'>('loading');
+  const { user, signIn } = useAuth();
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u));
-    return unsub;
-  }, []);
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSent(true);
-    setForm({ name: '', email: '', phone: '', message: '' });
-    setTimeout(() => setSent(false), 5000);
+    if (!user || user === 'loading') return;
+    setSending(true);
+    setError('');
+    try {
+      const { error: dbError } = await saveTestimonio({
+        user_id: user.uid,
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || undefined,
+        message: form.message.trim(),
+      });
+      if (dbError) throw new Error(dbError.message);
+
+      const res = await fetch('/api/testimonio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al enviar email');
+      }
+
+      setSent(true);
+      setForm({ name: '', email: '', phone: '', message: '' });
+      setTimeout(() => setSent(false), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error. Intenta de nuevo.');
+    }
+    setSending(false);
   }
 
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
@@ -41,8 +65,8 @@ export default function TestimonioPage() {
           <MessageCircle size={48} className="mx-auto text-text-light" />
           <h2 className="font-heading text-lg font-bold text-primary-dark">Inicia sesión</h2>
           <p className="text-sm text-text-light">Necesitas una cuenta para compartir tu testimonio.</p>
-          <button onClick={() => signInWithGoogle()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90">
+          <button onClick={() => signIn()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-95">
             <LogIn size={16} /> Iniciar sesión
           </button>
         </div>
@@ -76,9 +100,10 @@ export default function TestimonioPage() {
           className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <textarea placeholder="Cuéntanos de qué te gustaría hablar..." value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
           rows={4} className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" required />
-        <button type="submit"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-          <MessageCircle size={16} /> Quiero compartir mi historia
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button type="submit" disabled={sending}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50">
+          <MessageCircle size={16} /> {sending ? 'Enviando...' : 'Quiero compartir mi historia'}
         </button>
         {sent && <p className="text-green-600 text-sm flex items-center gap-1.5"><CheckCircle size={16} /> ¡Gracias! Te contactaremos pronto.</p>}
       </form>

@@ -136,6 +136,16 @@ export async function deleteSponsor(id: string) {
   return supabase.from('sponsors').delete().eq('id', id);
 }
 
+// ===== TESTIMONIOS =====
+export async function saveTestimonio(t: { user_id: string; name: string; email: string; phone?: string; message: string }) {
+  return supabase.from('testimonios').insert(t).select().single();
+}
+
+export async function getTestimonios() {
+  const { data } = await supabase.from('testimonios').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
 // ===== STORAGE UPLOAD =====
 export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';

@@ -15,6 +15,7 @@ const tabs = [
 export default function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const loggedIn = user && user !== 'loading';
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200/70 pb-[env(safe-area-inset-bottom,0px)]">
@@ -34,13 +35,13 @@ export default function MobileNav() {
           );
         })}
         <Link
-          href={user ? '/perfil' : '/donar'}
+          href={loggedIn ? '/perfil' : '/donar'}
           className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors active:scale-90 ${
             pathname === '/perfil' || pathname === '/donar' ? 'text-primary' : 'text-text-light hover:text-primary'
           }`}
         >
-          {user ? <User size={18} /> : <Gift size={18} />}
-          <span className="text-[10px] font-medium">{user ? 'Perfil' : 'Donar'}</span>
+          {loggedIn ? <User size={18} /> : <Gift size={18} />}
+          <span className="text-[10px] font-medium">{loggedIn ? 'Perfil' : 'Donar'}</span>
         </Link>
       </div>
     </nav>

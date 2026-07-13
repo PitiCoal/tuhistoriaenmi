@@ -1,8 +1,11 @@
--- SQL para ejecutar en Supabase SQL Editor
--- Ve a https://supabase.com > SQL Editor > pega y ejecuta
+-- ============================================
+-- TU HISTORIA EN MI — Supabase Schema
+-- ============================================
+
+-- Run this file in Supabase SQL Editor to set up all tables.
 
 -- ============================================
--- TABLAS EXISTENTES
+-- EPISODES
 -- ============================================
 CREATE TABLE IF NOT EXISTS episodes (
   id TEXT PRIMARY KEY,
@@ -12,45 +15,59 @@ CREATE TABLE IF NOT EXISTS episodes (
   guest TEXT NOT NULL,
   description TEXT,
   image TEXT,
+  image_position TEXT DEFAULT 'center',
   youtube TEXT,
   spotify TEXT,
   apple TEXT,
   amazon TEXT,
-  image_position TEXT DEFAULT 'center',
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE episodes ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- PARTICIPA (legacy offlines)
+-- ============================================
 CREATE TABLE IF NOT EXISTS participa (
-  id TEXT PRIMARY KEY,
-  tab TEXT NOT NULL CHECK (tab IN ('oraciones', 'reflexiones', 'sugerencias')),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tab TEXT NOT NULL,
   text TEXT NOT NULL,
   name TEXT,
   user_id TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  reactions INTEGER DEFAULT 0
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT,
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+ALTER TABLE participa ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- NUEVAS TABLAS: perfiles y muro
+-- SETTINGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  value TEXT
+);
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- PROFILES
 -- ============================================
 CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT UNIQUE NOT NULL,
+  user_id TEXT PRIMARY KEY,
   display_name TEXT,
   photo_url TEXT,
   country TEXT,
   age INTEGER,
   bio TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- MURO POSTS
+-- ============================================
 CREATE TABLE IF NOT EXISTS muro_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT,
@@ -60,6 +77,11 @@ CREATE TABLE IF NOT EXISTS muro_posts (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE muro_posts ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- MURO REPLIES
+-- ============================================
 CREATE TABLE IF NOT EXISTS muro_replies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID REFERENCES muro_posts(id) ON DELETE CASCADE,
@@ -69,66 +91,7 @@ CREATE TABLE IF NOT EXISTS muro_replies (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ============================================
--- BUCKETS DE STORAGE
--- ============================================
-INSERT INTO storage.buckets (id, name, public) VALUES ('profile-photos', 'profile-photos', true)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('muro-images', 'muro-images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================
--- EPISODIOS POR DEFECTO
--- ============================================
-INSERT INTO episodes (id, season, episode, title, guest, description, image) VALUES
-('t1e1', 1, 1, 'No Comprendo', 'Flo Ramírez', 'Flo nos comparte su historia de fe y preguntas sin respuesta.', '/images/episodios/t1e1.png'),
-('t1e2', 1, 2, 'Cuando aceptar no es resignación ni rendirse', 'Piedad Alcalde', 'Piedad nos habla sobre la diferencia entre aceptar y rendirse.', '/images/episodios/t1e2.jpg'),
-('t1e3', 1, 3, 'Ver con el Corazón', 'Rosario Rivera', 'Rosario nos invita a mirar más allá de lo visible.', '/images/episodios/t1e3.jpg'),
-('t1e4', 1, 4, 'Un Punto seguido en mi historia', 'Berni Daniels', 'Berni nos recuerda que cada historia tiene un punto seguido.', '/images/episodios/t1e4.jpg'),
-('t1e5', 1, 5, 'Kilómetros de Historia', 'Santiago Cruzat', 'Santiago nos lleva por un viaje de kilómetros recorridos.', '/images/episodios/t1e5.jpg'),
-('t1e6', 1, 6, 'Historia del Corazón de Rodrigo', 'Rodrigo Bello', 'Rodrigo abre su corazón y comparte su historia.', '/images/episodios/t1e6.jpg'),
-('t2e7', 2, 7, 'Aunque no tengas Fe', 'Xime Vallejos', 'Xime nos habla de la fe en medio de la duda.', '/images/episodios/t2e7.png'),
-('t2e8', 2, 8, 'Del abandono al propósito', 'Kristian Brione', 'Kristian comparte cómo pasó del abandono a encontrar su propósito.', '/images/episodios/t2e8.png'),
-('t2e9', 2, 9, 'Del vacío a la libertad', 'Benja Ramírez', 'Benja nos cuenta cómo encontró libertad donde solo había vacío.', '/images/episodios/t2e9.jpg')
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================
--- RLS
--- ============================================
-ALTER TABLE episodes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE participa ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE muro_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE muro_replies ENABLE ROW LEVEL SECURITY;
-
--- Episodios
-CREATE POLICY IF NOT EXISTS "Lectura pública episodios" ON episodes FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Escritura autenticada episodios" ON episodes FOR ALL USING (auth.role() = 'authenticated');
-
--- Participa
-CREATE POLICY IF NOT EXISTS "Lectura pública participa" ON participa FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Inserción pública participa" ON participa FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Eliminación autenticada participa" ON participa FOR DELETE USING (auth.role() = 'authenticated');
-
--- Settings
-CREATE POLICY IF NOT EXISTS "Lectura pública settings" ON settings FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Escritura autenticada settings" ON settings FOR ALL USING (auth.role() = 'authenticated');
-
--- Profiles
-CREATE POLICY IF NOT EXISTS "Lectura pública perfiles" ON profiles FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Inserción propia perfiles" ON profiles FOR INSERT WITH CHECK (auth.uid()::text = user_id);
-CREATE POLICY IF NOT EXISTS "Actualización propia perfiles" ON profiles FOR UPDATE USING (auth.uid()::text = user_id);
-
--- Muro posts
-CREATE POLICY IF NOT EXISTS "Lectura pública muro" ON muro_posts FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Inserción autenticada muro" ON muro_posts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY IF NOT EXISTS "Eliminación propia muro" ON muro_posts FOR DELETE USING (auth.uid()::text = user_id);
-
--- Muro replies
-CREATE POLICY IF NOT EXISTS "Lectura pública replies" ON muro_replies FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Inserción autenticada replies" ON muro_replies FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY IF NOT EXISTS "Eliminación propia replies" ON muro_replies FOR DELETE USING (auth.uid()::text = user_id);
 
 -- ============================================
 -- REACTIONS
@@ -144,16 +107,6 @@ CREATE TABLE IF NOT EXISTS reactions (
 
 ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Lectura pública reactions" ON reactions;
-CREATE POLICY "Lectura pública reactions" ON reactions FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Inserción autenticada reactions" ON reactions;
-CREATE POLICY "Inserción autenticada reactions" ON reactions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Eliminación propia reactions" ON reactions;
-CREATE POLICY "Eliminación propia reactions" ON reactions FOR DELETE USING (auth.uid()::text = user_id);
-
--- Storage public access
 -- ============================================
 -- SPONSORS
 -- ============================================
@@ -168,14 +121,91 @@ CREATE TABLE IF NOT EXISTS sponsors (
 
 ALTER TABLE sponsors ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
+-- TESTIMONIOS
+-- ============================================
+CREATE TABLE IF NOT EXISTS testimonios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE testimonios ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- RLS POLICIES
+-- ============================================
+
+-- Episodios
+DROP POLICY IF EXISTS "Lectura pública episodios" ON episodes;
+DROP POLICY IF EXISTS "Escritura autenticada episodios" ON episodes;
+CREATE POLICY "Lectura pública episodios" ON episodes FOR SELECT USING (true);
+CREATE POLICY "Escritura pública episodios" ON episodes FOR ALL USING (true);
+
+-- Participa
+DROP POLICY IF EXISTS "Lectura pública participa" ON participa;
+DROP POLICY IF EXISTS "Inserción pública participa" ON participa;
+DROP POLICY IF EXISTS "Eliminación autenticada participa" ON participa;
+CREATE POLICY "Lectura pública participa" ON participa FOR SELECT USING (true);
+CREATE POLICY "Inserción pública participa" ON participa FOR INSERT WITH CHECK (true);
+CREATE POLICY "Eliminación pública participa" ON participa FOR DELETE USING (true);
+
+-- Settings
+DROP POLICY IF EXISTS "Lectura pública settings" ON settings;
+DROP POLICY IF EXISTS "Escritura autenticada settings" ON settings;
+CREATE POLICY "Lectura pública settings" ON settings FOR SELECT USING (true);
+CREATE POLICY "Escritura pública settings" ON settings FOR ALL USING (true);
+
+-- Profiles
+DROP POLICY IF EXISTS "Lectura pública perfiles" ON profiles;
+DROP POLICY IF EXISTS "Inserción pública perfiles" ON profiles;
+DROP POLICY IF EXISTS "Actualización pública perfiles" ON profiles;
+CREATE POLICY "Lectura pública perfiles" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Inserción pública perfiles" ON profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Actualización pública perfiles" ON profiles FOR UPDATE USING (true);
+
+-- Muro posts
+DROP POLICY IF EXISTS "Lectura pública muro" ON muro_posts;
+DROP POLICY IF EXISTS "Inserción pública muro" ON muro_posts;
+DROP POLICY IF EXISTS "Eliminación pública muro" ON muro_posts;
+CREATE POLICY "Lectura pública muro" ON muro_posts FOR SELECT USING (true);
+CREATE POLICY "Inserción pública muro" ON muro_posts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Eliminación pública muro" ON muro_posts FOR DELETE USING (true);
+
+-- Muro replies
+DROP POLICY IF EXISTS "Lectura pública replies" ON muro_replies;
+DROP POLICY IF EXISTS "Inserción pública replies" ON muro_replies;
+DROP POLICY IF EXISTS "Eliminación pública replies" ON muro_replies;
+CREATE POLICY "Lectura pública replies" ON muro_replies FOR SELECT USING (true);
+CREATE POLICY "Inserción pública replies" ON muro_replies FOR INSERT WITH CHECK (true);
+CREATE POLICY "Eliminación pública replies" ON muro_replies FOR DELETE USING (true);
+
+-- Reactions
+DROP POLICY IF EXISTS "Lectura pública reactions" ON reactions;
+DROP POLICY IF EXISTS "Inserción pública reactions" ON reactions;
+DROP POLICY IF EXISTS "Eliminación pública reactions" ON reactions;
+CREATE POLICY "Lectura pública reactions" ON reactions FOR SELECT USING (true);
+CREATE POLICY "Inserción pública reactions" ON reactions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Eliminación pública reactions" ON reactions FOR DELETE USING (true);
+
+-- Sponsors
 DROP POLICY IF EXISTS "Lectura pública sponsors" ON sponsors;
+DROP POLICY IF EXISTS "Escritura pública sponsors" ON sponsors;
 CREATE POLICY "Lectura pública sponsors" ON sponsors FOR SELECT USING (true);
+CREATE POLICY "Escritura pública sponsors" ON sponsors FOR ALL USING (true);
 
-DROP POLICY IF EXISTS "Escritura autenticada sponsors" ON sponsors;
-CREATE POLICY "Escritura autenticada sponsors" ON sponsors FOR ALL USING (auth.role() = 'authenticated');
+-- Testimonios
+DROP POLICY IF EXISTS "Lectura pública testimonios" ON testimonios;
+DROP POLICY IF EXISTS "Inserción pública testimonios" ON testimonios;
+CREATE POLICY "Lectura pública testimonios" ON testimonios FOR SELECT USING (true);
+CREATE POLICY "Inserción pública testimonios" ON testimonios FOR INSERT WITH CHECK (true);
 
+-- Storage buckets access (profile-photos, muro-images)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images'));
-
-DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('profile-photos', 'muro-images'));
