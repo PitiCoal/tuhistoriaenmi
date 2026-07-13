@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -74,6 +74,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
         <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participa</button>
         <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
+        <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -95,6 +96,8 @@ export default function AdminProyectosPage() {
       {tab === 'participa' && <ParticipaTab />}
 
       {tab === 'auspiciadores' && <AuspiciadoresTab />}
+
+      {tab === 'perfiles' && <PerfilesTab />}
     </div>
   );
 }
@@ -426,6 +429,67 @@ function ParticipaTab() {
               <button onClick={() => deleteEntry(e.id)} className="p-1.5 text-text-light hover:text-red-500 shrink-0 transition-colors" title="Eliminar">
                 <Trash2 size={14} />
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PerfilesTab() {
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllProfiles().then(data => { setProfiles(data); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
+
+  const filtered = profiles.filter(p =>
+    !search || (p.display_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (p.country?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (p.bio?.toLowerCase() || '').includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h2 className="font-semibold text-primary-dark">Perfiles de la comunidad</h2>
+        <p className="text-xs text-text-light">Total: {profiles.length} perfiles registrados</p>
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-light" />
+          <input type="text" placeholder="Buscar por nombre, país o bio..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-center text-text-light py-8">Cargando perfiles...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-text-light py-8">{profiles.length === 0 ? 'Aún no hay perfiles registrados.' : 'Ningún perfil coincide con la búsqueda.'}</p>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(p => (
+            <div key={p.user_id} className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm flex items-center gap-4">
+              {p.photo_url ? (
+                <img src={p.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users size={18} className="text-primary" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-primary-dark text-sm truncate">{p.display_name || 'Sin nombre'}</h3>
+                  {p.country && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-text-light shrink-0">{p.country}</span>}
+                  {p.age && <span className="text-[10px] text-text-light shrink-0">{p.age} años</span>}
+                </div>
+                {p.bio && <p className="text-xs text-text-light truncate mt-0.5">{p.bio}</p>}
+                <p className="text-[10px] text-text-light/60 mt-0.5">
+                  Creado {new Date(p.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
             </div>
           ))}
         </div>
