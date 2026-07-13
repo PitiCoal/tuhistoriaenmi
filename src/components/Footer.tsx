@@ -10,7 +10,7 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-primary-dark text-white mt-12 md:mt-16">
+    <footer className="bg-primary-dark text-white mt-12 md:mt-16 pb-20 md:pb-0">
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
           <div className="md:col-span-2 space-y-3">
@@ -25,11 +25,10 @@ export default function Footer() {
               <Heart size={10} /> Apoyar el proyecto
             </a>
           </div>
-          <div>
+          <div className="hidden md:block">
             <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Navegar</h4>
             <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm text-white/60">
               <li><a href="/episodios" className="hover:text-white transition-colors">Episodios</a></li>
-              <li><a href="/participa" className="hover:text-white transition-colors">Participa</a></li>
               <li><a href="/comunidad" className="hover:text-white transition-colors">Comunidad</a></li>
               <li><a href="/proyectos" className="hover:text-white transition-colors">Proyectos</a></li>
             </ul>

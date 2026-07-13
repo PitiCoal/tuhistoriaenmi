@@ -47,7 +47,7 @@ export default function HomePage() {
               Dejar oraci&oacute;n <Heart size={14} />
             </Link>
             {user ? (
-              <Link href="/participa" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
+              <Link href="/comunidad" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors">
                 Participar <User size={14} />
               </Link>
             ) : (

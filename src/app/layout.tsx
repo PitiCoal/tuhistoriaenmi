@@ -1,30 +1,39 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MobileNav from '@/components/MobileNav';
+import { AuthProvider } from '@/lib/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Tu Historia En Mí',
   description:
     'Un espacio de escucha y encuentro donde compartimos testimonios reales de vida, fe y superación. Podcast chileno.',
-  icons: { icon: '/images/logo.png' },
+  icons: { icon: '/images/logo.png', apple: '/images/logo.png' },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'TM',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0085C2',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <body className="min-h-screen flex flex-col bg-bg text-text antialiased">
-        <Header />
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8">
-          {children}
-        </main>
-        <Footer />
+        <AuthProvider>
+          <Header />
+          <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-20 md:pb-8">
+            {children}
+          </main>
+          <MobileNav />
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );
