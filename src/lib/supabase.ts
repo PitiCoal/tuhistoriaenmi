@@ -132,6 +132,27 @@ export async function deleteImpactMetric(id: string) {
   return supabase.from('impact_metrics').delete().eq('id', id);
 }
 
+// ===== COUNTS (for auto-metrics) =====
+export async function countProfiles() {
+  const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function countEpisodes() {
+  const { count } = await supabase.from('episodes').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function countTestimonios() {
+  const { count } = await supabase.from('testimonios').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function countSponsors() {
+  const { count } = await supabase.from('sponsors').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
 // ===== MURO POSTS =====
 export async function getMuroPosts() {
   const { data } = await supabase.from('muro_posts').select('*').order('created_at', { ascending: false });

@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3 } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors } from '@/lib/supabase';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
@@ -68,11 +68,11 @@ export default function AdminProyectosPage() {
         <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-light hover:text-primary transition-colors"><LogOut size={14} /> Cerrar sesión</button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap justify-center">
         <button onClick={() => setTab('proyectos')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'proyectos' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FolderKanban size={16} /> Proyectos</button>
         <button onClick={() => setTab('episodios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'episodios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Mic size={16} /> Episodios</button>
         <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
-        <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participa</button>
+        <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participación</button>
         <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
         <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
         <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
@@ -599,12 +599,26 @@ function PaginasTab() {
   );
 }
 
+const ICON_LABELS: Record<string, string> = {
+  heart: 'Corazón', users: 'Usuarios', globe: 'Mundo',
+  'book-open': 'Libro', 'message-circle': 'Mensajes',
+  eye: 'Ojo', star: 'Estrella', 'trending-up': 'Tendencia',
+};
+const ICONS = Object.keys(ICON_LABELS);
+
 function ImpactoTab() {
   const [metrics, setMetrics] = useState<any[]>([]);
   const [form, setForm] = useState({ label: '', value: '', icon: 'heart' });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  useEffect(() => { loadMetrics(); }, []);
+  const [autoMetrics, setAutoMetrics] = useState({ profiles: 0, episodes: 0, testimonios: 0, sponsors: 0 });
+
+  useEffect(() => {
+    loadMetrics();
+    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors()]).then(
+      ([a, b, c, d]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d })
+    );
+  }, []);
 
   async function loadMetrics() { setMetrics(await getImpactMetrics()); }
 
@@ -633,10 +647,32 @@ function ImpactoTab() {
     setForm({ label: m.label, value: m.value, icon: m.icon || 'heart' });
   }
 
-  const icons = ['heart', 'users', 'globe', 'book-open', 'message-circle', 'eye', 'star', 'trending-up'];
-
   return (
     <div className="space-y-4">
+      {/* Auto-métricas */}
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md">
+        <h2 className="font-semibold text-primary-dark mb-3">Métricas automáticas</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.profiles}</p>
+            <p className="text-xs text-text-light">Usuarios</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.episodes}</p>
+            <p className="text-xs text-text-light">Episodios</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.testimonios}</p>
+            <p className="text-xs text-text-light">Testimonios</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.sponsors}</p>
+            <p className="text-xs text-text-light">Auspiciadores</p>
+          </div>
+        </div>
+        <p className="text-[10px] text-text-light/60 mt-2">Estas métricas se actualizan automáticamente desde la base de datos.</p>
+      </div>
+
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar métrica' : 'Agregar métrica de impacto'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -646,7 +682,7 @@ function ImpactoTab() {
             className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <select value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}
             className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-            {icons.map(i => <option key={i} value={i}>{i}</option>)}
+            {ICONS.map(i => <option key={i} value={i}>{ICON_LABELS[i]}</option>)}
           </select>
         </div>
         <div className="flex gap-2">
