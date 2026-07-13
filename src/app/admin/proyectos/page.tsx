@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -76,6 +77,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('episodios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'episodios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Mic size={16} /> Episodios</button>
         <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
         <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participa</button>
+        <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -95,6 +97,8 @@ export default function AdminProyectosPage() {
       {tab === 'inicio' && <HeroSettingsTab />}
 
       {tab === 'participa' && <ParticipaTab />}
+
+      {tab === 'auspiciadores' && <AuspiciadoresTab />}
     </div>
   );
 }
@@ -430,6 +434,82 @@ function ParticipaTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AuspiciadoresTab() {
+  const [sponsors, setSponsors] = useState<any[]>([]);
+  const [form, setForm] = useState({ name: '', logo_url: '', website_url: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => { loadSponsors(); }, []);
+
+  async function loadSponsors() { setSponsors(await getSponsors()); }
+
+  async function add() {
+    if (!form.name.trim()) return;
+    await createSponsor({ name: form.name.trim(), logo_url: form.logo_url.trim() || undefined, website_url: form.website_url.trim() || undefined });
+    setForm({ name: '', logo_url: '', website_url: '' });
+    await loadSponsors();
+  }
+
+  async function update() {
+    if (!editingId || !form.name.trim()) return;
+    await updateSponsor(editingId, { name: form.name.trim(), logo_url: form.logo_url.trim() || undefined, website_url: form.website_url.trim() || undefined });
+    setEditingId(null); setForm({ name: '', logo_url: '', website_url: '' });
+    await loadSponsors();
+  }
+
+  async function del(id: string) {
+    if (!confirm('¿Eliminar auspiciador?')) return;
+    await deleteSponsor(id);
+    await loadSponsors();
+  }
+
+  function edit(s: any) { setEditingId(s.id); setForm({ name: s.name, logo_url: s.logo_url || '', website_url: s.website_url || '' }); }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar auspiciador' : 'Agregar auspiciador'}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" placeholder="Nombre" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input type="text" placeholder="URL del logo" value={form.logo_url} onChange={e => setForm({ ...form, logo_url: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input type="text" placeholder="Sitio web (opcional)" value={form.website_url} onChange={e => setForm({ ...form, website_url: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div className="flex gap-2">
+          {editingId ? (
+            <><button onClick={update} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Save size={14} /> Guardar</button><button onClick={() => { setEditingId(null); setForm({ name: '', logo_url: '', website_url: '' }); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300"><X size={14} /> Cancelar</button></>
+          ) : (
+            <button onClick={add} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Plus size={14} /> Agregar auspiciador</button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {sponsors.map(s => (
+          <div key={s.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4 items-center">
+            {s.logo_url ? (
+              <img src={s.logo_url} alt="" className="w-16 h-16 rounded-lg object-contain bg-gray-50" />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-text-light">{s.name.charAt(0)}</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-primary-dark">{s.name}</h3>
+              {s.website_url && <p className="text-xs text-text-light truncate">{s.website_url}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <button onClick={() => edit(s)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
+              <button onClick={() => del(s.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+        {sponsors.length === 0 && <p className="text-center text-text-light py-8">No hay auspiciadores. Agrega el primero.</p>}
+      </div>
     </div>
   );
 }

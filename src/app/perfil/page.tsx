@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, signInWithGoogle } from '@/lib/firebase';
 import { getProfile, upsertProfile, uploadFile } from '@/lib/supabase';
-import { User, Camera, Save, LogIn } from 'lucide-react';
+import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PerfilPage() {
   const [user, setUser] = useState<FirebaseUser | null | 'loading'>('loading');
@@ -137,6 +138,48 @@ export default function PerfilPage() {
           <br />Correo: {user.email}
         </p>
       </div>
+
+      {user.email === 'piti.coal@gmail.com' && (
+        <div className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
+          <div className="flex items-center gap-2">
+            <Shield size={18} className="text-primary" />
+            <h2 className="font-heading text-xl font-bold text-primary-dark">Administraci&oacute;n</h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Link href="/admin/proyectos"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><FolderKanban size={18} className="text-primary" /></div>
+              <span className="text-xs font-medium text-primary-dark">Proyectos</span>
+            </Link>
+            <Link href="/admin/proyectos"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Mic size={18} className="text-primary" /></div>
+              <span className="text-xs font-medium text-primary-dark">Episodios</span>
+            </Link>
+            <Link href="/admin/proyectos"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><ImageIcon size={18} className="text-primary" /></div>
+              <span className="text-xs font-medium text-primary-dark">Inicio</span>
+            </Link>
+            <Link href="/admin/proyectos"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><MessageSquare size={18} className="text-primary" /></div>
+              <span className="text-xs font-medium text-primary-dark">Participa</span>
+            </Link>
+            <Link href="/admin/proyectos"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><Handshake size={18} className="text-primary" /></div>
+              <span className="text-xs font-medium text-primary-dark">Auspiciadores</span>
+            </Link>
+          </div>
+
+          <Link href="/admin/proyectos"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors w-full justify-center">
+            Ir al panel completo <ArrowRight size={14} />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

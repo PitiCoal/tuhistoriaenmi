@@ -154,6 +154,26 @@ DROP POLICY IF EXISTS "Eliminación propia reactions" ON reactions;
 CREATE POLICY "Eliminación propia reactions" ON reactions FOR DELETE USING (auth.uid()::text = user_id);
 
 -- Storage public access
+-- ============================================
+-- SPONSORS
+-- ============================================
+CREATE TABLE IF NOT EXISTS sponsors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  logo_url TEXT,
+  website_url TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE sponsors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Lectura pública sponsors" ON sponsors;
+CREATE POLICY "Lectura pública sponsors" ON sponsors FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Escritura autenticada sponsors" ON sponsors;
+CREATE POLICY "Escritura autenticada sponsors" ON sponsors FOR ALL USING (auth.role() = 'authenticated');
+
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images'));
 

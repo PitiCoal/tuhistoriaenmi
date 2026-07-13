@@ -118,6 +118,24 @@ export async function getUserReactions(targetType: string, userId: string) {
   return new Set(data?.map(r => r.target_id) || []);
 }
 
+// ===== SPONSORS =====
+export async function getSponsors() {
+  const { data } = await supabase.from('sponsors').select('*').order('sort_order');
+  return data || [];
+}
+
+export async function createSponsor(sponsor: { name: string; logo_url?: string; website_url?: string; sort_order?: number }) {
+  return supabase.from('sponsors').insert(sponsor).select().single();
+}
+
+export async function updateSponsor(id: string, sponsor: { name?: string; logo_url?: string; website_url?: string; sort_order?: number }) {
+  return supabase.from('sponsors').update(sponsor).eq('id', id);
+}
+
+export async function deleteSponsor(id: string) {
+  return supabase.from('sponsors').delete().eq('id', id);
+}
+
 // ===== STORAGE UPLOAD =====
 export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';

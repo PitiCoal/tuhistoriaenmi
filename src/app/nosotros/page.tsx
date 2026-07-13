@@ -1,5 +1,6 @@
 import { Heart, Target, Eye, Sparkles } from 'lucide-react';
 import UserCounter from '@/components/UserCounter';
+import SponsorShowcase from '@/components/SponsorShowcase';
 
 export default function NosotrosPage() {
   return (
@@ -130,6 +131,8 @@ export default function NosotrosPage() {
         </p>
         <p className="text-xs text-text-light">— Oraci&oacute;n de Tu Historia En M&iacute;</p>
       </section>
+
+      <SponsorShowcase />
     </div>
   );
 }
