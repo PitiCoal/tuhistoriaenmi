@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { saveEpisodeToCloud, deleteEpisodeFromCloud } from '@/lib/data-service';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults } from '@/lib/supabase';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
@@ -165,6 +164,14 @@ function ProjectsTab({ projects, setProjects, storageKey, form, setForm, editing
 }
 
 function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editingId, setEditingId }: any) {
+  const [cloudEpisodes, setCloudEpisodes] = useState<any[]>([]);
+  const [imageUploading, setImageUploading] = useState(false);
+
+  useEffect(() => {
+    setEpisodes(loadFromStorage(storageKey, []));
+    loadEpisodesFromSupabase().then(setCloudEpisodes);
+  }, []);
+
   function getMergedEpisodes(): EpisodeData[] {
     const defaults: EpisodeData[] = defaultEpisodes.map(e => ({
       id: e.id, season: e.season, episode: e.episode,
@@ -173,9 +180,16 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
       youtube: e.links.youtube || '', spotify: e.links.spotify || '',
       apple: e.links.apple || '', amazon: e.links.amazon || '',
     }));
-    const admin = episodes;
-    const merged = [...defaults];
-    for (const ae of admin) {
+    const merged: EpisodeData[] = [...defaults];
+    // Override with Supabase data
+    for (const ce of cloudEpisodes) {
+      const idx = merged.findIndex((e: EpisodeData) => e.id === ce.id);
+      const ep: EpisodeData = { id: ce.id, season: ce.season, episode: ce.episode, title: ce.title, guest: ce.guest, description: ce.description || '', image: ce.image || defaults.find((d: any) => d.id === ce.id)?.image || '/images/logo.png', image_position: ce.image_position || 'center', youtube: ce.youtube || '', spotify: ce.spotify || '', apple: ce.apple || '', amazon: ce.amazon || '' };
+      if (idx >= 0) merged[idx] = { ...merged[idx], ...ep };
+      else merged.push(ep);
+    }
+    // Override with local edits
+    for (const ae of episodes) {
       const idx = merged.findIndex((e: EpisodeData) => e.id === ae.id);
       if (idx >= 0) merged[idx] = ae;
       else merged.push(ae);
@@ -185,26 +199,42 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
   const mergedEpisodes = getMergedEpisodes();
 
   function save(updated: EpisodeData[]) { setEpisodes(updated); saveToStorage(storageKey, updated); }
-  function add() {
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    const url = await uploadFile('episode-images', 'admin', file);
+    if (url) setForm({ ...form, image: url });
+    setImageUploading(false);
+  }
+
+  async function add() {
     if (!form.title.trim() || !form.guest.trim()) return;
     const newEp = { id: Date.now().toString(), ...form, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), image_position: form.image_position || 'center', youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() };
     save([...episodes, newEp]);
-    saveEpisodeToCloud(newEp);
+    await saveEpisodeToSupabase(newEp);
+    setCloudEpisodes(await loadEpisodesFromSupabase());
     setForm(emptyEpisode);
   }
-  function update() {
+
+  async function update() {
     if (!editingId || !form.title.trim()) return;
     const updated = episodes.filter((e: EpisodeData) => e.id !== editingId);
-    const updatedEp = { id: editingId, season: form.season, episode: form.episode, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), image_position: form.image_position || 'center', youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() };
+    const updatedEp = { id: editingId, ...form, title: form.title.trim(), guest: form.guest.trim(), description: form.description.trim(), image: form.image.trim(), image_position: form.image_position || 'center', youtube: form.youtube.trim(), spotify: form.spotify.trim(), apple: form.apple.trim(), amazon: form.amazon.trim() };
     save([...updated, updatedEp]);
-    saveEpisodeToCloud(updatedEp);
+    await saveEpisodeToSupabase(updatedEp);
+    setCloudEpisodes(await loadEpisodesFromSupabase());
     setEditingId(null); setForm(emptyEpisode);
   }
-  function del(id: string) {
+
+  async function del(id: string) {
     if (!confirm('¿Eliminar episodio?')) return;
     save(episodes.filter((e: EpisodeData) => e.id !== id));
-    deleteEpisodeFromCloud(id);
+    await deleteEpisodeFromSupabase(id);
+    setCloudEpisodes(await loadEpisodesFromSupabase());
   }
+
   function edit(e: EpisodeData) { setEditingId(e.id); setForm({ season: e.season, episode: e.episode, title: e.title, guest: e.guest, description: e.description, image: e.image, image_position: e.image_position || 'center', youtube: e.youtube, spotify: e.spotify, apple: e.apple, amazon: e.amazon }); }
 
   return (
@@ -220,19 +250,14 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
             <div className="flex items-center gap-3">
               <label className="flex-1">
                 <span className="text-xs text-text-light block mb-1">Subir imagen desde tu compu:</span>
-                <input type="file" accept="image/*" onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => setForm({ ...form, image: ev.target?.result as string || '' });
-                    reader.readAsDataURL(file);
-                  }
-                }} className="w-full text-sm text-text-light file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary/90" />
+                <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading}
+                  className="w-full text-sm text-text-light file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-xs file:font-semibold hover:file:bg-primary/90" />
               </label>
               <span className="text-xs text-text-light">o</span>
-              <input type="text" placeholder="Pegar URL de imagen" value={form.image.startsWith('data:') ? '' : form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input type="text" placeholder="Pegar URL de imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
-            {form.image && (
+            {imageUploading && <p className="text-xs text-primary">Subiendo imagen...</p>}
+            {form.image && !imageUploading && (
               <div className="flex items-center gap-2">
                 <img src={form.image} alt="Preview" className="h-16 w-16 rounded-lg object-cover border border-gray-200" />
                 <button onClick={() => setForm({ ...form, image: '' })} className="text-xs text-red-500 hover:underline">Quitar imagen</button>
@@ -270,13 +295,15 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
       <div className="space-y-3">
         {mergedEpisodes.map((e: EpisodeData) => {
           const isAdmin = episodes.some((ae: EpisodeData) => ae.id === e.id);
+          const isCloud = cloudEpisodes.some((ce: any) => ce.id === e.id);
           return (
             <div key={e.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4 items-center">
               <img src={e.image || '/images/logo.png'} alt="" className="w-16 h-16 rounded-lg object-cover bg-gray-50" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-primary-dark">{e.title}</h3>
-                  {!isAdmin && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-text-light">original</span>}
+                  {!isAdmin && !isCloud && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-text-light">original</span>}
+                  {isCloud && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">nube</span>}
                 </div>
                 <p className="text-sm text-text-light">T{e.season} E{e.episode} — con {e.guest}</p>
               </div>

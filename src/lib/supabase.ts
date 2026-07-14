@@ -254,8 +254,71 @@ export async function getPushSubscriptionCount() {
   return count || 0;
 }
 
+// ===== EPISODES (cloud) =====
+export async function saveEpisodeToSupabase(episode: {
+  id: string; season: number; episode: number;
+  title: string; guest: string; description?: string;
+  image?: string; image_position?: string;
+  youtube?: string; spotify?: string; apple?: string; amazon?: string;
+}) {
+  return supabase.from('episodes').upsert(episode, { onConflict: 'id' });
+}
+
+export async function loadEpisodesFromSupabase() {
+  const { data } = await supabase.from('episodes').select('*').order('season').order('episode');
+  return data || [];
+}
+
+export async function deleteEpisodeFromSupabase(id: string) {
+  return supabase.from('episodes').delete().eq('id', id);
+}
+
+// Merge Supabase episodes with hardcoded defaults (Supabase takes precedence)
+export function mergeEpisodesWithDefaults(supabaseEpisodes: any[], defaultEpisodes: any[]) {
+  const merged = defaultEpisodes.map(d => {
+    const cloud = supabaseEpisodes.find((s: any) => s.id === d.id);
+    if (cloud) {
+      return {
+        ...d,
+        image: cloud.image || d.image,
+        image_position: cloud.image_position || 'center',
+        description: cloud.description || d.description,
+        links: {
+          youtube: cloud.youtube || d.links.youtube,
+          spotify: cloud.spotify || d.links.spotify,
+          apple: cloud.apple || d.links.apple,
+          amazon: cloud.amazon || d.links.amazon,
+        },
+      };
+    }
+    return d;
+  });
+  // Add any extra episodes from Supabase that don't exist in defaults
+  for (const cloud of supabaseEpisodes) {
+    if (!merged.find((m: any) => m.id === cloud.id)) {
+      merged.push({
+        id: cloud.id,
+        season: cloud.season,
+        episode: cloud.episode,
+        title: cloud.title,
+        guest: cloud.guest,
+        description: cloud.description || '',
+        image: cloud.image || '/images/logo.png',
+        links: {
+          youtube: cloud.youtube || '',
+          spotify: cloud.spotify || '',
+          apple: cloud.apple || '',
+          amazon: cloud.amazon || '',
+        },
+        tags: [],
+      });
+    }
+  }
+  return merged;
+}
+
 // ===== STORAGE UPLOAD =====
-export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
+export async function uploadFile(bucket: 'profile-photos' | 'muro-images' | 'episode-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';
   const path = `${folder}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file);

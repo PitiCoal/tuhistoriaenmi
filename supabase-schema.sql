@@ -292,8 +292,8 @@ DROP POLICY IF EXISTS "Escritura pública push_subscriptions" ON push_subscripti
 CREATE POLICY "Inserción pública push_subscriptions" ON push_subscriptions FOR INSERT WITH CHECK (true);
 CREATE POLICY "Escritura pública push_subscriptions" ON push_subscriptions FOR ALL USING (true);
 
--- Storage buckets access (profile-photos, muro-images)
+-- Storage buckets access (profile-photos, muro-images, episode-images)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images'));
-CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('profile-photos', 'muro-images'));
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images', 'episode-images'));
+CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('profile-photos', 'muro-images', 'episode-images'));

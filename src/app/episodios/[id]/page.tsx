@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getAllEpisodes, getEpisodeById } from '@/lib/episodes';
+import { createClient } from '@supabase/supabase-js';
 import PlatformLinks from '@/components/PlatformLinks';
 import Link from 'next/link';
 import { ArrowLeft, Share2 } from 'lucide-react';
@@ -8,10 +9,36 @@ export function generateStaticParams() {
   return getAllEpisodes().map(e => ({ id: e.id }));
 }
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export default async function EpisodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const episode = getEpisodeById(id);
-  if (!episode) notFound();
+
+  const { data: cloudEp } = await supabase.from('episodes').select('*').eq('id', id).single();
+  const defaultEp = getEpisodeById(id);
+
+  if (!cloudEp && !defaultEp) notFound();
+
+  const episode = {
+    id: id,
+    season: cloudEp?.season ?? defaultEp!.season,
+    episode: cloudEp?.episode ?? defaultEp!.episode,
+    title: cloudEp?.title ?? defaultEp!.title,
+    guest: cloudEp?.guest ?? defaultEp!.guest,
+    description: cloudEp?.description ?? defaultEp!.description,
+    image: cloudEp?.image || defaultEp!.image,
+    image_position: (cloudEp as any)?.image_position || 'center',
+    links: {
+      youtube: cloudEp?.youtube || defaultEp!.links.youtube || '',
+      spotify: cloudEp?.spotify || defaultEp!.links.spotify || '',
+      apple: cloudEp?.apple || defaultEp!.links.apple || '',
+      amazon: cloudEp?.amazon || defaultEp!.links.amazon || '',
+    },
+    tags: defaultEp?.tags || [],
+  };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -20,7 +47,7 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
       </Link>
 
       <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
-        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" style={{ objectPosition: (episode as any).image_position || 'center' }} />
+        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" style={{ objectPosition: episode.image_position || 'center' }} />
       </div>
 
       <div>
@@ -47,7 +74,7 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {episode.tags.map(tag => (
+        {episode.tags.map((tag: string) => (
           <span key={tag} className="px-3 py-1 bg-card rounded-full text-xs font-medium text-secondary">
             #{tag}
           </span>

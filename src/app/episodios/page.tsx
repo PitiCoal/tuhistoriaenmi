@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAllEpisodes } from '@/lib/episodes';
+import { loadEpisodesFromSupabase, mergeEpisodesWithDefaults } from '@/lib/supabase';
 import EpisodeCard from '@/components/EpisodeCard';
 import { Search } from 'lucide-react';
 
@@ -10,7 +11,13 @@ export default function EpisodiosPage() {
   const [search, setSearch] = useState('');
   const [season, setSeason] = useState<number | 'all'>('all');
 
-  useEffect(() => { setEpisodes(getAllEpisodes()); }, []);
+  useEffect(() => {
+    loadEpisodesFromSupabase().then(cloud => {
+      if (cloud.length > 0) {
+        setEpisodes(mergeEpisodesWithDefaults(cloud, getAllEpisodes()));
+      }
+    });
+  }, []);
 
   const filtered = episodes.filter(e => {
     const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) || e.guest.toLowerCase().includes(search.toLowerCase());
