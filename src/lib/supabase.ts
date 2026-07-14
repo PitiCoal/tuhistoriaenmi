@@ -22,32 +22,6 @@ export async function deleteEpisode(id: string) {
   return supabase.from('episodes').delete().eq('id', id);
 }
 
-export async function loadHeroImage() {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
-  return data?.value || null;
-}
-
-export async function saveHeroImage(url: string) {
-  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').single();
-  if (existing.data) {
-    return supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
-  }
-  return supabase.from('settings').insert({ key: 'hero_image', value: url });
-}
-
-export async function loadParticipaEntries() {
-  const { data } = await supabase.from('participa').select('*').order('created_at', { ascending: false });
-  return data || [];
-}
-
-export async function saveParticipaEntry(entry: any) {
-  return supabase.from('participa').insert(entry);
-}
-
-export async function deleteParticipaEntry(id: string) {
-  return supabase.from('participa').delete().eq('id', id);
-}
-
 // ===== PROFILES =====
 export async function getProfile(userId: string) {
   const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
@@ -64,6 +38,7 @@ export async function upsertProfile(profile: {
   country?: string;
   city?: string;
   bio?: string;
+  testimonio?: string;
 }) {
   return supabase.from('profiles').upsert(profile, { onConflict: 'user_id' });
 }
@@ -80,7 +55,6 @@ export async function getUserActivities(userId: string) {
 }
 
 export async function setUserActivities(userId: string, activities: string[]) {
-  // Delete all current, insert new
   await supabase.from('user_activities').delete().eq('user_id', userId);
   if (activities.length > 0) {
     const rows = activities.map(a => ({ user_id: userId, activity: a }));
@@ -201,7 +175,6 @@ export async function deleteMuroReply(id: string) {
   return supabase.from('muro_replies').delete().eq('id', id);
 }
 
-// ===== STORAGE UPLOAD =====
 // ===== REACTIONS =====
 export async function toggleReaction(targetType: string, targetId: string, userId: string) {
   const existing = await supabase.from('reactions').select('id')
@@ -313,7 +286,6 @@ export function mergeEpisodesWithDefaults(supabaseEpisodes: any[], defaultEpisod
     }
     return d;
   });
-  // Add any extra episodes from Supabase that don't exist in defaults
   for (const cloud of supabaseEpisodes) {
     if (!merged.find((m: any) => m.id === cloud.id)) {
       merged.push({
@@ -345,4 +317,113 @@ export async function uploadFile(bucket: 'profile-photos' | 'muro-images' | 'epi
   if (error) { console.error('Upload error:', error); return null; }
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
   return publicUrl;
+}
+
+// ===== PROJECTS =====
+export async function getProjects() {
+  const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string }) {
+  return supabase.from('projects').insert(p).select().single();
+}
+
+export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string }) {
+  return supabase.from('projects').update(p).eq('id', id);
+}
+
+export async function deleteProject(id: string) {
+  return supabase.from('projects').delete().eq('id', id);
+}
+
+// ===== HERO IMAGE =====
+export async function getHeroImage() {
+  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
+  return data?.value || null;
+}
+
+export async function saveHeroImage(url: string) {
+  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').single();
+  if (existing.data) {
+    return supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
+  }
+  return supabase.from('settings').insert({ key: 'hero_image', value: url });
+}
+
+// ===== PARTICIPA ENTRIES =====
+export async function getParticipaEntries() {
+  const { data } = await supabase.from('participa_entries').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createParticipaEntry(entry: { tab: string; text: string; name?: string | null; anonymous: boolean }) {
+  return supabase.from('participa_entries').insert(entry).select().single();
+}
+
+export async function deleteParticipaEntry(id: string) {
+  return supabase.from('participa_entries').delete().eq('id', id);
+}
+
+export async function clearAllParticipaEntries() {
+  return supabase.from('participa_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+}
+
+// ===== DAILY VERSE MURO POST =====
+export async function ensureDailyVerseMuroPost(verse: string, reference: string) {
+  const today = new Date().toISOString().split('T')[0];
+  const existing = await supabase.from('muro_posts').select('id').eq('author_name', 'Versículo del Día').gte('created_at', `${today}T00:00:00`).lte('created_at', `${today}T23:59:59`).maybeSingle();
+  if (existing.data) return existing.data;
+  
+  const content = `📖 **Versículo del Día**\n\n"${verse}"\n\n— ${reference}\n\n¿Qué te dice Dios hoy a través de esta palabra? Comparte tu reflexión en los comentarios 👇\n\n#VersículoDelDía #TuHistoriaEnMí`;
+  
+  const { data } = await createMuroPost({
+    user_id: null,
+    author_name: 'Versículo del Día',
+    content,
+    image_url: null,
+  });
+  return data;
+}
+
+// ===== DAILY VERSE REACTIONS =====
+export async function toggleDailyVerseReaction(userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+  const existing = await supabase.from('daily_verse_reactions').select('id').eq('user_id', userId).eq('date', today).maybeSingle();
+  if (existing.data) {
+    await supabase.from('daily_verse_reactions').delete().eq('id', existing.data.id);
+    return false;
+  }
+  await supabase.from('daily_verse_reactions').insert({ user_id: userId, date: today });
+  return true;
+}
+
+export async function getDailyVerseReactionCount() {
+  const today = new Date().toISOString().split('T')[0];
+  const { count } = await supabase.from('daily_verse_reactions').select('*', { count: 'exact', head: true }).eq('date', today);
+  return count || 0;
+}
+
+export async function getUserDailyVerseReaction(userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await supabase.from('daily_verse_reactions').select('id').eq('user_id', userId).eq('date', today).maybeSingle();
+  return !!data;
+}
+
+// ===== TESTIMONIOS PUBLICOS =====
+export async function getPublicTestimonios() {
+  const { data } = await supabase.from('testimonios_publicos').select('*').eq('public', true).order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createTestimonioPublico(t: { user_id: string; display_name?: string; content: string; public?: boolean }) {
+  return supabase.from('testimonios_publicos').insert({ ...t, public: t.public ?? true }).select().single();
+}
+
+export async function updateTestimonioPublico(id: string, t: { content?: string; public?: boolean }) {
+  return supabase.from('testimonios_publicos').update(t).eq('id', id);
+}
+
+export async function deleteTestimonioPublico(id: string) {
+  return supabase.from('testimonios_publicos').delete().eq('id', id);
 }

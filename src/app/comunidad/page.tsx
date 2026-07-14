@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction as supabaseToggleReaction, getReactionCount, getUserReactions } from '@/lib/supabase';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction as supabaseToggleReaction, getReactionCount, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
+import { getVerseOfDay } from '@/lib/verses';
 import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -70,6 +71,10 @@ export default function ComunidadPage() {
   }, [activeTab]);
 
   async function loadMuro() {
+    const verse = getVerseOfDay();
+    if (verse?.verse) {
+      await ensureDailyVerseMuroPost(verse.verse, verse.reference);
+    }
     const posts = await getMuroPosts();
     setMuroPosts(posts);
     const all = await getAllProfiles();

@@ -1,5 +1,75 @@
--- PEGA ESTO EN SUPABASE SQL EDITOR Y PRESIONA RUN
+-- ============================================
+-- EJECUTAR EN SUPABASE SQL EDITOR
+-- ============================================
 
+-- 1. Tabla de proyectos
+CREATE TABLE IF NOT EXISTS projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  date TEXT DEFAULT '',
+  status TEXT DEFAULT 'próximo',
+  image TEXT DEFAULT '/images/logo.png',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lectura pública projects" ON projects;
+DROP POLICY IF EXISTS "Escritura pública projects" ON projects;
+CREATE POLICY "Lectura pública projects" ON projects FOR SELECT USING (true);
+CREATE POLICY "Escritura pública projects" ON projects FOR ALL USING (true);
+
+-- 2. Tabla de actividades dinámicas
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lectura pública activities" ON activities;
+DROP POLICY IF EXISTS "Escritura pública activities" ON activities;
+CREATE POLICY "Lectura pública activities" ON activities FOR SELECT USING (true);
+CREATE POLICY "Escritura pública activities" ON activities FOR ALL USING (true);
+
+-- 3. Tabla de reacciones al versículo diario
+CREATE TABLE IF NOT EXISTS daily_verse_reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+
+ALTER TABLE daily_verse_reactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lectura pública daily_verse_reactions" ON daily_verse_reactions;
+DROP POLICY IF EXISTS "Escritura pública daily_verse_reactions" ON daily_verse_reactions;
+CREATE POLICY "Lectura pública daily_verse_reactions" ON daily_verse_reactions FOR SELECT USING (true);
+CREATE POLICY "Escritura pública daily_verse_reactions" ON daily_verse_reactions FOR ALL USING (true);
+
+-- 4. Tabla de testimonios públicos
+CREATE TABLE IF NOT EXISTS testimonios_publicos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  display_name TEXT,
+  content TEXT NOT NULL,
+  public BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE testimonios_publicos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lectura pública testimonios_publicos" ON testimonios_publicos;
+DROP POLICY IF EXISTS "Escritura pública testimonios_publicos" ON testimonios_publicos;
+CREATE POLICY "Lectura pública testimonios_publicos" ON testimonios_publicos FOR SELECT USING (true);
+CREATE POLICY "Escritura pública testimonios_publicos" ON testimonios_publicos FOR ALL USING (true);
+
+-- 5. Agregar columna testimonio a profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS testimonio TEXT;
+
+-- 6. Storage para imágenes de episodios
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images', 'episode-images'));

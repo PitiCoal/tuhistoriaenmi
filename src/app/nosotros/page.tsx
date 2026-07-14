@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Heart, Target, Eye, Sparkles, BarChart3 } from 'lucide-react';
+import { Heart, Target, Eye, Sparkles, BarChart3, MessageCircle } from 'lucide-react';
 import UserCounter from '@/components/UserCounter';
 import SponsorShowcase from '@/components/SponsorShowcase';
-import { getPageContent, getImpactMetrics } from '@/lib/supabase';
+import { getPageContent, getImpactMetrics, getPublicTestimonios } from '@/lib/supabase';
 
 const FALLBACK: Record<string, string> = {
   hero_title: 'Nuestra Historia',
@@ -21,10 +21,12 @@ const FALLBACK: Record<string, string> = {
 export default function NosotrosPage() {
   const [content, setContent] = useState<Record<string, string>>({});
   const [metrics, setMetrics] = useState<any[]>([]);
+  const [testimonios, setTestimonios] = useState<any[]>([]);
 
   useEffect(() => {
     getPageContent('nosotros').then(data => setContent(data));
     getImpactMetrics().then(setMetrics);
+    getPublicTestimonios().then(setTestimonios);
   }, []);
 
   const c = (key: string) => content[key] || FALLBACK[key] || '';
@@ -143,6 +145,36 @@ export default function NosotrosPage() {
       </section>
 
       <SponsorShowcase />
+
+      {testimonios.length > 0 && (
+        <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md space-y-6">
+          <div className="flex items-center gap-3">
+            <MessageCircle size={20} className="text-primary" />
+            <h2 className="font-heading text-xl font-bold text-primary-dark">
+              Testimonios de la comunidad
+            </h2>
+          </div>
+          <p className="text-sm text-text-light">
+            Historias reales de personas que han encontrado a Dios en su camino.
+          </p>
+          <div className="space-y-4">
+            {testimonios.map(t => (
+              <div key={t.id} className="bg-primary/5 rounded-xl p-5 border border-primary/10 space-y-2">
+                <blockquote className="text-text leading-relaxed italic">"{t.content}"</blockquote>
+                <div className="flex items-center gap-2 text-sm text-text-light">
+                  {t.display_name && (
+                    <span className="font-medium text-primary-dark">{t.display_name}</span>
+                  )}
+                  <span className="text-xs">·</span>
+                  <time dateTime={t.created_at}>
+                    {new Date(t.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </time>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

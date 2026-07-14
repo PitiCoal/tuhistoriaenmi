@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries } from '@/lib/supabase';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones' | 'actividades';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
@@ -80,12 +80,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
       </div>
 
-      {tab === 'proyectos' && (
-        <ProjectsTab
-          projects={projects} setProjects={setProjects} storageKey={STORAGE_PROJECTS}
-          form={pForm} setForm={setPForm} editingId={pEditingId} setEditingId={setPEditingId}
-        />
-      )}
+      {tab === 'proyectos' && <ProjectsTab />}
 
       {tab === 'episodios' && (
         <EpisodesTab
@@ -113,20 +108,42 @@ export default function AdminProyectosPage() {
   );
 }
 
-function ProjectsTab({ projects, setProjects, storageKey, form, setForm, editingId, setEditingId }: any) {
-  function save(updated: Project[]) { setProjects(updated); saveToStorage(storageKey, updated); }
-  function add() {
+function ProjectsTab() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [form, setForm] = useState(emptyProject);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setProjects(await getProjects());
+    setLoading(false);
+  }
+
+  function save(updated: any[]) { setProjects(updated); }
+
+  async function add() {
     if (!form.title.trim()) return;
-    save([...projects, { id: Date.now().toString(), title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' }]);
-    setForm(emptyProject);
+    const res = await createProject({ ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' });
+    if (res.data) { save([...projects, res.data]); setForm(emptyProject); }
   }
-  function update() {
+
+  async function update() {
     if (!editingId || !form.title.trim()) return;
-    save(projects.map((p: Project) => p.id === editingId ? { ...p, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' } : p));
-    setEditingId(null); setForm(emptyProject);
+    const res = await updateProject(editingId, { ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' });
+    if (res.data) { save(projects.map((p: any) => p.id === editingId ? { ...p, ...(res.data as any) } : p)); setEditingId(null); setForm(emptyProject); }
   }
-  function del(id: string) { if (confirm('¿Eliminar?')) save(projects.filter((p: Project) => p.id !== id)); }
-  function edit(p: Project) { setEditingId(p.id); setForm({ title: p.title, description: p.description, date: p.date, status: p.status, image: p.image }); }
+
+  async function del(id: string) {
+    if (!confirm('¿Eliminar?')) return;
+    await deleteProject(id);
+    save(projects.filter((p: any) => p.id !== id));
+  }
+
+  function edit(p: any) { setEditingId(p.id); setForm({ title: p.title, description: p.description, date: p.date, status: p.status, image: p.image }); }
+
+  if (loading) return <p className="text-center text-text-light py-8">Cargando proyectos...</p>;
 
   return (
     <div className="space-y-4">
@@ -151,7 +168,7 @@ function ProjectsTab({ projects, setProjects, storageKey, form, setForm, editing
       </div>
 
       <div className="space-y-3">
-        {projects.map((p: Project) => (
+        {projects.map((p: any) => (
           <div key={p.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4">
             <img src={p.image} alt="" className="w-16 h-16 rounded-lg object-contain bg-gray-50" />
             <div className="flex-1 min-w-0"><h3 className="font-semibold text-primary-dark">{p.title}</h3><p className="text-sm text-text-light line-clamp-2">{p.description}</p></div>
@@ -161,6 +178,7 @@ function ProjectsTab({ projects, setProjects, storageKey, form, setForm, editing
             </div>
           </div>
         ))}
+        {projects.length === 0 && <p className="text-center text-text-light py-8">No hay proyectos. Crea el primero.</p>}
       </div>
     </div>
   );
@@ -326,12 +344,14 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
 function HeroSettingsTab() {
   const [heroImage, setHeroImage] = useState('');
   const [preview, setPreview] = useState('');
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(HERO_KEY);
-    if (saved) { setPreview(saved); setHeroImage(saved); }
-    else setPreview('/images/hero-bg.png');
+    getHeroImage().then(url => {
+      if (url) { setPreview(url); setHeroImage(url); }
+      else setPreview('/images/hero-bg.png');
+    });
   }, []);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -347,16 +367,16 @@ function HeroSettingsTab() {
     }
   }
 
-  function handleSave() {
-    if (heroImage) {
-      localStorage.setItem(HERO_KEY, heroImage);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }
+  async function handleSave() {
+    if (!heroImage) return;
+    setSaving(true);
+    await saveHeroImage(heroImage);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   }
 
   function handleReset() {
-    localStorage.removeItem(HERO_KEY);
     setHeroImage('');
     setPreview('/images/hero-bg.png');
     setSaved(true);
@@ -385,8 +405,8 @@ function HeroSettingsTab() {
       </div>
 
       <div className="flex gap-2">
-        <button onClick={handleSave} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-          <Save size={14} /> Guardar imagen
+        <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
+          <Save size={14} /> {saving ? 'Guardando...' : 'Guardar imagen'}
         </button>
         <button onClick={handleReset} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-colors">
           Restaurar imagen original
@@ -400,29 +420,31 @@ function HeroSettingsTab() {
 function ParticipaTab() {
   const [entries, setEntries] = useState<any[]>([]);
   const [filterTab, setFilterTab] = useState<string>('todas');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const data = localStorage.getItem('tm_participa');
-      if (data) setEntries(JSON.parse(data));
-    } catch {}
+    getParticipaEntries().then(data => {
+      setEntries(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  function deleteEntry(id: string) {
+  async function deleteEntry(id: string) {
     if (!confirm('¿Eliminar esta publicación?')) return;
-    const updated = entries.filter(e => e.id !== id);
-    setEntries(updated);
-    localStorage.setItem('tm_participa', JSON.stringify(updated));
+    await deleteParticipaEntry(id);
+    setEntries(entries.filter(e => e.id !== id));
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (!confirm('¿Eliminar TODAS las publicaciones? Esta acción no se puede deshacer.')) return;
+    await clearAllParticipaEntries();
     setEntries([]);
-    localStorage.removeItem('tm_participa');
   }
 
   const filtered = filterTab === 'todas' ? entries : entries.filter(e => e.tab === filterTab);
   const tabLabels: Record<string, string> = { oraciones: 'Oraciones', reflexiones: 'Reflexiones', sugerencias: 'Sugerencias' };
+
+  if (loading) return <p className="text-center text-text-light py-8">Cargando...</p>;
 
   return (
     <div className="space-y-4">
@@ -460,7 +482,7 @@ function ParticipaTab() {
                   }`}>
                     {e.tab === 'oraciones' ? '🙏' : e.tab === 'reflexiones' ? '💬' : '🎤'} {tabLabels[e.tab]}
                   </span>
-                  <span className="text-[10px] text-text-light">{new Date(e.createdAt).toLocaleDateString('es-CL')}</span>
+                  <span className="text-[10px] text-text-light">{new Date(e.created_at).toLocaleDateString('es-CL')}</span>
                   <span className="text-[10px] text-text-light">{e.name || 'Anónimo'}</span>
                 </div>
                 <p className="text-sm text-text">{e.text}</p>

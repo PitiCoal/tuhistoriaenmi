@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities, getActivities } from '@/lib/supabase';
-import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PerfilPage() {
@@ -16,6 +16,7 @@ export default function PerfilPage() {
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [testimonio, setTestimonio] = useState('');
   const [activitiesOptions, setActivitiesOptions] = useState<string[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -36,6 +37,7 @@ export default function PerfilPage() {
         setCountry(p.country || '');
         setCity(p.city || '');
         setBio(p.bio || '');
+        setTestimonio(p.testimonio || '');
       } else {
         setDisplayName(user.displayName || '');
       }
@@ -99,6 +101,7 @@ export default function PerfilPage() {
       country: country.trim(),
       city: city.trim(),
       bio: bio.trim() || undefined,
+      testimonio: testimonio.trim() || undefined,
     });
     if (error) {
       setFeedback({ ok: false, msg: 'Error al guardar: ' + error.message });
@@ -208,6 +211,13 @@ export default function PerfilPage() {
             <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Cuéntanos de ti..." />
             <p className="text-xs text-text-light/60 mt-1">{bio.length}/300</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Tu testimonio (visible en la comunidad)</label>
+            <textarea value={testimonio} onChange={e => setTestimonio(e.target.value)} maxLength={500} rows={3}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="¿Cómo has visto actuar a Dios en tu vida? Tu historia puede inspirar a otros..." />
+            <p className="text-xs text-text-light/60 mt-1">{testimonio.length}/500</p>
           </div>
 
           <div className="border-t border-gray-100 pt-4">
