@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones' | 'actividades';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -77,6 +77,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
         <button onClick={() => setTab('impacto')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'impacto' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Impacto</button>
         <button onClick={() => setTab('notificaciones')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'notificaciones' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Bell size={16} /> Notificaciones</button>
+        <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
       </div>
 
       {tab === 'proyectos' && (
@@ -106,6 +107,8 @@ export default function AdminProyectosPage() {
       {tab === 'impacto' && <ImpactoTab />}
 
       {tab === 'notificaciones' && <NotificacionesTab />}
+
+      {tab === 'actividades' && <ActividadesTab />}
     </div>
   );
 }
@@ -625,6 +628,91 @@ function PaginasTab() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function ActividadesTab() {
+  const [activities, setActivities] = useState<any[]>([]);
+  const [form, setForm] = useState({ name: '', description: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() { setActivities(await getActivities()); }
+
+  async function add() {
+    if (!form.name.trim()) return;
+    await createActivity({ name: form.name.trim(), description: form.description.trim(), sort_order: activities.length });
+    setForm({ name: '', description: '' }); await load();
+  }
+
+  async function update() {
+    if (!editingId || !form.name.trim()) return;
+    await updateActivity(editingId, { name: form.name.trim(), description: form.description.trim() });
+    setEditingId(null); setForm({ name: '', description: '' }); await load();
+  }
+
+  async function toggleActive(id: string, current: boolean) {
+    await updateActivity(id, { active: !current });
+    await load();
+  }
+
+  async function del(id: string) {
+    if (!confirm('¿Eliminar actividad?')) return;
+    await deleteActivity(id); await load();
+  }
+
+  function edit(a: any) { setEditingId(a.id); setForm({ name: a.name, description: a.description || '' }); }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar actividad' : 'Agregar actividad/evento'}</h2>
+        <p className="text-xs text-text-light">Define las actividades y eventos a los que los usuarios podrán inscribirse desde su perfil.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input type="text" placeholder="Nombre (ej: Encuentro TM)" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input type="text" placeholder="Descripción (opcional)" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+            className="col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div className="flex gap-2">
+          {editingId ? (
+            <><button onClick={update} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Save size={14} /> Guardar</button>
+            <button onClick={() => { setEditingId(null); setForm({ name: '', description: '' }); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300"><X size={14} /> Cancelar</button></>
+          ) : (
+            <button onClick={add} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Plus size={14} /> Agregar actividad</button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {activities.map((a: any) => (
+          <div key={a.id} className={`bg-card rounded-xl p-5 border shadow-md flex gap-4 items-center ${a.active ? 'border-gray-200/70' : 'border-gray-200/30 opacity-60'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${a.active ? 'bg-primary/10' : 'bg-gray-100'}`}>
+              <CalendarCheck size={18} className={a.active ? 'text-primary' : 'text-text-light'} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-primary-dark">{a.name}</h3>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${a.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-text-light'}`}>
+                  {a.active ? 'Activa' : 'Inactiva'}
+                </span>
+              </div>
+              {a.description && <p className="text-xs text-text-light mt-0.5">{a.description}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => toggleActive(a.id, a.active)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${a.active ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                {a.active ? 'Desactivar' : 'Activar'}
+              </button>
+              <button onClick={() => edit(a)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
+              <button onClick={() => del(a.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+        {activities.length === 0 && <p className="text-center text-text-light py-8">No hay actividades. Crea la primera.</p>}
+      </div>
     </div>
   );
 }

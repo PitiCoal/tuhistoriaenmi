@@ -2,20 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities } from '@/lib/supabase';
+import { getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities, getActivities } from '@/lib/supabase';
 import { User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-
-const ACTIVITIES_OPTIONS = [
-  'Cachipun de la Gratitud',
-  'Merch TM',
-  'Voluntariado',
-  'Grupos de fe',
-  'Eventos especiales',
-  'Talleres',
-  'Retiros espirituales',
-  'Otro',
-];
 
 export default function PerfilPage() {
   const { user, signIn } = useAuth();
@@ -27,6 +16,7 @@ export default function PerfilPage() {
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [activitiesOptions, setActivitiesOptions] = useState<string[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -51,6 +41,7 @@ export default function PerfilPage() {
       }
     });
     getUserActivities(user.uid).then(setSelectedActivities);
+    getActivities(true).then(list => setActivitiesOptions(list.map((a: any) => a.name)));
   }, [user]);
 
   function toggleActivity(a: string) {
@@ -223,20 +214,24 @@ export default function PerfilPage() {
             <label className="block text-xs font-medium text-text-light mb-3">
               ¿A qué actividades o eventos te gustaría participar?
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {ACTIVITIES_OPTIONS.map(a => (
-                <label key={a}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
-                    selectedActivities.has(a)
-                      ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
-                      : 'bg-card border-gray-200 text-text-light hover:border-gray-300'
-                  }`}>
-                  <input type="checkbox" checked={selectedActivities.has(a)} onChange={() => toggleActivity(a)}
-                    className="accent-primary" />
-                  {a}
-                </label>
-              ))}
-            </div>
+            {activitiesOptions.length === 0 ? (
+              <p className="text-xs text-text-light/60 italic">El administrador aún no ha definido actividades disponibles.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {activitiesOptions.map(a => (
+                  <label key={a}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                      selectedActivities.has(a)
+                        ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
+                        : 'bg-card border-gray-200 text-text-light hover:border-gray-300'
+                    }`}>
+                    <input type="checkbox" checked={selectedActivities.has(a)} onChange={() => toggleActivity(a)}
+                      className="accent-primary" />
+                    {a}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

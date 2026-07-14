@@ -116,6 +116,25 @@ CREATE TABLE IF NOT EXISTS impact_metrics (
 ALTER TABLE impact_metrics ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
+-- ACTIVITIES (eventos que admin define, usuarios se inscriben)
+-- ============================================
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Lectura pública activities" ON activities;
+DROP POLICY IF EXISTS "Escritura pública activities" ON activities;
+CREATE POLICY "Lectura pública activities" ON activities FOR SELECT USING (true);
+CREATE POLICY "Escritura pública activities" ON activities FOR ALL USING (true);
+
+-- ============================================
 -- MURO POSTS
 -- ============================================
 CREATE TABLE IF NOT EXISTS muro_posts (

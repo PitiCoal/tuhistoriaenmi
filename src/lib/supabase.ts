@@ -153,6 +153,26 @@ export async function countSponsors() {
   return count || 0;
 }
 
+// ===== ACTIVITIES (eventos dinámicos) =====
+export async function getActivities(onlyActive = false) {
+  let q = supabase.from('activities').select('*').order('sort_order');
+  if (onlyActive) q = q.eq('active', true);
+  const { data } = await q;
+  return data || [];
+}
+
+export async function createActivity(a: { name: string; description?: string; active?: boolean; sort_order?: number }) {
+  return supabase.from('activities').insert(a).select().single();
+}
+
+export async function updateActivity(id: string, a: { name?: string; description?: string; active?: boolean; sort_order?: number }) {
+  return supabase.from('activities').update(a).eq('id', id);
+}
+
+export async function deleteActivity(id: string) {
+  return supabase.from('activities').delete().eq('id', id);
+}
+
 // ===== MURO POSTS =====
 export async function getMuroPosts() {
   const { data } = await supabase.from('muro_posts').select('*').order('created_at', { ascending: false });
