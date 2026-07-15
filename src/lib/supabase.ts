@@ -135,6 +135,14 @@ export async function getActivities(onlyActive = false) {
   return data || [];
 }
 
+export async function getActivitiesWithCounts() {
+  const activities = await getActivities(true);
+  const { data: userActivities } = await supabase.from('user_activities').select('activity');
+  const counts: Record<string, number> = {};
+  (userActivities || []).forEach(r => { counts[r.activity] = (counts[r.activity] || 0) + 1; });
+  return activities.map(a => ({ ...a, participants: counts[a.name] || 0 }));
+}
+
 export async function createActivity(a: { name: string; description?: string; active?: boolean; sort_order?: number }) {
   return supabase.from('activities').insert(a).select().single();
 }

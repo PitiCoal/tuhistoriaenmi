@@ -2,19 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost, getActivities, getActivitiesWithCounts } from '@/lib/supabase';
 import { getVerseOfDay } from '@/lib/verses';
-import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles, HandHeart } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'oraciones' | 'reflexiones' | 'sugerencias' | 'muro';
+type Tab = 'oraciones' | 'reflexiones' | 'sugerencias' | 'muro' | 'actividades';
 type Entry = { id: string; tab: Tab; text: string; name: string | null; createdAt: number; reactions: number; reactedBy: string[]; };
 
-const EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+const EMOJIS = ['🙏', '❤️', '😊', '🤗', '✨'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
-  '🙏': <Heart size={12} />,
+  '🙏': <HandHeart size={12} />,
   '❤️': <Heart size={12} className="text-red-500 fill-current" />,
   '😊': <Smile size={12} />,
+  '🤗': <span role="img" aria-label="abrazo" style={{fontSize:12}}>🤗</span>,
   '✨': <Sparkles size={12} />,
 };
 
@@ -23,6 +24,7 @@ const tabs: { id: Tab; label: string; icon: typeof Heart; placeholder?: string; 
   { id: 'reflexiones', label: 'Reflexiones', icon: MessageCircle, placeholder: '¿Qué te quedó dando vuelta?', desc: 'Preguntas o pensamientos.' },
   { id: 'sugerencias', label: 'Sugerencias', icon: Mic, placeholder: '¿Conoces a alguien que debería contar su historia?', desc: 'Propón invitados o temas.' },
   { id: 'muro', label: 'Muro', icon: Grid3X3, desc: 'Comparte algo con la comunidad.' },
+  { id: 'actividades', label: 'Actividades', icon: Users, desc: 'Actividades disponibles para inscribirse.' },
 ];
 
 export default function ComunidadPage() {
@@ -40,6 +42,8 @@ export default function ComunidadPage() {
   const [muroImage, setMuroImage] = useState<File | null>(null);
   const [muroImagePreview, setMuroImagePreview] = useState<string | null>(null);
   const [muroUploading, setMuroUploading] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [repliesData, setRepliesData] = useState<Record<string, any[]>>({});
@@ -92,6 +96,13 @@ export default function ComunidadPage() {
   useEffect(() => {
     if (activeTab === 'muro') loadMuro();
   }, [activeTab]);
+
+  useEffect(() => {
+    getActivitiesWithCounts().then(list => {
+      setActivities(list);
+      setActivitiesLoading(false);
+    }).catch(() => setActivitiesLoading(false));
+  }, []);
 
   async function loadMuro() {
     const verse = getVerseOfDay();
@@ -260,7 +271,7 @@ export default function ComunidadPage() {
   function handleTouchEnd(e: React.TouchEvent) {
     touchEndX.current = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX.current;
-    const tabOrder: Tab[] = ['oraciones', 'reflexiones', 'sugerencias', 'muro'];
+    const tabOrder: Tab[] = ['oraciones', 'reflexiones', 'sugerencias', 'muro', 'actividades'];
     const idx = tabOrder.indexOf(activeTab);
     if (Math.abs(diff) > 50) {
       if (diff > 0 && idx < tabOrder.length - 1) setActiveTab(tabOrder[idx + 1]);
@@ -436,7 +447,41 @@ export default function ComunidadPage() {
     </>
   );
 
-  const participaContent = (activeTab === 'muro' ? muroContent : (
+  const participaContent = (activeTab === 'muro' ? muroContent : activeTab === 'actividades' ? (
+    <div className="space-y-3">
+      {activitiesLoading ? (
+        <div className="text-center py-8 text-text-light">Cargando actividades...</div>
+      ) : activities.length === 0 ? (
+        <div className="bg-card rounded-xl p-6 md:p-8 border border-gray-200/70 shadow-md text-center space-y-3">
+          <Users size={48} className="mx-auto text-text-light" />
+          <h2 className="font-heading text-lg font-bold text-primary-dark">Sin actividades disponibles</h2>
+          <p className="text-sm text-text-light">El administrador aún no ha creado actividades.</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-text-light mb-2">Actividades disponibles para inscribirse desde tu perfil</p>
+          <div className="space-y-3">
+            {activities.map(a => (
+              <div key={a.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-primary-dark">{a.name}</h3>
+                  {a.description && <p className="text-sm text-text-light line-clamp-2 mt-1">{a.description}</p>}
+                  <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                    <Users size={10} /> {a.participants || 0} personas inscritas
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                    👥 {a.participants || 0}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  ) : (
     <>
       {!user ? (
         <div className="bg-card rounded-xl p-6 md:p-8 border border-gray-200/70 shadow-md text-center space-y-3">

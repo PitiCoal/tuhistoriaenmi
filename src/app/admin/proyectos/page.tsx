@@ -105,6 +105,7 @@ function ProjectsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -120,6 +121,24 @@ function ProjectsTab() {
   }
 
   function save(updated: any[]) { setProjects(updated); }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const url = await uploadFile('episode-images', 'projects', file);
+      if (url) {
+        setForm(prev => ({ ...prev, image: url }));
+      } else {
+        setError('Error subiendo imagen');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error subiendo imagen');
+    } finally {
+      setImageUploading(false);
+    }
+  }
 
   async function add() {
     if (!form.title.trim()) return;
@@ -156,14 +175,24 @@ function ProjectsTab() {
         <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar proyecto' : 'Agregar proyecto'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input type="text" placeholder="Título" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <input type="text" placeholder="Fecha" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input type="date" placeholder="Fecha" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
             <option value="próximo">Próximo</option><option value="en curso">En curso</option><option value="completado">Completado</option>
           </select>
-          <input type="text" placeholder="URL imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <div className="space-y-2">
+            <label className="text-xs text-text-light">Imagen (URL o subir archivo)</label>
+            <div className="flex gap-2">
+              <input type="text" placeholder="URL imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            {imageUploading && <span className="text-xs text-primary">Subiendo...</span>}
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input type="number" placeholder="Participantes (N)" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <div>
+            <label className="block text-xs text-text-light mb-1">Participantes (número de personas inscritas)</label>
+            <input type="number" placeholder="Participantes (N)" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
         </div>
         <textarea placeholder="Descripción" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex gap-2">

@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { getVerseOfDay } from '@/lib/verses';
 import { getAllReactionCounts, getUserReactions, toggleReaction, createMuroPost } from '@/lib/supabase';
-import { Heart, Share2, Check, Smile, Sparkles } from 'lucide-react';
+import { Heart, Share2, Check, Smile, Sparkles, HandHeart } from 'lucide-react';
 
-const EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+const EMOJIS = ['🙏', '❤️', '😊', '🤗', '✨'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
-  '🙏': <Heart size={16} />,
+  '🙏': <HandHeart size={16} />,
   '❤️': <Heart size={16} className="text-red-500 fill-current" />,
   '😊': <Smile size={16} />,
+  '🤗': <span role="img" aria-label="abrazo">🤗</span>,
   '✨': <Sparkles size={16} />,
 };
 
