@@ -216,6 +216,14 @@ export async function getAllReactionCounts(targetType: string, targetId: string)
   return counts;
 }
 
+// Get total reaction count for a target type across ALL targets
+export async function getTotalReactionCount(targetType: string) {
+  const { count } = await supabase.from('reactions')
+    .select('*', { count: 'exact', head: true })
+    .eq('target_type', targetType);
+  return count || 0;
+}
+
 // ===== SPONSORS =====
 export async function getSponsors() {
   const { data } = await supabase.from('sponsors').select('*').order('sort_order');

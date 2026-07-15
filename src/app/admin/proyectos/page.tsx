@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts, getTotalReactionCount } from '@/lib/supabase';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
@@ -32,20 +32,11 @@ export default function AdminProyectosPage() {
   const { user, signIn, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('proyectos');
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [pForm, setPForm] = useState(emptyProject);
-  const [pEditingId, setPEditingId] = useState<string | null>(null);
-
   const [episodes, setEpisodes] = useState<EpisodeData[]>([]);
   const [eForm, setEForm] = useState(emptyEpisode);
   const [eEditingId, setEEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    setProjects(loadFromStorage(STORAGE_PROJECTS, [
-      { id: 'p1', title: 'Cachipun de la Gratitud', description: 'Intervención urbana.', date: 'Julio 2026', status: 'próximo', image: '/images/logo.png' },
-      { id: 'p2', title: 'Merch TM', description: 'Polerón y polera oficial.', date: 'Julio 2026', status: 'en curso', image: '/images/logo.png' },
-      { id: 'p3', title: 'App Comunidad TM', description: 'Plataforma web.', date: 'Julio-Agosto 2026', status: 'en curso', image: '/images/logo.png' },
-    ]));
     setEpisodes(loadFromStorage(STORAGE_EPISODES, []));
   }, []);
 
@@ -854,7 +845,7 @@ function MetricasTab() {
 
   useEffect(() => {
     loadMetrics();
-    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors(), getMuroPosts().then(posts => posts.length), getAllReactionCounts('muro_post', '').then(c => Object.values(c).reduce((a, b) => a + b, 0))]).then(
+    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors(), getMuroPosts().then(posts => posts.length), getTotalReactionCount('muro_post')]).then(
       ([a, b, c, d, e, f]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d, muroPosts: e, totalReactions: f })
     );
   }, []);

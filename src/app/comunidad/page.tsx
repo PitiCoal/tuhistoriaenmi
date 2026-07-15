@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
 import { getVerseOfDay } from '@/lib/verses';
-import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon } from 'lucide-react';
+import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 type Tab = 'oraciones' | 'reflexiones' | 'sugerencias' | 'muro';
@@ -14,8 +14,8 @@ const EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
   '🙏': <Heart size={12} />,
   '❤️': <Heart size={12} className="text-red-500 fill-current" />,
-  '😊': <MessageCircle size={12} />,
-  '✨': <Camera size={12} />,
+  '😊': <Smile size={12} />,
+  '✨': <Sparkles size={12} />,
 };
 
 const tabs: { id: Tab; label: string; icon: typeof Heart; placeholder?: string; desc: string }[] = [
