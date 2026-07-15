@@ -3,15 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { getVerseOfDay } from '@/lib/verses';
-import { getReactionCount, getUserReactions, toggleReaction, createMuroPost } from '@/lib/supabase';
-import { Heart, Share2, Check } from 'lucide-react';
+import { getAllReactionCounts, getUserReactions, toggleReaction, createMuroPost } from '@/lib/supabase';
+import { Heart, Share2, Check, Smile, Sparkles } from 'lucide-react';
+
+const EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+const EMOJI_ICONS: Record<string, React.ReactNode> = {
+  '🙏': <Heart size={16} />,
+  '❤️': <Heart size={16} className="text-red-500 fill-current" />,
+  '😊': <Smile size={16} />,
+  '✨': <Sparkles size={16} />,
+};
 
 export default function DailyVerse() {
   const { user } = useAuth();
   const [verse, setVerse] = useState<{ verse: string; reference: string }>({ verse: '', reference: '' });
-  const [reactionCount, setReactionCount] = useState(0);
-  const [userReacted, setUserReacted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [userReacted, setUserReacted] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState<string | null>(null);
   const [shared, setShared] = useState(false);
 
   useEffect(() => {
@@ -20,18 +28,22 @@ export default function DailyVerse() {
 
   useEffect(() => {
     if (user && user !== 'loading') {
-      getReactionCount('daily_verse', 'today').then(setReactionCount);
-      getUserReactions('daily_verse', user.uid).then(reactions => setUserReacted(reactions.has('today')));
+      getAllReactionCounts('daily_verse', 'today').then(setReactionCounts);
+      getUserReactions('daily_verse', user.uid).then(reactions => {
+        const map: Record<string, boolean> = {};
+        EMOJIS.forEach(e => { map[e] = reactions.has(`today:${e}`); });
+        setUserReacted(map);
+      });
     }
   }, [user]);
 
-  async function handleReact() {
-    if (!user || user === 'loading') return;
-    setLoading(true);
-    const added = await toggleReaction('daily_verse', 'today', user.uid);
-    setUserReacted(added);
-    setReactionCount(prev => added ? prev + 1 : prev - 1);
-    setLoading(false);
+  async function handleReact(emoji: string) {
+    if (!user || user === 'loading' || loading) return;
+    setLoading(emoji);
+    const added = await toggleReaction('daily_verse', 'today', user.uid, emoji);
+    setUserReacted(prev => ({ ...prev, [emoji]: added }));
+    setReactionCounts(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + (added ? 1 : -1) }));
+    setLoading(null);
   }
 
   async function handleShareToMuro() {
@@ -63,24 +75,34 @@ export default function DailyVerse() {
       </blockquote>
       <p className="mt-2 md:mt-3 text-xs md:text-sm text-text-light font-medium">{verse.reference}</p>
 
-      <div className="flex items-center justify-center gap-3 mt-4 pt-4 border-t border-gray-100">
-        <button
-          onClick={handleReact}
-          disabled={loading || !user || user === 'loading'}
-          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors active:scale-95 ${
-            userReacted
-              ? 'bg-primary/10 text-primary border border-primary/20'
-              : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary hover:border-primary/20 border border-gray-200'
-          } ${loading ? 'opacity-50 cursor-wait' : ''}`}
-        >
-          <Heart size={16} className={userReacted ? 'fill-current' : ''} />
-          {reactionCount > 0 ? reactionCount : 'Rezar'}
-        </button>
+      <div className="flex flex-col items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {EMOJIS.map(emoji => {
+            const Icon = EMOJI_ICONS[emoji];
+            const count = reactionCounts[emoji] || 0;
+            const reacted = userReacted[emoji] || false;
+            return (
+              <button
+                key={emoji}
+                onClick={() => handleReact(emoji)}
+                disabled={loading !== null || !user || user === 'loading'}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors active:scale-95 ${
+                  reacted
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary hover:border-primary/20 border border-gray-200'
+                } ${loading === emoji ? 'opacity-50 cursor-wait' : ''}`}
+              >
+                {Icon}
+                <span className="text-xs">{count > 0 ? count : ''}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <button
           onClick={handleShareToMuro}
           disabled={!user || user === 'loading'}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary border border-gray-200 transition-colors active:scale-95"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary border border-gray-200 transition-colors active:scale-95 w-full sm:w-auto"
         >
           <Share2 size={16} /> {shared ? <Check size={16} className="text-green-500" /> : 'Compartir en Muro'}
         </button>

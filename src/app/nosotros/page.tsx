@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Heart, Target, Eye, Sparkles, BarChart3, MessageCircle } from 'lucide-react';
+import { Heart, Target, Eye, Sparkles, BarChart3, MessageCircle, Star } from 'lucide-react';
 import UserCounter from '@/components/UserCounter';
 import SponsorShowcase from '@/components/SponsorShowcase';
-import { getPageContent, getImpactMetrics, getPublicTestimonios } from '@/lib/supabase';
+import { getPageContent, getImpactMetrics, getPublicTestimonios, countProfiles, countEpisodes, countTestimonios, countSponsors } from '@/lib/supabase';
 
 const FALLBACK: Record<string, string> = {
   hero_title: 'Nuestra Historia',
@@ -22,11 +22,15 @@ export default function NosotrosPage() {
   const [content, setContent] = useState<Record<string, string>>({});
   const [metrics, setMetrics] = useState<any[]>([]);
   const [testimonios, setTestimonios] = useState<any[]>([]);
+  const [autoMetrics, setAutoMetrics] = useState({ profiles: 0, episodes: 0, testimonios: 0, sponsors: 0 });
 
   useEffect(() => {
     getPageContent('nosotros').then(data => setContent(data));
     getImpactMetrics().then(setMetrics);
     getPublicTestimonios().then(setTestimonios);
+    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors()]).then(
+      ([a, b, c, d]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d })
+    );
   }, []);
 
   const c = (key: string) => content[key] || FALLBACK[key] || '';
@@ -96,11 +100,39 @@ export default function NosotrosPage() {
         </div>
       </div>
 
+      {/* Auto-métricas de impacto - siempre visibles */}
+      <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md">
+        <div className="flex items-center gap-2 mb-6">
+          <BarChart3 size={20} className="text-primary" />
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Impacto</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center space-y-1">
+            <p className="text-3xl font-bold text-primary">{autoMetrics.profiles}</p>
+            <p className="text-xs text-text-light">Usuarios registrados</p>
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-3xl font-bold text-primary">{autoMetrics.episodes}</p>
+            <p className="text-xs text-text-light">Episodios publicados</p>
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-3xl font-bold text-primary">{autoMetrics.testimonios}</p>
+            <p className="text-xs text-text-light">Testimonios recibidos</p>
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-3xl font-bold text-primary">{autoMetrics.sponsors}</p>
+            <p className="text-xs text-text-light">Auspiciadores</p>
+          </div>
+        </div>
+        <p className="text-[10px] text-text-light/60 mt-2">Estas métricas se actualizan automáticamente desde la base de datos.</p>
+      </section>
+
+      {/* Métricas personalizadas (si existen) */}
       {metrics.length > 0 && (
-        <section className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md">
+        <section className="bg-primary/5 rounded-2xl p-8 border border-primary/10">
           <div className="flex items-center gap-2 mb-6">
-            <BarChart3 size={20} className="text-primary" />
-            <h2 className="font-heading text-xl font-bold text-primary-dark">Impacto</h2>
+            <Star size={20} className="text-primary" />
+            <h2 className="font-heading text-xl font-bold text-primary-dark">Métricas destacadas</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metrics.map(m => (

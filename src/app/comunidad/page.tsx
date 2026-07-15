@@ -2,13 +2,21 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction as supabaseToggleReaction, getReactionCount, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
 import { getVerseOfDay } from '@/lib/verses';
 import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon } from 'lucide-react';
 import Link from 'next/link';
 
 type Tab = 'oraciones' | 'reflexiones' | 'sugerencias' | 'muro';
 type Entry = { id: string; tab: Tab; text: string; name: string | null; createdAt: number; reactions: number; reactedBy: string[]; };
+
+const EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+const EMOJI_ICONS: Record<string, React.ReactNode> = {
+  '🙏': <Heart size={12} />,
+  '❤️': <Heart size={12} className="text-red-500 fill-current" />,
+  '😊': <MessageCircle size={12} />,
+  '✨': <Camera size={12} />,
+};
 
 const tabs: { id: Tab; label: string; icon: typeof Heart; placeholder?: string; desc: string }[] = [
   { id: 'oraciones', label: 'Oraciones', icon: Heart, placeholder: 'Escribe tu intención...', desc: 'Comparte una intención para que otros oren por ti.' },
@@ -39,8 +47,10 @@ export default function ComunidadPage() {
 
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
-  const [muroReactions, setMuroReactions] = useState<Set<string>>(new Set());
-  const [muroReactionCounts, setMuroReactionCounts] = useState<Record<string, number>>({});
+  // muro reactions: postId -> { emoji -> count }
+  const [muroReactionCounts, setMuroReactionCounts] = useState<Record<string, Record<string, number>>>({});
+  // muro user reactions: postId -> Set<emoji>
+  const [muroUserReactions, setMuroUserReactions] = useState<Record<string, Set<string>>>({});
 
   // Swipe state
   const touchStartX = useRef(0);
@@ -58,9 +68,22 @@ export default function ComunidadPage() {
   useEffect(() => {
     if (user && user !== 'loading') {
       getUserReactions('participa', user.uid).then(setUserReactions).catch(() => {});
-      getUserReactions('muro_post', user.uid).then(setMuroReactions).catch(() => {});
+      getUserReactions('muro_post', user.uid).then(reactions => {
+        // reactions is a Set of "targetId:emoji" strings
+        const map: Record<string, Set<string>> = {};
+        muroPosts.forEach(p => {
+          const emojis = new Set<string>();
+          reactions.forEach(key => {
+            if (key.startsWith(`${p.id}:`)) {
+              emojis.add(key.split(':')[1]);
+            }
+          });
+          map[p.id] = emojis;
+        });
+        setMuroUserReactions(map);
+      }).catch(() => {});
     }
-  }, [user]);
+  }, [user, muroPosts]);
 
   useEffect(() => {
     try { const d = localStorage.getItem('tm_participa'); if (d) setEntries(JSON.parse(d)); } catch {}
@@ -79,12 +102,26 @@ export default function ComunidadPage() {
     setMuroPosts(posts);
     const all = await getAllProfiles();
     setProfiles(all);
-    posts.forEach(p => loadMuroReactionCount(p.id));
-  }
-
-  async function loadMuroReactionCount(postId: string) {
-    const count = await getReactionCount('muro_post', postId);
-    setMuroReactionCounts(prev => ({ ...prev, [postId]: count }));
+    // Load multi-emoji reaction counts for each post
+    for (const p of posts) {
+      const counts = await getAllReactionCounts('muro_post', p.id);
+      setMuroReactionCounts(prev => ({ ...prev, [p.id]: counts }));
+    }
+    // Load user reactions for muro posts
+    if (user && user !== 'loading') {
+      const reactions = await getUserReactions('muro_post', user.uid);
+      const map: Record<string, Set<string>> = {};
+      posts.forEach(p => {
+        const emojis = new Set<string>();
+        reactions.forEach(key => {
+          if (key.startsWith(`${p.id}:`)) {
+            emojis.add(key.split(':')[1]);
+          }
+        });
+        map[p.id] = emojis;
+      });
+      setMuroUserReactions(map);
+    }
   }
 
   function getUserProfile(userId: string | null) {
@@ -188,7 +225,7 @@ export default function ComunidadPage() {
 
   async function handleReact(entryId: string) {
     if (!user || user === 'loading') return;
-    const added = await supabaseToggleReaction('participa', entryId, user.uid);
+    const added = await toggleReaction('participa', entryId, user.uid);
     if (added) {
       setUserReactions(prev => new Set(prev).add(entryId));
       setReactionCounts(prev => ({ ...prev, [entryId]: (prev[entryId] || 0) + 1 }));
@@ -198,15 +235,24 @@ export default function ComunidadPage() {
     }
   }
 
-  async function handleMuroReact(postId: string) {
+  // Emojis for muro reactions
+  const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+  const EMOJI_ICONS: Record<string, React.ReactNode> = {
+    '🙏': <Heart size={12} />,
+    '❤️': <Heart size={12} className="text-red-500 fill-current" />,
+    '😊': <span role="img" aria-label="sonrisa">😊</span>,
+    '✨': <span role="img" aria-label="brillo">✨</span>,
+  };
+
+  async function handleMuroReact(postId: string, emoji: string) {
     if (!user || user === 'loading') return;
-    const added = await supabaseToggleReaction('muro_post', postId, user.uid);
+    const added = await toggleReaction('muro_post', postId, user.uid, emoji);
     if (added) {
-      setMuroReactions(prev => new Set(prev).add(postId));
-      setMuroReactionCounts(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+      setMuroUserReactions(prev => ({ ...prev, [postId]: new Set([...(prev[postId] || []), emoji]) }));
+      setMuroReactionCounts(prev => ({ ...prev, [postId]: { ...prev[postId], [emoji]: (prev[postId]?.[emoji] || 0) + 1 } }));
     } else {
-      setMuroReactions(prev => { const n = new Set(prev); n.delete(postId); return n; });
-      setMuroReactionCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
+      setMuroUserReactions(prev => ({ ...prev, [postId]: new Set([...(prev[postId] || new Set())].filter(e => e !== emoji)) }));
+      setMuroReactionCounts(prev => ({ ...prev, [postId]: { ...prev[postId], [emoji]: Math.max(0, (prev[postId]?.[emoji] || 0) - 1) } }));
     }
   }
 
@@ -295,8 +341,8 @@ export default function ComunidadPage() {
                 const authorName = getAuthorName(post);
                 const canDelete = (user as any)?.uid && post.user_id === (user as any).uid;
                 const replyCount = repliesData[post.id]?.length || 0;
-                const prayed = muroReactions.has(post.id);
-                const prayCount = muroReactionCounts[post.id] || 0;
+                const userReactionsForPost = muroUserReactions[post.id] || new Set();
+                const countsForPost = muroReactionCounts[post.id] || {};
 
                 return (
                   <div key={post.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-3">
@@ -333,13 +379,24 @@ export default function ComunidadPage() {
                       <img src={post.image_url} alt="" className="max-h-80 rounded-lg object-cover border" />
                     )}
 
-                    <div className="flex items-center gap-2 pt-1">
-                      <button onClick={() => handleMuroReact(post.id)}
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors active:scale-90 ${
-                          prayed ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary'
-                        }`}>
-                        🙏 {prayCount > 0 ? prayCount : 'Rezar'}
-                      </button>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {MURO_EMOJIS.map(emoji => {
+                        const count = countsForPost[emoji] || 0;
+                        const reacted = userReactionsForPost.has(emoji);
+                        const Icon = EMOJI_ICONS[emoji];
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => handleMuroReact(post.id, emoji)}
+                            disabled={!user || typeof user === 'string'}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors active:scale-90 ${
+                              reacted ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary hover:border-primary/20 border border-gray-200'
+                            }`}>
+                            {Icon}
+                            <span className="text-[10px]">{count > 0 ? count : ''}</span>
+                          </button>
+                        );
+                      })}
                       <button onClick={() => toggleReplies(post.id)}
                         className="inline-flex items-center gap-1 text-xs text-text-light hover:text-primary transition-colors active:scale-90">
                         <Reply size={12} /> {replyCount > 0 ? `${replyCount} respuestas` : 'Responder'}

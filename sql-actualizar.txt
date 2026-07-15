@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS projects (
   date TEXT DEFAULT '',
   status TEXT DEFAULT 'próximo',
   image TEXT DEFAULT '/images/logo.png',
+  participants INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -35,20 +36,22 @@ DROP POLICY IF EXISTS "Escritura pública activities" ON activities;
 CREATE POLICY "Lectura pública activities" ON activities FOR SELECT USING (true);
 CREATE POLICY "Escritura pública activities" ON activities FOR ALL USING (true);
 
--- 3. Tabla de reacciones al versículo diario
-CREATE TABLE IF NOT EXISTS daily_verse_reactions (
+-- 3. Tabla de reacciones (con emoji para multi-reacción)
+CREATE TABLE IF NOT EXISTS reactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
-  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  emoji TEXT NOT NULL DEFAULT '🙏',
   created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, date)
+  UNIQUE(target_type, target_id, user_id, emoji)
 );
 
-ALTER TABLE daily_verse_reactions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Lectura pública daily_verse_reactions" ON daily_verse_reactions;
-DROP POLICY IF EXISTS "Escritura pública daily_verse_reactions" ON daily_verse_reactions;
-CREATE POLICY "Lectura pública daily_verse_reactions" ON daily_verse_reactions FOR SELECT USING (true);
-CREATE POLICY "Escritura pública daily_verse_reactions" ON daily_verse_reactions FOR ALL USING (true);
+ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lectura pública reactions" ON reactions;
+DROP POLICY IF EXISTS "Escritura pública reactions" ON reactions;
+CREATE POLICY "Lectura pública reactions" ON reactions FOR SELECT USING (true);
+CREATE POLICY "Escritura pública reactions" ON reactions FOR ALL USING (true);
 
 -- 4. Tabla de testimonios públicos
 CREATE TABLE IF NOT EXISTS testimonios_publicos (
@@ -74,3 +77,11 @@ DROP POLICY IF EXISTS "Public Access" ON storage.objects;
 DROP POLICY IF EXISTS "Public Upload" ON storage.objects;
 CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('profile-photos', 'muro-images', 'episode-images'));
 CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('profile-photos', 'muro-images', 'episode-images'));
+
+-- 7. Actualizar tabla reactions existente: agregar emoji + constraint único
+ALTER TABLE reactions ADD COLUMN IF NOT EXISTS emoji TEXT NOT NULL DEFAULT '🙏';
+ALTER TABLE reactions DROP CONSTRAINT IF EXISTS reactions_target_type_target_id_user_id_key;
+ALTER TABLE reactions ADD CONSTRAINT reactions_unique_emoji UNIQUE (target_type, target_id, user_id, emoji);
+
+-- 8. (Opcional) Eliminar tabla daily_verse_reactions duplicada si existe
+DROP TABLE IF EXISTS daily_verse_reactions;

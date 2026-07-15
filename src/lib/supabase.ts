@@ -175,30 +175,45 @@ export async function deleteMuroReply(id: string) {
   return supabase.from('muro_replies').delete().eq('id', id);
 }
 
-// ===== REACTIONS =====
-export async function toggleReaction(targetType: string, targetId: string, userId: string) {
+// ===== REACTIONS (multi-emoji) =====
+export async function toggleReaction(targetType: string, targetId: string, userId: string, emoji: string = '🙏') {
   const existing = await supabase.from('reactions').select('id')
-    .eq('target_type', targetType).eq('target_id', targetId).eq('user_id', userId)
+    .eq('target_type', targetType).eq('target_id', targetId).eq('user_id', userId).eq('emoji', emoji)
     .maybeSingle();
   if (existing.data) {
     await supabase.from('reactions').delete().eq('id', existing.data.id);
     return false;
   }
-  await supabase.from('reactions').insert({ target_type: targetType, target_id: targetId, user_id: userId });
+  await supabase.from('reactions').insert({ target_type: targetType, target_id: targetId, user_id: userId, emoji });
   return true;
 }
 
-export async function getReactionCount(targetType: string, targetId: string) {
-  const { count } = await supabase.from('reactions')
+export async function getReactionCount(targetType: string, targetId: string, emoji?: string) {
+  let query = supabase.from('reactions')
     .select('*', { count: 'exact', head: true })
     .eq('target_type', targetType).eq('target_id', targetId);
+  if (emoji) query = query.eq('emoji', emoji);
+  const { count } = await query;
   return count || 0;
 }
 
-export async function getUserReactions(targetType: string, userId: string) {
+export async function getUserReactions(targetType: string, userId: string, emoji?: string) {
+  let query = supabase.from('reactions')
+    .select('target_id, emoji').eq('target_type', targetType).eq('user_id', userId);
+  if (emoji) query = query.eq('emoji', emoji);
+  const { data } = await query;
+  // Return set of "targetId:emoji" for easy checking
+  return new Set((data || []).map(r => `${r.target_id}:${r.emoji}`));
+}
+
+// Get all reaction counts grouped by emoji for a target
+export async function getAllReactionCounts(targetType: string, targetId: string) {
   const { data } = await supabase.from('reactions')
-    .select('target_id').eq('target_type', targetType).eq('user_id', userId);
-  return new Set(data?.map(r => r.target_id) || []);
+    .select('emoji, count').eq('target_type', targetType).eq('target_id', targetId);
+  // Manual count since we can't easily do GROUP BY with supabase-js
+  const counts: Record<string, number> = {};
+  (data || []).forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1; });
+  return counts;
 }
 
 // ===== SPONSORS =====
@@ -321,20 +336,27 @@ export async function uploadFile(bucket: 'profile-photos' | 'muro-images' | 'epi
 
 // ===== PROJECTS =====
 export async function getProjects() {
-  const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('getProjects error:', error); }
   return data || [];
 }
 
-export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string }) {
-  return supabase.from('projects').insert(p).select().single();
+export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string; participants?: number }) {
+  const { data, error } = await supabase.from('projects').insert(p).select().single();
+  if (error) { console.error('createProject error:', error); }
+  return { data, error };
 }
 
-export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string }) {
-  return supabase.from('projects').update(p).eq('id', id);
+export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string; participants?: number }) {
+  const { data, error } = await supabase.from('projects').update(p).eq('id', id).select().single();
+  if (error) { console.error('updateProject error:', error); }
+  return { data, error };
 }
 
 export async function deleteProject(id: string) {
-  return supabase.from('projects').delete().eq('id', id);
+  const { error } = await supabase.from('projects').delete().eq('id', id);
+  if (error) { console.error('deleteProject error:', error); }
+  return { error };
 }
 
 // ===== HERO IMAGE =====
@@ -384,30 +406,6 @@ export async function ensureDailyVerseMuroPost(verse: string, reference: string)
     image_url: null,
   });
   return data;
-}
-
-// ===== DAILY VERSE REACTIONS =====
-export async function toggleDailyVerseReaction(userId: string) {
-  const today = new Date().toISOString().split('T')[0];
-  const existing = await supabase.from('daily_verse_reactions').select('id').eq('user_id', userId).eq('date', today).maybeSingle();
-  if (existing.data) {
-    await supabase.from('daily_verse_reactions').delete().eq('id', existing.data.id);
-    return false;
-  }
-  await supabase.from('daily_verse_reactions').insert({ user_id: userId, date: today });
-  return true;
-}
-
-export async function getDailyVerseReactionCount() {
-  const today = new Date().toISOString().split('T')[0];
-  const { count } = await supabase.from('daily_verse_reactions').select('*', { count: 'exact', head: true }).eq('date', today);
-  return count || 0;
-}
-
-export async function getUserDailyVerseReaction(userId: string) {
-  const today = new Date().toISOString().split('T')[0];
-  const { data } = await supabase.from('daily_verse_reactions').select('id').eq('user_id', userId).eq('date', today).maybeSingle();
-  return !!data;
 }
 
 // ===== TESTIMONIOS PUBLICOS =====

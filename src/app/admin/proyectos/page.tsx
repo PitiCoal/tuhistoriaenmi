@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'impacto' | 'notificaciones' | 'actividades';
-type Project = { id: string; title: string; description: string; date: string; status: string; image: string; };
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades';
+type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
 const ADMIN_EMAIL = 'piti.coal@gmail.com';
@@ -24,7 +24,7 @@ function saveToStorage(key: string, data: any) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '' };
+const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '', participants: 0 };
 const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description: '', image: '', image_position: 'center', youtube: '', spotify: '', apple: '', amazon: '' };
 const HERO_KEY = 'tm_hero_image';
 
@@ -75,7 +75,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
         <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
         <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
-        <button onClick={() => setTab('impacto')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'impacto' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Impacto</button>
+        <button onClick={() => setTab('metricas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'metricas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Métricas</button>
         <button onClick={() => setTab('notificaciones')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'notificaciones' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Bell size={16} /> Notificaciones</button>
         <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
       </div>
@@ -99,7 +99,7 @@ export default function AdminProyectosPage() {
 
       {tab === 'paginas' && <PaginasTab />}
 
-      {tab === 'impacto' && <ImpactoTab />}
+      {tab === 'metricas' && <MetricasTab />}
 
       {tab === 'notificaciones' && <NotificacionesTab />}
 
@@ -113,11 +113,18 @@ function ProjectsTab() {
   const [form, setForm] = useState(emptyProject);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
-    setProjects(await getProjects());
+    try {
+      setProjects(await getProjects());
+      setError(null);
+    } catch (e: any) {
+      setError(e.message || 'Error cargando proyectos');
+      console.error('load projects error:', e);
+    }
     setLoading(false);
   }
 
@@ -125,28 +132,35 @@ function ProjectsTab() {
 
   async function add() {
     if (!form.title.trim()) return;
-    const res = await createProject({ ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' });
+    setError(null);
+    const res = await createProject({ ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png', participants: form.participants || 0 });
+    if (res.error) { setError(res.error.message || 'Error creando proyecto'); return; }
     if (res.data) { save([...projects, res.data]); setForm(emptyProject); }
   }
 
   async function update() {
     if (!editingId || !form.title.trim()) return;
-    const res = await updateProject(editingId, { ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png' });
+    setError(null);
+    const res = await updateProject(editingId, { ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png', participants: form.participants || 0 });
+    if (res.error) { setError(res.error.message || 'Error actualizando proyecto'); return; }
     if (res.data) { save(projects.map((p: any) => p.id === editingId ? { ...p, ...(res.data as any) } : p)); setEditingId(null); setForm(emptyProject); }
   }
 
   async function del(id: string) {
     if (!confirm('¿Eliminar?')) return;
-    await deleteProject(id);
+    setError(null);
+    const res = await deleteProject(id);
+    if (res.error) { setError(res.error.message || 'Error eliminando proyecto'); return; }
     save(projects.filter((p: any) => p.id !== id));
   }
 
-  function edit(p: any) { setEditingId(p.id); setForm({ title: p.title, description: p.description, date: p.date, status: p.status, image: p.image }); }
+  function edit(p: any) { setEditingId(p.id); setForm({ title: p.title, description: p.description, date: p.date, status: p.status, image: p.image, participants: p.participants || 0 }); }
 
   if (loading) return <p className="text-center text-text-light py-8">Cargando proyectos...</p>;
 
   return (
     <div className="space-y-4">
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error} <button onClick={() => setError(null)} className="ml-2 underline">Cerrar</button></div>}
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar proyecto' : 'Agregar proyecto'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -156,6 +170,9 @@ function ProjectsTab() {
             <option value="próximo">Próximo</option><option value="en curso">En curso</option><option value="completado">Completado</option>
           </select>
           <input type="text" placeholder="URL imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="number" placeholder="Participantes (N)" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
         <textarea placeholder="Descripción" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex gap-2">
@@ -172,7 +189,8 @@ function ProjectsTab() {
           <div key={p.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4">
             <img src={p.image} alt="" className="w-16 h-16 rounded-lg object-contain bg-gray-50" />
             <div className="flex-1 min-w-0"><h3 className="font-semibold text-primary-dark">{p.title}</h3><p className="text-sm text-text-light line-clamp-2">{p.description}</p></div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 items-end">
+              {p.participants && p.participants > 0 && <span className="text-sm text-primary font-medium">👥 {p.participants}</span>}
               <button onClick={() => edit(p)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
               <button onClick={() => del(p.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
             </div>
@@ -510,7 +528,9 @@ function PerfilesTab() {
   const filtered = profiles.filter(p =>
     !search || (p.display_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (p.country?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (p.bio?.toLowerCase() || '').includes(search.toLowerCase())
+    (p.bio?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (p.email?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (p.testimonio?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
   return (
@@ -520,7 +540,7 @@ function PerfilesTab() {
         <p className="text-xs text-text-light">Total: {profiles.length} perfiles registrados</p>
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-light" />
-          <input type="text" placeholder="Buscar por nombre, país o bio..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Buscar por nombre, país, email, bio o testimonio..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
       </div>
@@ -541,12 +561,14 @@ function PerfilesTab() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-primary-dark text-sm truncate">{p.display_name || 'Sin nombre'}</h3>
                   {p.country && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-text-light shrink-0">{p.country}</span>}
                   {p.age && <span className="text-[10px] text-text-light shrink-0">{p.age} años</span>}
                 </div>
                 {p.bio && <p className="text-xs text-text-light truncate mt-0.5">{p.bio}</p>}
+                {p.email && <p className="text-xs text-text-light/60 truncate mt-0.5">📧 {p.email}</p>}
+                {p.testimonio && <p className="text-xs text-primary-dark/80 truncate mt-0.5">💬 {p.testimonio}</p>}
                 <p className="text-[10px] text-text-light/60 mt-0.5">
                   Creado {new Date(p.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
@@ -823,17 +845,17 @@ const ICON_LABELS: Record<string, string> = {
 };
 const ICONS = Object.keys(ICON_LABELS);
 
-function ImpactoTab() {
+function MetricasTab() {
   const [metrics, setMetrics] = useState<any[]>([]);
   const [form, setForm] = useState({ label: '', value: '', icon: 'heart' });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [autoMetrics, setAutoMetrics] = useState({ profiles: 0, episodes: 0, testimonios: 0, sponsors: 0 });
+  const [autoMetrics, setAutoMetrics] = useState({ profiles: 0, episodes: 0, testimonios: 0, sponsors: 0, muroPosts: 0, totalReactions: 0 });
 
   useEffect(() => {
     loadMetrics();
-    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors()]).then(
-      ([a, b, c, d]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d })
+    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors(), getMuroPosts().then(posts => posts.length), getAllReactionCounts('muro_post', '').then(c => Object.values(c).reduce((a, b) => a + b, 0))]).then(
+      ([a, b, c, d, e, f]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d, muroPosts: e, totalReactions: f })
     );
   }, []);
 
@@ -869,29 +891,37 @@ function ImpactoTab() {
       {/* Auto-métricas */}
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md">
         <h2 className="font-semibold text-primary-dark mb-3">Métricas automáticas</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.profiles}</p>
-            <p className="text-xs text-text-light">Usuarios</p>
+            <p className="text-xs text-text-light">Usuarios registrados</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.episodes}</p>
-            <p className="text-xs text-text-light">Episodios</p>
+            <p className="text-xs text-text-light">Episodios publicados</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.testimonios}</p>
-            <p className="text-xs text-text-light">Testimonios</p>
+            <p className="text-xs text-text-light">Testimonios recibidos</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.sponsors}</p>
             <p className="text-xs text-text-light">Auspiciadores</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.muroPosts}</p>
+            <p className="text-xs text-text-light">Posts en el Muro</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.totalReactions}</p>
+            <p className="text-xs text-text-light">Total reacciones</p>
           </div>
         </div>
         <p className="text-[10px] text-text-light/60 mt-2">Estas métricas se actualizan automáticamente desde la base de datos.</p>
       </div>
 
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
-        <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar métrica' : 'Agregar métrica de impacto'}</h2>
+        <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar métrica personalizada' : 'Agregar métrica personalizada'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input type="text" placeholder="Etiqueta (ej: Personas alcanzadas)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })}
             className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
@@ -927,7 +957,7 @@ function ImpactoTab() {
             </div>
           </div>
         ))}
-        {metrics.length === 0 && <p className="text-center text-text-light py-8">No hay métricas. Agrega la primera.</p>}
+        {metrics.length === 0 && <p className="text-center text-text-light py-8">No hay métricas personalizadas. Agrega la primera.</p>}
       </div>
     </div>
   );
