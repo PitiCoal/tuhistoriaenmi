@@ -146,13 +146,13 @@ tuhistoriaenmi-app/
 
 ---
 
-## 🐛 Bugs detectados (en código actual)
+## 🐛 Bugs detectados y **fixeados** (commit `000104c`)
 
-| # | Archivo:línea | Problema | Fix sugerido |
-|---|--------------|----------|--------------|
-| 1 | `src/app/admin/proyectos/page.tsx:857` | `getAllReactionCounts('muro_post', '')` → busca `target_id=''` → **siempre 0** | Opción A: `getAllReactionCountsByType('muro_post')` sin filtrar target_id. Opción B: fetch posts → sumar counts por post |
-| 2 | `src/app/comunidad/page.tsx:16-18` | `EMOJI_ICONS`: 😊→`MessageCircle`, ✨→`Camera` (incorrectos) | Cambiar a `Smile` y `Sparkles` como en `DailyVerse.tsx` |
-| 3 | `src/app/admin/proyectos/page.tsx:43-50` | `useEffect` padre carga proyectos desde localStorage (muerto) — `ProjectsTab` usa Supabase | Borrar líneas 43-50 o comentar; no afecta funcionalidad |
+| # | Archivo:línea | Problema | **Fix aplicado** |
+|---|--------------|----------|------------------|
+| 1 | `src/app/admin/proyectos/page.tsx:857` | `getAllReactionCounts('muro_post', '')` → busca `target_id=''` → **siempre 0** | Agregada `getTotalReactionCount(targetType)` en `supabase.ts:220` → usa count exacto sin filtrar target_id |
+| 2 | `src/app/comunidad/page.tsx:16-18` | `EMOJI_ICONS`: 😊→`MessageCircle`, ✨→`Camera` (incorrectos) | Cambiados a `Smile` y `Sparkles` (importados de lucide-react) como en `DailyVerse.tsx` |
+| 3 | `src/app/admin/proyectos/page.tsx:35-41` | `useEffect` padre carga proyectos desde localStorage (muerto) — `ProjectsTab` usa Supabase | Eliminado estado `projects` + `pForm` + `pEditingId` + useEffect localStorage (líneas 35-41, 43-50 originales) |
 
 ---
 
@@ -193,6 +193,7 @@ tuhistoriaenmi-app/
 
 | Commit | Mensaje | Qué cambió |
 |--------|---------|------------|
+| `000104c` | **Fix 3 bugs** | 1) comunidad: EMOJI_ICONS correctos (😊→Smile, ✨→Sparkles) 2) admin/proyectos: elimina localStorage muerto projects 3) admin/metricas: totalReactions usa getTotalReactionCount('muro_post') + supabase.ts agrega getTotalReactionCount() |
 | `36906c4` | Features & fixes | Multi-emoji, projects participants, perfiles email+testimonio, Impacto→Métricas, auto-metrics nosostros, proyectos Supabase, asteriscos fix, SQL actualizado |
 | `5ac468a` | Fix bugs + features | (ver git log) |
 | `7f9e08f` | Actividades dinámicas | Tabla `activities`, admin CRUD, perfil carga desde Supabase |
@@ -218,9 +219,8 @@ tuhistoriaenmi-app/
 1. **Ejecutar SQL** en Supabase → verifica que no haya errores
 2. **Verificar env vars Gmail** en Vercel
 3. **Probar flujo completo** en producción
-4. **Fix bugs** (los 3 de arriba) — prioridad: #1 (métrica reacciones), #2 (iconos), #3 (código muerto)
-5. **Implementar Nivel 1** (notif admin + email bienvenida + share WA + contador visitas) — dan métricas reales para el documento
-6. **Implementar Nivel 2** (devocionales + comentarios episodios + RSVP encuentros + retos) — engagement real
+4. **Implementar Nivel 1** (notif admin + email bienvenida + share WA + contador visitas) — dan métricas reales para el documento
+5. **Implementar Nivel 2** (devocionales + comentarios episodios + RSVP encuentros + retos) — engagement real
 
 ---
 
