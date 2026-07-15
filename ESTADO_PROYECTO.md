@@ -1,6 +1,6 @@
 # ESTADO DEL PROYECTO — Tu Historia en Mí
 
-> Última actualización: **14 jul 2026** — commit `36906c4` en `main`
+> Última actualización: **14 jul 2026** — commit `28c75a9` en `main`
 > Para que otro agente retome exactamente donde quedó.
 
 ---
@@ -9,11 +9,11 @@
 
 **Tu Historia en Mí** es una plataforma PWA cristiana (Next.js 16 + Tailwind v4) que centraliza:
 - Podcast de testimonios (episodios con enlaces YouTube/Spotify/Apple/Amazon)
-- Versículo del día con reacciones multi-emoji 🙏❤️😊✨
+- Versículo del día con reacciones multi-emoji 🙏❤️😊🤗✨
 - Muro comunitario (posts, respuestas, reacciones)
 - Oraciones / reflexiones / sugerencias (tabs en Comunidad)
 - Perfiles con foto, bio, testimonio, preferencias de actividades
-- Proyectos comunitarios con contador de participantes
+- Proyectos comunitarios con contador de participantes + date picker + upload imagen
 - Área de administración completa (solo `piti.coal@gmail.com`)
 - Notificaciones push (Web Push + VAPID)
 - Formulario de testimonios con envío a Gmail
@@ -109,12 +109,13 @@ tuhistoriaenmi-app/
 7. **Testimonio** — Formulario → Supabase `testimonios` + email Gmail
 8. **Comunidad** — 4 tabs:
    - Oraciones / Reflexiones / Sugerencias → localStorage + Supabase `participa_entries` + 🙏
-   - **Muro** — Posts con imagen (`muro-images`), multi-emoji 🙏❤️😊✨, respuestas anidadas, perfiles enlazados, borrar propio
-9. **Proyectos** — Cards desde Supabase `projects`
+   - **Muro** — Posts con imagen (`muro-images`), multi-emoji 🙏❤️😊🤗✨, respuestas anidadas, perfiles enlazados, borrar propio
+ 9. **Actividades en Comunidad** — Nueva tab "Actividades" lista actividades activas con contador de inscritos
+10. **Proyectos** — Cards desde Supabase `projects`
 10. **Perfiles públicos** — Ver perfil de otro usuario por ID
 
 ### Panel Admin (`piti.coal@gmail.com`)
-11. **Proyectos** — CRUD completo Supabase + campo `participants` + error handling
+11. **Proyectos** — CRUD completo Supabase + campo `participants` + error handling + date picker + upload imagen desde admin
 12. **Episodios** — CRUD + subida imagen (`episode-images`), control posición, URLs plataformas; merge: defaults + Supabase + localStorage
 13. **Hero Image** — Subir/pegar URL → Supabase `settings`
 14. **Participación** — Ver/filtrar/borrar posts oraciones/reflexiones/sugerencias; limpiar todo
@@ -123,7 +124,7 @@ tuhistoriaenmi-app/
 17. **Páginas (CMS)** — Editar secciones "Nosotros" (hero, historia, misión, visión, valores, bio, oración)
 18. **Métricas** — **Auto-métricas** (usuarios, episodios, testimonios, sponsors, posts muro, reacciones totales) + métricas custom CRUD
 19. **Notificaciones Push** — Enviar a todos los suscritos; ver contador suscriptores
-20. **Actividades** — Definir actividades/eventos para suscripción desde perfil; toggle activo
+20. **Actividades** — Definir actividades/eventos para suscripción desde perfil; toggle activo; se muestran en tab "Actividades" de Comunidad con contador de inscritos
 
 ### Transversales
 21. **Versículo del día** — 401 hardcoded (rotación día del año), multi-emoji persistente, share-to-muro
@@ -132,17 +133,17 @@ tuhistoriaenmi-app/
 24. **Contador usuarios online** — Firebase Realtime Database / Firestore
 25. **Mobile bottom nav** — 4 tabs principales + contextual perfil/donar
 26. **PWA / Service Worker** — Precaching + runtime caching + push handlers
-27. **Subida imágenes** — `uploadFile()` unificado 3 buckets: `profile-photos`, `muro-images`, `episode-images`
+27. **Subida imágenes** — `uploadFile()` unificado 3 buckets: `profile-photos`, `muro-images`, `episode-images` (incluye projects)
 
 ---
 
-## ⏳ Pendiente inmediato (tú)
+## ✅ Acciones realizadas por el usuario
 
-| Acción | Dónde |
-|--------|-------|
-| **Ejecutar SQL** | Abre Supabase → SQL Editor → pega contenido de `sql-actualizar.txt` (87 líneas): crea `projects.participants`, `reactions.emoji` + unique constraint, `profiles.testimonio`, elimina `daily_verse_reactions`, policies storage |
-| **Verificar Gmail en Vercel** | Vercel → Settings → Environment Variables → `GMAIL_EMAIL=piti.coal@gmail.com`, `GMAIL_APP_PASSWORD=...` (la que generaste con QR) |
-| **Probar en prod** | `tuhistoriaenmi.cl` o URL Vercel → login, admin, crear proyecto, reaccionar DailyVerse/Muro |
+| Acción | Estado |
+|--------|--------|
+| **Ejecutar SQL** en Supabase (projects.participants, reactions.emoji, profiles.testimonio, etc.) | ✅ **Completado** |
+| **Configurar Gmail en Vercel** (`GMAIL_EMAIL`, `GMAIL_APP_PASSWORD`) | ✅ **Completado** |
+| **Probar en prod** | ✅ Revisado y funcionando |
 
 ---
 
@@ -193,6 +194,7 @@ tuhistoriaenmi-app/
 
 | Commit | Mensaje | Qué cambió |
 |--------|---------|------------|
+| `28c75a9` | **Features & fixes v3** | 1) Reacciones: 🙏❤️😊🤗✨ (5 emojis) en DailyVerse + Muro 2) Proyectos admin: date picker, upload imagen, label participantes 3) Nueva tab "Actividades" en Comunidad con contador de inscritos 4) Testimonios ya existía en /nosotros |
 | `000104c` | **Fix 3 bugs** | 1) comunidad: EMOJI_ICONS correctos (😊→Smile, ✨→Sparkles) 2) admin/proyectos: elimina localStorage muerto projects 3) admin/metricas: totalReactions usa getTotalReactionCount('muro_post') + supabase.ts agrega getTotalReactionCount() |
 | `36906c4` | Features & fixes | Multi-emoji, projects participants, perfiles email+testimonio, Impacto→Métricas, auto-metrics nosostros, proyectos Supabase, asteriscos fix, SQL actualizado |
 | `5ac468a` | Fix bugs + features | (ver git log) |
@@ -206,7 +208,7 @@ tuhistoriaenmi-app/
 
 | Archivo | Qué contiene |
 |---------|--------------|
-| `sql-actualizar.txt` | **Ejecutar en Supabase SQL Editor** (87 líneas): projects.participants, reactions.emoji + unique, profiles.testimonio, storage policies, drop daily_verse_reactions |
+| `sql-actualizar.txt` | Migraciones — **ya ejecutadas por el usuario** en Supabase SQL Editor |
 | `supabase-schema.sql` | Schema completo original (tablas, RLS) |
 | `supabase-rls-fix.sql` | Fix RLS para compatibilidad Firebase Auth |
 | `Presentacion_Proyecto_TuHistoriaEnMi_v2.md` | Documento corregido para financiamiento ($3M/mes) — datos reales, sin actividades callejeras/CM/retiros |
@@ -216,11 +218,8 @@ tuhistoriaenmi-app/
 
 ## 🚀 Próximos pasos sugeridos (orden)
 
-1. **Ejecutar SQL** en Supabase → verifica que no haya errores
-2. **Verificar env vars Gmail** en Vercel
-3. **Probar flujo completo** en producción
-4. **Implementar Nivel 1** (notif admin + email bienvenida + share WA + contador visitas) — dan métricas reales para el documento
-5. **Implementar Nivel 2** (devocionales + comentarios episodios + RSVP encuentros + retos) — engagement real
+1. **Implementar Nivel 1** (notif admin + email bienvenida + share WA + contador visitas) — dan métricas reales para el documento de financiamiento
+2. **Implementar Nivel 2** (devocionales + comentarios episodios + RSVP encuentros + retos) — engagement real
 
 ---
 
