@@ -24,12 +24,20 @@ const tabs: { id: Tab; label: string; icon: typeof Heart; desc: string }[] = [
 
 export function renderContentWithBold(content: string) {
   if (!content) return '';
-  const parts = content.split(/(\*\*.*?\*\*)/g);
+  // Primero dividimos por doble asterisco ** (negrita fuerte) soportando saltos de línea
+  const parts = content.split(/(\*\*[\s\S]*?\*\*)/g);
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+      return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
     }
-    return part;
+    // Para las partes sin **, soportamos también asterisco simple * para negrita
+    const subparts = part.split(/(\*[\s\S]*?\*)/g);
+    return subparts.map((subpart, subindex) => {
+      if (subpart.startsWith('*') && subpart.endsWith('*')) {
+        return <strong key={`${index}-${subindex}`} className="font-bold">{subpart.slice(1, -1)}</strong>;
+      }
+      return subpart;
+    });
   });
 }
 

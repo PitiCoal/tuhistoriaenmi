@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Heart, Send, LogIn, User } from 'lucide-react';
 
-type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedBy: string[]; };
+type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedCount?: number; prayedBy: string[]; };
 
 export default function OracionPage() {
   const { user, signIn } = useAuth();
@@ -73,20 +73,34 @@ export default function OracionPage() {
           ) : (
             <div className="space-y-2 md:space-y-3">
               {intentions.map(i => (
-                <div key={i.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-1.5 md:space-y-2">
+                <div key={i.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-1.5 md:space-y-2 animate-in fade-in">
                   <p className="text-xs md:text-sm text-text leading-relaxed">{i.text}</p>
                   <div className="flex items-center justify-between text-[11px] md:text-sm text-text-light">
                     <span className="flex items-center gap-1"><User size={12} /> {i.name || 'Anónimo'}</span>
-                    <button onClick={() => {
-                      if (localStorage.getItem(`reacted_${i.id}`)) return;
-                      const upd = intentions.map(ii => ii.id === i.id ? { ...ii, reactions: ii.reactions + 1 } : ii);
-                      setIntentions(upd);
-                      localStorage.setItem('tm_intentions', JSON.stringify(upd));
-                      localStorage.setItem(`reacted_${i.id}`, 'true');
-                    }}
-                      className="inline-flex items-center gap-1 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors active:scale-90">
-                      <Heart size={10} /> {i.reactions}
-                    </button>
+                    
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => {
+                        if (localStorage.getItem(`reacted_${i.id}`)) return;
+                        const upd = intentions.map(ii => ii.id === i.id ? { ...ii, reactions: ii.reactions + 1 } : ii);
+                        setIntentions(upd);
+                        localStorage.setItem('tm_intentions', JSON.stringify(upd));
+                        localStorage.setItem(`reacted_${i.id}`, 'true');
+                      }}
+                        className="inline-flex items-center gap-1 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-red-50 hover:text-red-500 border border-gray-200 hover:border-red-200 transition-colors active:scale-90">
+                        <Heart size={10} className="fill-current text-red-500" /> {i.reactions}
+                      </button>
+
+                      <button onClick={() => {
+                        if (localStorage.getItem(`prayed_${i.id}`)) return;
+                        const upd = intentions.map(ii => ii.id === i.id ? { ...ii, prayedCount: (ii.prayedCount || 0) + 1 } : ii);
+                        setIntentions(upd);
+                        localStorage.setItem('tm_intentions', JSON.stringify(upd));
+                        localStorage.setItem(`prayed_${i.id}`, 'true');
+                      }}
+                        className="inline-flex items-center gap-1 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium bg-gray-100 hover:bg-primary/10 hover:text-primary border border-gray-200 hover:border-primary/20 transition-colors active:scale-90">
+                        🙏 {(i as any).prayedCount || 0}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
