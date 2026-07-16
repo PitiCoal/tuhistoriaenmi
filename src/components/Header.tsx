@@ -1,35 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { LogIn, LogOut, Shield } from 'lucide-react';
+import { LogIn, LogOut, Shield, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { useState } from 'react';
 
-const publicLinks = [
-  { href: '/', label: 'Inicio' },
-  { href: '/episodios', label: 'Episodios' },
-  { href: '/testimonios', label: 'Testimonios' },
-  { href: '/comunidad', label: 'Comunidad' },
-  { href: '/nosotros', label: 'Nosotros' },
+const dropdownLinks = [
+  { href: '/comunidad', label: 'Muro Comunitario' },
   { href: '/proyectos', label: 'Proyectos' },
-  { href: '/tienda', label: 'Tienda' },
-  { href: '/donar', label: 'Donar' },
-];
-
-const authLinks = [
-  { href: '/perfil', label: 'Mi Perfil' },
+  { href: '/tienda', label: 'Tienda Solidaria' },
+  { href: '/nosotros', label: 'Nosotros' },
 ];
 
 const ADMIN_EMAIL = 'piti.coal@gmail.com';
 
 export default function Header() {
   const { user, signIn, signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isAdmin = typeof user === 'object' && user?.email === ADMIN_EMAIL;
   const fbUser = typeof user === 'object' && user;
-  const userLinks = fbUser ? [...publicLinks, ...authLinks] : publicLinks;
-  const allLinks = isAdmin
-    ? [...userLinks, { href: '/admin/proyectos', label: 'Admin', icon: Shield }]
-    : userLinks;
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b border-gray-200/70 pt-[env(safe-area-inset-top,0px)]">
@@ -42,18 +32,58 @@ export default function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
-          {allLinks.map(link => (
-            <Link key={link.href} href={link.href}
-              className={`transition-colors whitespace-nowrap ${
-                link.label === 'Admin'
-                  ? 'flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 text-primary font-semibold hover:bg-primary/20 text-xs'
-                  : 'text-text-light hover:text-primary'
-              }`}
-            >
-              {link.label === 'Admin' && <Shield size={14} />}
-              {link.label}
+          <Link href="/" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Inicio
+          </Link>
+          <Link href="/episodios" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Episodios
+          </Link>
+          <Link href="/testimonios" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Testimonios
+          </Link>
+
+          {/* Menú Desplegable Comunidad */}
+          <div
+            className="relative py-2"
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
+          >
+            <button className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none">
+              Comunidad
+              <ChevronDown size={14} className={`transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
+                {dropdownLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-4 py-2 text-xs text-text-light hover:text-primary hover:bg-primary/5 transition-colors font-medium"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Link href="/donar" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Donar
+          </Link>
+
+          {fbUser && (
+            <Link href="/perfil" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+              Mi Perfil
             </Link>
-          ))}
+          )}
+
+          {isAdmin && (
+            <Link href="/admin/proyectos" className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 text-primary font-semibold hover:bg-primary/20 text-xs whitespace-nowrap">
+              <Shield size={14} /> Admin
+            </Link>
+          )}
           <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
             {fbUser ? (
               <>
