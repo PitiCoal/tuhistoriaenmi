@@ -643,6 +643,9 @@ export async function createDevotionalReply(reply: {
   answer: string;
   shared_to_muro: boolean;
 }) {
+  if (reply.devotional_id.startsWith('fallback')) {
+    return { data: null, error: { message: 'No se pueden guardar respuestas en devocionales de prueba. Por favor, crea un devocional real en el Panel Admin.' } };
+  }
   const { data, error } = await supabase.from('devotional_replies').upsert(reply, { onConflict: 'devotional_id,user_id' }).select().single();
   if (error) return { data: null, error };
 
