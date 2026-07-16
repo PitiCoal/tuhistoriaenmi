@@ -13,7 +13,7 @@ import { getAllEpisodes } from '@/lib/episodes';
 import { countProfiles, countEpisodes, countTestimonios, countSponsors, getPublicTestimonios } from '@/lib/supabase';
 
 const quickLinks = [
-  { href: '/oracion', icon: Heart, label: 'Muro de Oración', desc: 'Deja tu intención' },
+  { href: '/comunidad?filter=oracion', icon: Heart, label: 'Muro de Oración', desc: 'Deja tu intención' },
   { href: '/comunidad', icon: Users, label: 'Comunidad', desc: 'WhatsApp + Instagram' },
   { href: '/testimonio', icon: MessageCircle, label: 'Tu Historia', desc: 'Comparte tu testimonio' },
   { href: '/donar', icon: HandHeart, label: 'Aportar', desc: 'Apoya el proyecto' },
@@ -56,7 +56,7 @@ export default function HomePage() {
             <Link href="/episodios" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-primary text-white font-semibold rounded-lg text-xs md:text-sm hover:bg-primary/90 transition-colors shadow-sm active:scale-95">
               Escuchar episodios <ArrowRight size={14} />
             </Link>
-            <Link href="/oracion" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
+            <Link href="/comunidad?filter=oracion" className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-2 md:py-2.5 bg-white/15 text-white font-semibold rounded-lg text-xs md:text-sm backdrop-blur-sm border border-white/20 hover:bg-white/25 transition-colors active:scale-95">
               Dejar oración <Heart size={14} />
             </Link>
             {user && user !== 'loading' ? (

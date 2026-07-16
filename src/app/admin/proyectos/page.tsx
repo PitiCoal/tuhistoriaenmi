@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, deleteMuroPost, getMuroReplies, deleteMuroReply, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -71,6 +71,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
         <button onClick={() => setTab('testimonios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'testimonios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageCircle size={16} /> Testimonios</button>
         <button onClick={() => setTab('devocionales')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'devocionales' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BookOpen size={16} /> Devocionales</button>
+        <button onClick={() => setTab('muro')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'muro' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Muro</button>
       </div>
 
       {tab === 'proyectos' && <ProjectsTab />}
@@ -99,6 +100,7 @@ export default function AdminProyectosPage() {
       {tab === 'actividades' && <ActividadesTab />}
       {tab === 'testimonios' && <TestimoniosAdminTab />}
       {tab === 'devocionales' && <DevotionalsAdminTab />}
+      {tab === 'muro' && <MuroAdminTab />}
     </div>
   );
 }
@@ -177,28 +179,62 @@ function ProjectsTab() {
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error} <button onClick={() => setError(null)} className="ml-2 underline">Cerrar</button></div>}
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
         <h2 className="font-semibold text-primary-dark">{editingId ? 'Editar proyecto' : 'Agregar proyecto'}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input type="text" placeholder="Título" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <input type="date" placeholder="Fecha" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="próximo">Próximo</option><option value="en curso">En curso</option><option value="completado">Completado</option>
-          </select>
-          <div className="space-y-2">
-            <label className="text-xs text-text-light">Imagen (URL o subir archivo)</label>
-            <div className="flex gap-2">
-              <input type="text" placeholder="URL imagen" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Título del proyecto *</label>
+            <input type="text" placeholder="Ej: Talleres de oración" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Fecha (ej: 2026-10-15, Pendiente, Por confirmar)</label>
+            <input type="text" placeholder="Fecha del proyecto" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <div className="flex gap-1.5 mt-0.5">
+              <button type="button" onClick={() => setForm({ ...form, date: 'Pendiente' })} className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[10px] text-text-light rounded transition-colors">Pendiente</button>
+              <button type="button" onClick={() => setForm({ ...form, date: 'Por confirmar' })} className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[10px] text-text-light rounded transition-colors">Por confirmar</button>
             </div>
-            {imageUploading && <span className="text-xs text-primary">Subiendo...</span>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Estado</label>
+            <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="próximo">Próximo</option>
+              <option value="en curso">En curso</option>
+              <option value="completado">Completado</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Participantes (Nº personas inscritas)</label>
+            <input type="number" placeholder="Participantes" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+
+          <div className="col-span-1 sm:col-span-2 space-y-2">
+            <label className="text-xs font-medium text-text-light">Imagen del proyecto (No es obligatoria)</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-200/50">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-light block">Subir imagen:</span>
+                <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading}
+                  className="w-full text-xs text-text-light file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:text-[11px] file:font-semibold hover:file:bg-primary/90 cursor-pointer" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-light block">O pegar enlace de internet (URL):</span>
+                <input type="text" placeholder="https://ejemplo.com/imagen.jpg" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+            </div>
+            {imageUploading && <p className="text-xs text-primary">Subiendo imagen...</p>}
+            {form.image && !imageUploading && (
+              <div className="flex items-center gap-2 mt-1">
+                <img src={form.image} alt="Preview" className="h-10 w-10 rounded-lg object-cover border border-gray-200" />
+                <button type="button" onClick={() => setForm({ ...form, image: '' })} className="text-xs text-red-500 hover:underline font-medium">Quitar imagen</button>
+              </div>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-text-light mb-1">Participantes (número de personas inscritas)</label>
-            <input type="number" placeholder="Participantes (N)" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-light">Descripción</label>
+          <textarea placeholder="Detalla el proyecto aquí..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
-        <textarea placeholder="Descripción" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex gap-2">
           {editingId ? (
             <><button onClick={update} className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"><Save size={14} /> Guardar</button><button onClick={() => { setEditingId(null); setForm(emptyProject); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-colors"><X size={14} /> Cancelar</button></>
@@ -798,6 +834,7 @@ function NotificacionesTab() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [url, setUrl] = useState('/');
+  const [type, setType] = useState('announcements');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [subCount, setSubCount] = useState(0);
@@ -811,7 +848,12 @@ function NotificacionesTab() {
     try {
       const res = await fetch('/api/notifications/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), body: body.trim(), url: url.trim() || '/' }),
+        body: JSON.stringify({ 
+          title: title.trim(), 
+          body: body.trim(), 
+          url: url.trim() || '/',
+          type: type
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -833,7 +875,7 @@ function NotificacionesTab() {
           <Bell size={18} className="text-primary" />
           <h2 className="font-semibold text-primary-dark">Enviar notificación</h2>
         </div>
-        <p className="text-xs text-text-light">{subCount} dispositivos suscritos</p>
+        <p className="text-xs text-text-light">{subCount} dispositivos suscritos en total</p>
 
         {result && (
           <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
@@ -844,10 +886,21 @@ function NotificacionesTab() {
         )}
 
         <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-text-light mb-1">Título *</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={50}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Nuevo episodio disponible" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Título *</label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={50}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Nuevo episodio disponible" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Segmento / Categoría</label>
+              <select value={type} onChange={e => setType(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <option value="announcements">Anuncios y Novedades (General)</option>
+                <option value="daily_verse">Versículo del Día</option>
+                <option value="daily_phrase">Frase del Día</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-text-light mb-1">Mensaje</label>
@@ -1509,6 +1562,133 @@ function DevotionalsAdminTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ===== MURO ADMIN TAB =====
+function MuroAdminTab() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [replies, setReplies] = useState<Record<string, any[]>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    getMuroPosts().then(data => {
+      setPosts(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  async function loadReplies(postId: string) {
+    if (replies[postId]) return;
+    const data = await getMuroReplies(postId);
+    setReplies(prev => ({ ...prev, [postId]: data }));
+  }
+
+  function toggleReplies(postId: string) {
+    if (!expanded[postId]) loadReplies(postId);
+    setExpanded(prev => ({ ...prev, [postId]: !prev[postId] }));
+  }
+
+  async function handleDeletePost(id: string) {
+    if (!confirm('¿Eliminar esta publicación del Muro? Se borrarán también todos sus comentarios.')) return;
+    await deleteMuroPost(id);
+    setPosts(posts.filter(p => p.id !== id));
+  }
+
+  async function handleDeleteReply(postId: string, replyId: string) {
+    if (!confirm('¿Eliminar este comentario?')) return;
+    await deleteMuroReply(replyId);
+    setReplies(prev => ({
+      ...prev,
+      [postId]: prev[postId].filter(r => r.id !== replyId)
+    }));
+  }
+
+  if (loading) return <p className="text-center text-text-light py-8">Cargando Muro...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md">
+        <h2 className="font-semibold text-primary-dark">Moderar Muro Comunitario</h2>
+        <p className="text-xs text-text-light mt-1">Total: {posts.length} publicaciones. Elimina publicaciones o comentarios inapropiados.</p>
+      </div>
+
+      {posts.length === 0 ? (
+        <p className="text-center text-text-light py-8">No hay publicaciones en el Muro.</p>
+      ) : (
+        <div className="space-y-3">
+          {posts.map(p => (
+            <div key={p.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md space-y-4">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-xs text-text-light mb-1 flex-wrap">
+                    <span className="font-semibold text-primary">{p.author_name || 'Anónimo'}</span>
+                    <span>&bull;</span>
+                    <span>{new Date(p.created_at).toLocaleDateString('es-CL')}</span>
+                    {p.category && p.category !== 'general' && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        p.category === 'oracion' ? 'bg-red-50 text-red-600 border border-red-100' :
+                        p.category === 'reflexion' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                        'bg-green-50 text-green-600 border border-green-100'
+                      }`}>
+                        {p.category === 'oracion' ? '🙏 Oración' :
+                         p.category === 'reflexion' ? '💬 Reflexión' :
+                         '🎤 Sugerencia'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{p.content}</p>
+                  {p.image_url && (
+                    <img src={p.image_url} alt="" className="mt-2 rounded-lg max-h-48 w-auto object-cover border border-gray-100" />
+                  )}
+                </div>
+                <button onClick={() => handleDeletePost(p.id)} className="p-1 text-text-light hover:text-red-500 transition-colors" title="Eliminar post">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              {/* Accordion trigger for replies */}
+              <div>
+                <button
+                  onClick={() => toggleReplies(p.id)}
+                  className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors font-medium"
+                >
+                  <MessageSquare size={12} />
+                  {expanded[p.id] ? 'Ocultar comentarios' : 'Ver comentarios'}
+                </button>
+
+                {expanded[p.id] && (
+                  <div className="mt-3 pl-4 border-l-2 border-gray-100 space-y-3">
+                    {!replies[p.id] ? (
+                      <p className="text-[11px] text-text-light">Cargando comentarios...</p>
+                    ) : replies[p.id].length === 0 ? (
+                      <p className="text-[11px] text-text-light">Sin comentarios.</p>
+                    ) : (
+                      replies[p.id].map(r => (
+                        <div key={r.id} className="flex justify-between items-start gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100/50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5 text-[10px] text-text-light mb-0.5">
+                              <span className="font-semibold text-secondary">{r.author_name || 'Anónimo'}</span>
+                              <span>&bull;</span>
+                              <span>{new Date(r.created_at).toLocaleDateString('es-CL')}</span>
+                            </div>
+                            <p className="text-xs text-text">{r.content}</p>
+                          </div>
+                          <button onClick={() => handleDeleteReply(p.id, r.id)} className="p-1 text-text-light hover:text-red-500 transition-colors" title="Eliminar comentario">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

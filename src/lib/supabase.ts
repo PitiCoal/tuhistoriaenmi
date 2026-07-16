@@ -161,7 +161,7 @@ export async function getMuroPosts() {
   return data || [];
 }
 
-export async function createMuroPost(post: { user_id?: string | null; author_name?: string | null; content: string; image_url?: string | null }) {
+export async function createMuroPost(post: { user_id?: string | null; author_name?: string | null; content: string; image_url?: string | null; category?: string }) {
   return supabase.from('muro_posts').insert(post).select().single();
 }
 

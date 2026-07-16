@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Mic, Users, User, Gift } from 'lucide-react';
@@ -21,19 +22,26 @@ const tabs = [
   { href: '/', icon: Home, label: 'Inicio', useCustomIcon: false },
   { href: '/episodios', icon: Mic, label: 'Episodios', useCustomIcon: false },
   { href: '/comunidad', icon: Users, label: 'Comunidad', useCustomIcon: false },
-  { href: '/oracion', icon: null, label: 'Oración', useCustomIcon: true },
+  { href: '/comunidad?filter=oracion', icon: null, label: 'Oración', useCustomIcon: true },
 ];
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const loggedIn = user && user !== 'loading';
+  const [isPrayerActive, setIsPrayerActive] = useState(false);
+
+  useEffect(() => {
+    setIsPrayerActive(window.location.search.includes('filter=oracion'));
+  }, [pathname]);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200/70 pb-[env(safe-area-inset-bottom,0px)]">
       <div className="flex items-center justify-around h-14">
         {tabs.map(tab => {
-          const active = pathname === tab.href || (tab.href === '/oracion' && pathname === '/oracion');
+          const active = tab.href.includes('?filter=oracion')
+            ? (pathname === '/comunidad' && isPrayerActive)
+            : (pathname === tab.href && !isPrayerActive);
           return (
             <Link key={tab.href} href={tab.href}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors active:scale-90 ${
