@@ -5,6 +5,11 @@ import { LogIn, LogOut, Shield, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useState } from 'react';
 
+const episodesDropdown = [
+  { href: '/episodios', label: 'Episodios (Podcast)' },
+  { href: '/testimonios', label: 'Testimonios de Fe' },
+];
+
 const dropdownLinks = [
   { href: '/comunidad', label: 'Muro Comunitario' },
   { href: '/proyectos', label: 'Proyectos' },
@@ -17,6 +22,7 @@ const ADMIN_EMAIL = 'piti.coal@gmail.com';
 export default function Header() {
   const { user, signIn, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [episodesMenuOpen, setEpisodesMenuOpen] = useState(false);
 
   const isAdmin = typeof user === 'object' && user?.email === ADMIN_EMAIL;
   const fbUser = typeof user === 'object' && user;
@@ -35,12 +41,33 @@ export default function Header() {
           <Link href="/" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
             Inicio
           </Link>
-          <Link href="/episodios" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
-            Episodios
-          </Link>
-          <Link href="/testimonios" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
-            Testimonios
-          </Link>
+
+          {/* Menú Desplegable Episodios */}
+          <div
+            className="relative py-2"
+            onMouseEnter={() => setEpisodesMenuOpen(true)}
+            onMouseLeave={() => setEpisodesMenuOpen(false)}
+          >
+            <button className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none">
+              Episodios
+              <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {episodesMenuOpen && (
+              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-44 transition-all duration-200 z-[100]">
+                {episodesDropdown.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-4 py-2 text-xs text-text-light hover:text-primary hover:bg-primary/5 transition-colors font-medium"
+                    onClick={() => setEpisodesMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Menú Desplegable Comunidad */}
           <div
