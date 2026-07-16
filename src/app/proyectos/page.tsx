@@ -1,25 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Calendar, LogIn, Lightbulb, Users } from 'lucide-react';
-import { getProjects } from '@/lib/supabase';
+import { Calendar, LogIn, Users, CheckCircle, Loader2 } from 'lucide-react';
+import { getProjectsWithCounts, joinProject, leaveProject, isUserInProject } from '@/lib/supabase';
 
-type Project = { id: string; title: string; description: string; date: string; status: 'próximo' | 'en curso' | 'completado'; image: string; participants?: number };
+type Project = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  status: 'próximo' | 'en curso' | 'completado';
+  image: string;
+  participant_count: number;
+};
 
 const statusColors: Record<string, string> = {
-  próximo: 'bg-blue-100 text-blue-700', 'en curso': 'bg-amber-100 text-amber-700', completado: 'bg-green-100 text-green-700',
+  próximo: 'bg-blue-100 text-blue-700',
+  'en curso': 'bg-amber-100 text-amber-700',
+  completado: 'bg-green-100 text-green-700',
 };
 
 export default function ProyectosPage() {
   const { user, signIn } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  // Track which projects the user has joined: Record<projectId, boolean>
+  const [joined, setJoined] = useState<Record<string, boolean>>({});
+  const [joining, setJoining] = useState<Record<string, boolean>>({});
+
+  const userId = user && user !== 'loading' ? (user as any).uid : null;
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await getProjects();
+        const data = await getProjectsWithCounts();
         setProjects(data || []);
       } catch (e) {
         console.error('Error loading projects:', e);
@@ -30,6 +45,36 @@ export default function ProyectosPage() {
     load();
   }, []);
 
+  // Once we know the user, check their joined status for each project
+  useEffect(() => {
+    if (!userId || projects.length === 0) return;
+    Promise.all(
+      projects.map(p => isUserInProject(p.id, userId).then(v => ({ id: p.id, v })))
+    ).then(results => {
+      const map: Record<string, boolean> = {};
+      results.forEach(r => { map[r.id] = r.v; });
+      setJoined(map);
+    });
+  }, [userId, projects]);
+
+  async function handleJoin(projectId: string) {
+    if (!userId) { signIn(); return; }
+    setJoining(prev => ({ ...prev, [projectId]: true }));
+    try {
+      if (joined[projectId]) {
+        await leaveProject(projectId, userId);
+        setJoined(prev => ({ ...prev, [projectId]: false }));
+        setProjects(prev => prev.map(p => p.id === projectId ? { ...p, participant_count: Math.max(0, p.participant_count - 1) } : p));
+      } else {
+        await joinProject(projectId, userId);
+        setJoined(prev => ({ ...prev, [projectId]: true }));
+        setProjects(prev => prev.map(p => p.id === projectId ? { ...p, participant_count: p.participant_count + 1 } : p));
+      }
+    } finally {
+      setJoining(prev => ({ ...prev, [projectId]: false }));
+    }
+  }
+
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
 
   return (
@@ -37,47 +82,83 @@ export default function ProyectosPage() {
       <div className="bg-card rounded-2xl p-8 border border-gray-200/70 shadow-md text-center">
         <h1 className="font-heading text-2xl md:text-3xl font-bold text-primary-dark">Proyectos</h1>
         <p className="text-text-light text-sm mt-1">Conoce lo que estamos preparando para la comunidad.</p>
+        {!userId && (
+          <p className="text-xs text-text-light/70 mt-2">
+            Puedes ver todos los proyectos.{' '}
+            <button onClick={() => signIn()} className="text-primary underline font-medium">Inicia sesión</button>
+            {' '}para inscribirte.
+          </p>
+        )}
       </div>
 
-      {!user ? (
-        <div className="bg-card rounded-xl p-8 border border-gray-200/70 shadow-md text-center space-y-3">
-          <Lightbulb size={48} className="mx-auto text-text-light" />
-          <h2 className="font-heading text-lg font-bold text-primary-dark">Inicia sesión</h2>
-          <p className="text-sm text-text-light">Necesitas una cuenta para ver y ser parte de los proyectos comunitarios.</p>
-          <button onClick={() => signIn()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 active:scale-95">
-            <LogIn size={16} /> Iniciar sesión
-          </button>
-        </div>
+      {loading ? (
+        <p className="text-center text-text-light py-8">Cargando proyectos...</p>
+      ) : projects.length === 0 ? (
+        <p className="text-center text-text-light py-8">Aún no hay proyectos publicados.</p>
       ) : (
-        loading ? (
-          <p className="text-center text-text-light py-8">Cargando proyectos...</p>
-        ) : projects.length === 0 ? (
-          <p className="text-center text-text-light py-8">Aún no hay proyectos publicados.</p>
-        ) : (
-          <div className="space-y-4">
-            {projects.map(p => (
-              <div key={p.id} className="bg-card rounded-xl border border-gray-200/70 shadow-md overflow-hidden">
-                <div className="flex flex-col sm:flex-row">
-                  <div className="sm:w-40 h-32 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-                    <img src={p.image} alt="" className="h-20 w-20 object-contain opacity-50" />
-                  </div>
-                  <div className="flex-1 p-5 space-y-2">
+        <div className="space-y-4">
+          {projects.map(p => (
+            <div key={p.id} className="bg-card rounded-xl border border-gray-200/70 shadow-md overflow-hidden">
+              <div className="flex flex-col sm:flex-row">
+                {/* Image */}
+                <div className="sm:w-40 h-32 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center shrink-0">
+                  {p.image ? (
+                    <img src={p.image} alt={p.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <img src="/images/logo.png" alt="" className="h-20 w-20 object-contain opacity-30" />
+                  )}
+                </div>
+                {/* Content */}
+                <div className="flex-1 p-5 space-y-3">
+                  <div className="space-y-1">
                     <h2 className="font-heading font-bold text-primary-dark">{p.title}</h2>
                     <p className="text-sm text-text-light leading-relaxed">{p.description}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs">
-                      <span className="flex items-center gap-1 text-text-light"><Calendar size={12} /> {p.date}</span>
-                      <span className={`px-2 py-0.5 rounded-full font-medium ${statusColors[p.status]}`}>{p.status}</span>
-                      {p.participants && p.participants > 0 && (
-                        <span className="flex items-center gap-1 text-primary font-medium"><Users size={12} /> {p.participants}</span>
-                      )}
-                    </div>
                   </div>
+
+                  {/* Meta */}
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    {p.date && (
+                      <span className="flex items-center gap-1 text-text-light">
+                        <Calendar size={12} /> {p.date}
+                      </span>
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${statusColors[p.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {p.status}
+                    </span>
+                    {/* Contador de inscritos */}
+                    <span className="flex items-center gap-1 text-primary font-semibold">
+                      <Users size={12} />
+                      {p.participant_count} {p.participant_count === 1 ? 'inscrito' : 'inscritos'}
+                    </span>
+                  </div>
+
+                  {/* Botón Unirme / Ya inscrito */}
+                  {p.status !== 'completado' && (
+                    <button
+                      onClick={() => handleJoin(p.id)}
+                      disabled={joining[p.id]}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+                        joined[p.id]
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                          : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
+                      }`}
+                    >
+                      {joining[p.id] ? (
+                        <><Loader2 size={12} className="animate-spin" /> Procesando...</>
+                      ) : joined[p.id] ? (
+                        <><CheckCircle size={12} /> Ya estoy inscrito</>
+                      ) : !userId ? (
+                        <><LogIn size={12} /> Iniciar sesión para unirme</>
+                      ) : (
+                        <>Unirme al proyecto</>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

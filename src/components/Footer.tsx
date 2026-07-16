@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Camera, Video, Music2, Podcast, Globe, Mail, Heart } from 'lucide-react';
 
 const socialLinks = [
@@ -21,18 +22,21 @@ export default function Footer() {
             <p className="text-xs md:text-sm text-white/60 leading-relaxed max-w-sm">
               &ldquo;Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.&rdquo;
             </p>
-            <a href="/donar" className="inline-flex items-center gap-1.5 text-[11px] md:text-xs text-primary font-semibold bg-white px-2.5 md:px-3 py-1.5 rounded-lg hover:bg-white/90 transition-colors">
+            <Link href="/donar" className="inline-flex items-center gap-1.5 text-[11px] md:text-xs text-primary font-semibold bg-white px-2.5 md:px-3 py-1.5 rounded-lg hover:bg-white/90 transition-colors">
               <Heart size={10} /> Apoyar el proyecto
-            </a>
+            </Link>
           </div>
+
           <div className="hidden md:block">
             <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Navegar</h4>
             <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm text-white/60">
-              <li><a href="/episodios" className="hover:text-white transition-colors">Episodios</a></li>
-              <li><a href="/comunidad" className="hover:text-white transition-colors">Comunidad</a></li>
-              <li><a href="/proyectos" className="hover:text-white transition-colors">Proyectos</a></li>
+              <li><Link href="/episodios" className="hover:text-white transition-colors">Episodios</Link></li>
+              <li><Link href="/testimonios" className="hover:text-white transition-colors">Testimonios</Link></li>
+              <li><Link href="/comunidad" className="hover:text-white transition-colors">Comunidad</Link></li>
+              <li><Link href="/proyectos" className="hover:text-white transition-colors">Proyectos</Link></li>
             </ul>
           </div>
+
           <div>
             <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Síguenos</h4>
             <div className="flex flex-col gap-1.5 md:gap-2">
@@ -45,11 +49,16 @@ export default function Footer() {
             </div>
           </div>
         </div>
+
         <div className="border-t border-white/10 mt-6 md:mt-8 pt-4 md:pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] md:text-xs text-white/40">
-          <p>&copy; {new Date().getFullYear()} Tu Historia En M&iacute; &mdash; Chile</p>
-          <a href="mailto:contacto.tuhistoriaenmi@gmail.com" className="flex items-center gap-1 hover:text-white/60 transition-colors">
-            <Mail size={10} /> contacto.tuhistoriaenmi@gmail.com
-          </a>
+          <p>&copy; {new Date().getFullYear()} Tu Historia En Mí &mdash; Chile</p>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <Link href="/privacidad" className="hover:text-white/60 transition-colors">Privacidad</Link>
+            <Link href="/terminos" className="hover:text-white/60 transition-colors">Términos</Link>
+            <a href="mailto:contacto.tuhistoriaenmi@gmail.com" className="flex items-center gap-1 hover:text-white/60 transition-colors">
+              <Mail size={10} /> contacto.tuhistoriaenmi@gmail.com
+            </a>
+          </div>
         </div>
       </div>
     </footer>

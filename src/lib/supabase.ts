@@ -441,3 +441,247 @@ export async function updateTestimonioPublico(id: string, t: { content?: string;
 export async function deleteTestimonioPublico(id: string) {
   return supabase.from('testimonios_publicos').delete().eq('id', id);
 }
+
+// Approve a testimonio → upsert into testimonios_publicos with approved=true
+export async function approveTestimonio(t: { source_id: string; user_id: string; display_name?: string; content: string }) {
+  return supabase.from('testimonios_publicos').upsert(
+    { user_id: t.user_id, display_name: t.display_name || 'Anónimo', content: t.content, public: true, approved: true, approved_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  ).select().single();
+}
+
+// ===== PROJECT PARTICIPANTS =====
+export async function joinProject(projectId: string, userId: string) {
+  return supabase.from('project_participants').insert({ project_id: projectId, user_id: userId });
+}
+
+export async function leaveProject(projectId: string, userId: string) {
+  return supabase.from('project_participants').delete().eq('project_id', projectId).eq('user_id', userId);
+}
+
+export async function isUserInProject(projectId: string, userId: string): Promise<boolean> {
+  const { data } = await supabase.from('project_participants').select('id').eq('project_id', projectId).eq('user_id', userId).maybeSingle();
+  return !!data;
+}
+
+export async function getProjectParticipantCount(projectId: string): Promise<number> {
+  const { count } = await supabase.from('project_participants').select('*', { count: 'exact', head: true }).eq('project_id', projectId);
+  return count || 0;
+}
+
+export async function getUserProjects(userId: string): Promise<string[]> {
+  const { data } = await supabase.from('project_participants').select('project_id').eq('user_id', userId);
+  return (data || []).map(r => r.project_id);
+}
+
+// Get all projects with real participant count from project_participants
+export async function getProjectsWithCounts() {
+  const projects = await getProjects();
+  const { data: pp } = await supabase.from('project_participants').select('project_id');
+  const counts: Record<string, number> = {};
+  (pp || []).forEach(r => { counts[r.project_id] = (counts[r.project_id] || 0) + 1; });
+  return projects.map((p: any) => ({ ...p, participant_count: counts[p.id] || 0 }));
+}
+
+// ===== NOTIFICATION PREFERENCES =====
+export async function getNotificationPreferences(userId: string) {
+  const { data } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
+  return data || { daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true };
+}
+
+export async function saveNotificationPreferences(userId: string, prefs: {
+  daily_verse?: boolean; daily_phrase?: boolean; comments?: boolean; reactions?: boolean; announcements?: boolean;
+}) {
+  return supabase.from('notification_preferences').upsert(
+    { user_id: userId, ...prefs, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+}
+
+// ===== USER CONSENT =====
+export async function hasUserConsented(userId: string): Promise<boolean> {
+  const { data } = await supabase.from('user_consents').select('user_id').eq('user_id', userId).maybeSingle();
+  return !!data;
+}
+
+export async function saveUserConsent(userId: string) {
+  return supabase.from('user_consents').upsert(
+    { user_id: userId, accepted_at: new Date().toISOString(), version: '1.0' },
+    { onConflict: 'user_id' }
+  );
+}
+
+// ===== PER-USER QUERIES =====
+export async function getMuroPostsByUser(userId: string) {
+  const { data } = await supabase.from('muro_posts').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function getParticipaEntriesByUser(userId: string) {
+  const { data } = await supabase.from('participa_entries').select('*').eq('name', userId).order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function getTestimoniosByUser(userId: string) {
+  const { data } = await supabase.from('testimonios').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  return data || [];
+}
+
+// ===== DELETE ALL USER DATA (derecho al olvido) =====
+export async function deleteAllUserData(userId: string) {
+  await Promise.allSettled([
+    supabase.from('muro_posts').delete().eq('user_id', userId),
+    supabase.from('muro_replies').delete().eq('user_id', userId),
+    supabase.from('reactions').delete().eq('user_id', userId),
+    supabase.from('participa_entries').delete().eq('name', userId),
+    supabase.from('testimonios').delete().eq('user_id', userId),
+    supabase.from('testimonios_publicos').delete().eq('user_id', userId),
+    supabase.from('push_subscriptions').delete().eq('user_id', userId),
+    supabase.from('notification_preferences').delete().eq('user_id', userId),
+    supabase.from('user_consents').delete().eq('user_id', userId),
+    supabase.from('user_activities').delete().eq('user_id', userId),
+    supabase.from('project_participants').delete().eq('user_id', userId),
+    supabase.from('profiles').delete().eq('user_id', userId),
+  ]);
+}
+
+// ===== METRICS LOGGER =====
+export async function logPageView(path: string, userId?: string) {
+  return supabase.from('page_views').insert({ path, user_id: userId || null });
+}
+
+export async function logEpisodeClick(episodeId: string, platform: string, userId?: string) {
+  return supabase.from('episode_clicks').insert({ episode_id: episodeId, platform, user_id: userId || null });
+}
+
+export async function getPageViewsCount(): Promise<number> {
+  const { count } = await supabase.from('page_views').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function getEpisodeClicksCount(): Promise<number> {
+  const { count } = await supabase.from('episode_clicks').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function getEpisodeClicksCountByPlatform(): Promise<Record<string, number>> {
+  const { data } = await supabase.from('episode_clicks').select('platform');
+  const counts: Record<string, number> = {};
+  (data || []).forEach(r => { counts[r.platform] = (counts[r.platform] || 0) + 1; });
+  return counts;
+}
+
+// ===== DEVOCIONALES (DAILY DEVOTIONALS) =====
+const FALLBACK_DEVOTIONALS = [
+  {
+    id: 'fallback-1',
+    title: 'Caminando en la Luz',
+    verse: 'Si caminamos en la luz, como él está en la luz, tenemos comunión unos con otros.',
+    reference: '1 Juan 1:7',
+    reflection: 'Caminar en la luz significa vivir con transparencia ante Dios y ante nuestros hermanos. No significa ser perfectos, sino reconocer nuestras debilidades y permitir que la gracia de Dios nos guíe a diario. La comunión con la comunidad nace de esta verdad compartida.',
+    question: '¿Qué área de tu vida necesitas rendir hoy a la luz de Dios?',
+    prayer: 'Señor, guíame para caminar en verdad y amor. Que mi vida refleje tu luz y que pueda ser un puente de comunión con mis hermanos. Amén.',
+    publish_date: null
+  },
+  {
+    id: 'fallback-2',
+    title: 'La Paz en la Tormenta',
+    verse: 'La paz les dejo, mi paz les doy; no como el mundo la da, yo se la doy.',
+    reference: 'Juan 14:27',
+    reflection: 'La paz de Dios no es la ausencia de problemas, sino la presencia de Su Espíritu consolándonos en medio de ellos. Mientras el mundo busca seguridad externa, Jesús nos ofrece una paz inquebrantable en el corazón.',
+    question: '¿Qué tormenta necesitas entregarle a Jesús hoy para recibir Su paz?',
+    prayer: 'Jesús, descanso en tu promesa. Silencia mis temores y llena mi corazón con tu paz que sobrepasa todo entendimiento. Amén.',
+    publish_date: null
+  }
+];
+
+export async function getDailyDevotional() {
+  const today = new Date().toISOString().split('T')[0];
+  // 1. Intentar buscar programado para hoy
+  const { data: scheduled } = await supabase.from('devotionals').select('*').eq('publish_date', today).maybeSingle();
+  if (scheduled) return scheduled;
+
+  // 2. Si no hay hoy, buscar rotativos (publish_date is null)
+  const { data: rotating } = await supabase.from('devotionals').select('*').is('publish_date', null);
+  if (rotating && rotating.length > 0) {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const index = dayOfYear % rotating.length;
+    return rotating[index];
+  }
+
+  // 3. Fallback estático
+  const now = new Date();
+  const dayOfYear = now.getDate() + now.getMonth() * 31;
+  return FALLBACK_DEVOTIONALS[dayOfYear % FALLBACK_DEVOTIONALS.length];
+}
+
+export async function getDevotionalReplies(devotionalId: string) {
+  const { data } = await supabase.from('devotional_replies')
+    .select('*')
+    .eq('devotional_id', devotionalId)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function getDevotionalReplyByUser(devotionalId: string, userId: string) {
+  const { data } = await supabase.from('devotional_replies')
+    .select('*')
+    .eq('devotional_id', devotionalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
+}
+
+export async function createDevotionalReply(reply: {
+  devotional_id: string;
+  user_id: string;
+  display_name?: string;
+  answer: string;
+  shared_to_muro: boolean;
+}) {
+  const { data, error } = await supabase.from('devotional_replies').upsert(reply, { onConflict: 'devotional_id,user_id' }).select().single();
+  if (error) return { data: null, error };
+
+  // Si eligió compartir en el muro, creamos un post del muro
+  if (reply.shared_to_muro && data) {
+    // Buscar el devocional para armar el texto del post
+    const { data: dev } = await supabase.from('devotionals').select('title, question').eq('id', reply.devotional_id).maybeSingle();
+    const devTitle = dev?.title || 'Devocional Diario';
+    const devQuestion = dev?.question || 'Reflexión diaria';
+
+    const content = `✨ **Reflexión sobre el Devocional: "${devTitle}"**\n\n*Pregunta:* ${devQuestion}\n\n*Mi respuesta:* "${reply.answer}"\n\n#DevocionalDiario #TuHistoriaEnMí`;
+    await createMuroPost({
+      user_id: reply.user_id,
+      author_name: reply.display_name || 'Anónimo',
+      content,
+      image_url: null
+    });
+  }
+
+  return { data, error };
+}
+
+export async function getDevotionals() {
+  const { data } = await supabase.from('devotionals').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function saveDevotional(devotional: any) {
+  if (devotional.id) {
+    return supabase.from('devotionals').update(devotional).eq('id', devotional.id).select().single();
+  }
+  return supabase.from('devotionals').insert(devotional).select().single();
+}
+
+export async function deleteDevotional(id: string) {
+  return supabase.from('devotionals').delete().eq('id', id);
+}
+
+export async function getSponsorById(id: string) {
+  const { data } = await supabase.from('sponsors').select('*').eq('id', id).maybeSingle();
+  return data;
+}

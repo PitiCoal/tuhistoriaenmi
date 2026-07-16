@@ -1,4 +1,5 @@
 import { HandHeart, ExternalLink } from 'lucide-react';
+import DonationGoal from '@/components/DonationGoal';
 
 export default function DonarPage() {
   return (
@@ -9,6 +10,8 @@ export default function DonarPage() {
           Tu apoyo nos permite seguir creando contenido y creciendo como comunidad.
         </p>
       </div>
+
+      <DonationGoal />
 
       <div className="bg-card rounded-xl p-8 shadow-md border border-gray-200/70 text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">

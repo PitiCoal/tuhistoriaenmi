@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 const publicLinks = [
   { href: '/', label: 'Inicio' },
   { href: '/episodios', label: 'Episodios' },
+  { href: '/testimonios', label: 'Testimonios' },
   { href: '/comunidad', label: 'Comunidad' },
   { href: '/nosotros', label: 'Nosotros' },
   { href: '/proyectos', label: 'Proyectos' },

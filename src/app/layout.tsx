@@ -6,6 +6,8 @@ import MobileNav from '@/components/MobileNav';
 import InstallPrompt from '@/components/InstallPrompt';
 import NotificationPrompt from '@/components/NotificationPrompt';
 import { AuthProvider } from '@/lib/AuthContext';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Tu Historia En Mí',
@@ -29,6 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className="min-h-screen flex flex-col bg-bg text-text antialiased">
         <AuthProvider>
+          <Suspense fallback={null}>
+            <AnalyticsTracker />
+          </Suspense>
           <Header />
           <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-20 md:pb-8">
             {children}

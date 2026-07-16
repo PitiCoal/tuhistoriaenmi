@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts, getTotalReactionCount } from '@/lib/supabase';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -69,6 +69,8 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('metricas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'metricas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Métricas</button>
         <button onClick={() => setTab('notificaciones')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'notificaciones' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Bell size={16} /> Notificaciones</button>
         <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
+        <button onClick={() => setTab('testimonios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'testimonios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageCircle size={16} /> Testimonios</button>
+        <button onClick={() => setTab('devocionales')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'devocionales' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BookOpen size={16} /> Devocionales</button>
       </div>
 
       {tab === 'proyectos' && <ProjectsTab />}
@@ -95,6 +97,8 @@ export default function AdminProyectosPage() {
       {tab === 'notificaciones' && <NotificacionesTab />}
 
       {tab === 'actividades' && <ActividadesTab />}
+      {tab === 'testimonios' && <TestimoniosAdminTab />}
+      {tab === 'devocionales' && <DevotionalsAdminTab />}
     </div>
   );
 }
@@ -616,6 +620,15 @@ const PAGINAS_SECTIONS: Record<string, { label: string; sections: { key: string;
       { key: 'oracion', label: 'Oración', type: 'textarea' },
     ],
   },
+  donation: {
+    label: 'Donación (Metas)',
+    sections: [
+      { key: 'active', label: 'Meta Activa (escribe "true" para activarla o "false" para ocultarla)', type: 'text' },
+      { key: 'title', label: 'Título de la meta (ej: Financiamiento de Servidores y Producción)', type: 'text' },
+      { key: 'target', label: 'Monto meta (solo números, ej: 500000)', type: 'text' },
+      { key: 'current', label: 'Monto recaudado (solo números, ej: 150000)', type: 'text' },
+    ],
+  },
 };
 
 function PaginasTab() {
@@ -870,12 +883,32 @@ function MetricasTab() {
   const [form, setForm] = useState({ label: '', value: '', icon: 'heart' });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [autoMetrics, setAutoMetrics] = useState({ profiles: 0, episodes: 0, testimonios: 0, sponsors: 0, muroPosts: 0, totalReactions: 0 });
+  const [autoMetrics, setAutoMetrics] = useState({
+    profiles: 0, episodes: 0, testimonios: 0, sponsors: 0, muroPosts: 0, totalReactions: 0,
+    pageViews: 0, episodeClicks: 0
+  });
+  const [platformClicks, setPlatformClicks] = useState<Record<string, number>>({ youtube: 0, spotify: 0, apple: 0, amazon: 0 });
 
   useEffect(() => {
     loadMetrics();
-    Promise.all([countProfiles(), countEpisodes(), countTestimonios(), countSponsors(), getMuroPosts().then(posts => posts.length), getTotalReactionCount('muro_post')]).then(
-      ([a, b, c, d, e, f]) => setAutoMetrics({ profiles: a, episodes: b, testimonios: c, sponsors: d, muroPosts: e, totalReactions: f })
+    Promise.all([
+      countProfiles(),
+      countEpisodes(),
+      countTestimonios(),
+      countSponsors(),
+      getMuroPosts().then(posts => posts.length),
+      getTotalReactionCount('muro_post'),
+      getPageViewsCount(),
+      getEpisodeClicksCount(),
+      getEpisodeClicksCountByPlatform()
+    ]).then(
+      ([a, b, c, d, e, f, g, h, i]) => {
+        setAutoMetrics({
+          profiles: a, episodes: b, testimonios: c, sponsors: d, muroPosts: e, totalReactions: f,
+          pageViews: g, episodeClicks: h
+        });
+        setPlatformClicks(i || { youtube: 0, spotify: 0, apple: 0, amazon: 0 });
+      }
     );
   }, []);
 
@@ -909,35 +942,73 @@ function MetricasTab() {
   return (
     <div className="space-y-4">
       {/* Auto-métricas */}
-      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md">
-        <h2 className="font-semibold text-primary-dark mb-3">Métricas automáticas</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-6">
+        <div>
+          <h2 className="font-semibold text-primary-dark mb-1">Métricas de la Plataforma</h2>
+          <p className="text-xs text-text-light">Estadísticas calculadas automáticamente desde la base de datos.</p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.pageViews}</p>
+            <p className="text-xs font-medium text-text-light">Visitas totales</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.episodeClicks}</p>
+            <p className="text-xs font-medium text-text-light">Reproducciones (Clics)</p>
+          </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.profiles}</p>
-            <p className="text-xs text-text-light">Usuarios registrados</p>
+            <p className="text-xs font-medium text-text-light">Usuarios registrados</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.episodes}</p>
-            <p className="text-xs text-text-light">Episodios publicados</p>
+            <p className="text-xs font-medium text-text-light">Episodios publicados</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.testimonios}</p>
-            <p className="text-xs text-text-light">Testimonios recibidos</p>
-          </div>
-          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
-            <p className="text-2xl font-bold text-primary">{autoMetrics.sponsors}</p>
-            <p className="text-xs text-text-light">Auspiciadores</p>
+            <p className="text-xs font-medium text-text-light">Testimonios recibidos</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.muroPosts}</p>
-            <p className="text-xs text-text-light">Posts en el Muro</p>
+            <p className="text-xs font-medium text-text-light">Posts en el Muro</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
             <p className="text-2xl font-bold text-primary">{autoMetrics.totalReactions}</p>
-            <p className="text-xs text-text-light">Total reacciones</p>
+            <p className="text-xs font-medium text-text-light">Reacciones en comunidad</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-2xl font-bold text-primary">{autoMetrics.sponsors}</p>
+            <p className="text-xs font-medium text-text-light">Auspiciadores</p>
           </div>
         </div>
-        <p className="text-[10px] text-text-light/60 mt-2">Estas métricas se actualizan automáticamente desde la base de datos.</p>
+
+        {/* Clics por plataforma */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <h3 className="text-sm font-semibold text-primary-dark">Escuchas por Plataforma (Clics)</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { key: 'spotify', label: 'Spotify', color: 'bg-green-500' },
+              { key: 'youtube', label: 'YouTube', color: 'bg-red-500' },
+              { key: 'apple', label: 'Apple Podcasts', color: 'bg-purple-500' },
+              { key: 'amazon', label: 'Amazon Music', color: 'bg-orange-500' },
+            ].map(plat => {
+              const count = platformClicks[plat.key] || 0;
+              const pct = autoMetrics.episodeClicks > 0 ? (count / autoMetrics.episodeClicks) * 100 : 0;
+              return (
+                <div key={plat.key} className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-text-light">{plat.label}</span>
+                    <span className="font-bold text-primary-dark">{count}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div className={`${plat.color} h-1.5`} style={{ width: `${pct}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
@@ -1058,3 +1129,387 @@ function AuspiciadoresTab() {
     </div>
   );
 }
+
+// ===== TESTIMONIOS ADMIN TAB =====
+function TestimoniosAdminTab() {
+  const [testimonios, setTestimonios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState<Record<string, boolean>>({});
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    getTestimonios().then(data => { setTestimonios(data); setLoading(false); });
+  }, []);
+
+  async function handleApprove(t: any) {
+    setApproving(prev => ({ ...prev, [t.id]: true }));
+    try {
+      const { error } = await approveTestimonio({
+        source_id: t.id,
+        user_id: t.user_id,
+        display_name: t.name || 'Anónimo',
+        content: t.message,
+      });
+      if (error) throw new Error(error.message);
+      setMsg({ ok: true, text: `Testimonio de ${t.name} aprobado y publicado.` });
+      setTestimonios(prev => prev.map(x => x.id === t.id ? { ...x, public: true } : x));
+    } catch (err: any) {
+      setMsg({ ok: false, text: 'Error al aprobar: ' + err.message });
+    } finally {
+      setApproving(prev => ({ ...prev, [t.id]: false }));
+      setTimeout(() => setMsg(null), 4000);
+    }
+  }
+
+  if (loading) return <p className="text-center text-text-light py-8">Cargando testimonios...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md">
+        <h2 className="font-semibold text-primary-dark mb-1">Testimonios recibidos</h2>
+        <p className="text-xs text-text-light">Revisa cada testimonio y apruébalo para que sea visible públicamente en /testimonios.</p>
+      </div>
+
+      {msg && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${msg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {msg.ok ? <CheckCircle size={16} /> : <X size={16} />} {msg.text}
+        </div>
+      )}
+
+      {testimonios.length === 0 ? (
+        <p className="text-center text-text-light py-8">No hay testimonios recibidos aún.</p>
+      ) : (
+        <div className="space-y-3">
+          {testimonios.map(t => (
+            <div key={t.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-primary-dark">{t.name}</p>
+                  <p className="text-xs text-text-light">{t.email} {t.phone && `· ${t.phone}`}</p>
+                  <p className="text-xs text-text-light">
+                    {new Date(t.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <span className={`shrink-0 text-[10px] px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
+                  t.public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {t.public ? <><CheckCircle size={10} /> Publicado</> : <><Clock size={10} /> Pendiente</>}
+                </span>
+              </div>
+              <p className="text-sm text-text leading-relaxed bg-gray-50 rounded-lg p-3">{t.message}</p>
+              {!t.public && (
+                <button
+                  onClick={() => handleApprove(t)}
+                  disabled={approving[t.id]}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
+                >
+                  <CheckCircle size={14} />
+                  {approving[t.id] ? 'Aprobando...' : 'Aprobar y publicar testimonio'}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== DEVOCIONALES ADMIN TAB =====
+import { BookOpen, AlertCircle, FileSpreadsheet } from 'lucide-react';
+
+function DevotionalsAdminTab() {
+  const [devotionals, setDevotionals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Form states
+  const emptyDevotional = { title: '', verse: '', reference: '', reflection: '', question: '', prayer: '', publish_date: '' };
+  const [form, setForm] = useState(emptyDevotional);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // CSV states
+  const [csvText, setCsvText] = useState('');
+  const [importingCsv, setImportingCsv] = useState(false);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    try {
+      const data = await getDevotionals();
+      setDevotionals(data);
+    } catch (e: any) {
+      setError(e.message || 'Error al cargar devocionales');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim() || !form.verse.trim() || !form.reflection.trim()) return;
+
+    setError(null);
+    try {
+      const payload = {
+        title: form.title.trim(),
+        verse: form.verse.trim(),
+        reference: form.reference.trim(),
+        reflection: form.reflection.trim(),
+        question: form.question.trim(),
+        prayer: form.prayer.trim(),
+        publish_date: form.publish_date ? form.publish_date : null
+      };
+
+      if (editingId) {
+        await saveDevotional({ id: editingId, ...payload });
+        setMsg({ ok: true, text: 'Devocional actualizado con éxito' });
+      } else {
+        await saveDevotional(payload);
+        setMsg({ ok: true, text: 'Devocional creado con éxito' });
+      }
+      setForm(emptyDevotional);
+      setEditingId(null);
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar devocional');
+    } finally {
+      setTimeout(() => setMsg(null), 3000);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('¿Eliminar este devocional?')) return;
+    setError(null);
+    try {
+      await deleteDevotional(id);
+      setMsg({ ok: true, text: 'Devocional eliminado' });
+      await load();
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar');
+    } finally {
+      setTimeout(() => setMsg(null), 3000);
+    }
+  }
+
+  function handleEdit(d: any) {
+    setEditingId(d.id);
+    setForm({
+      title: d.title,
+      verse: d.verse,
+      reference: d.reference,
+      reflection: d.reflection,
+      question: d.question,
+      prayer: d.prayer,
+      publish_date: d.publish_date || ''
+    });
+  }
+
+  // Parse CSV: title;verse;reference;reflection;question;prayer;publish_date
+  async function handleCsvImport() {
+    if (!csvText.trim()) return;
+    setImportingCsv(true);
+    setError(null);
+    setMsg(null);
+
+    try {
+      const lines = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      let successCount = 0;
+      let failCount = 0;
+
+      // Skip header line if it looks like columns
+      const firstLine = lines[0].toLowerCase();
+      const hasHeader = firstLine.includes('title') || firstLine.includes('título') || firstLine.includes('reflexión') || firstLine.includes('reflection');
+      const startIndex = hasHeader ? 1 : 0;
+
+      for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i];
+        // Split by semicolon (recommended) or comma
+        const delimiter = line.includes(';') ? ';' : ',';
+        
+        // Simple custom CSV column split that handles optional wrapping quotes
+        const rawFields = line.split(delimiter);
+        const fields = rawFields.map(f => f.replace(/^"|"$/g, '').trim());
+
+        if (fields.length >= 6) {
+          const payload = {
+            title: fields[0],
+            verse: fields[1],
+            reference: fields[2],
+            reflection: fields[3],
+            question: fields[4],
+            prayer: fields[5],
+            publish_date: fields[6] ? fields[6] : null // publish_date is optional
+          };
+
+          const { error: saveErr } = await saveDevotional(payload);
+          if (saveErr) {
+            failCount++;
+          } else {
+            successCount++;
+          }
+        } else {
+          failCount++;
+        }
+      }
+
+      setMsg({ ok: true, text: `Importación masiva completada: ${successCount} agregados con éxito, ${failCount} fallidos.` });
+      setCsvText('');
+      await load();
+    } catch (err: any) {
+      setError('Error al importar CSV: ' + err.message);
+    } finally {
+      setImportingCsv(false);
+      setTimeout(() => setMsg(null), 5000);
+    }
+  }
+
+  if (loading) return <p className="text-center text-text-light py-8">Cargando devocionales...</p>;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md">
+        <h2 className="font-semibold text-primary-dark mb-1">Administración de Devocionales</h2>
+        <p className="text-xs text-text-light">Agrega devocionales diarios o realiza una importación masiva para programar de forma automática.</p>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
+
+      {msg && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${msg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          <CheckCircle size={16} /> {msg.text}
+        </div>
+      )}
+
+      {/* Manual Form */}
+      <form onSubmit={handleSubmit} className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h3 className="font-semibold text-primary-dark text-sm border-b border-gray-100 pb-2">{editingId ? 'Editar devocional' : 'Crear nuevo devocional manualmente'}</h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-light">Título *</label>
+            <input type="text" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Caminando con Fe" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-light">Fecha de publicación (Opcional, dejar vacío para rotación general)</label>
+            <input type="date" value={form.publish_date} onChange={e => setForm({ ...form, publish_date: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2 space-y-1">
+            <label className="text-xs font-semibold text-text-light">Versículo clave *</label>
+            <input type="text" required value={form.verse} onChange={e => setForm({ ...form, verse: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="El Señor es mi pastor, nada me faltará." />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-light">Referencia bíblica *</label>
+            <input type="text" required value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Salmo 23:1" />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-text-light">Reflexión diaria *</label>
+          <textarea required value={form.reflection} onChange={e => setForm({ ...form, reflection: e.target.value })} rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Escribe la reflexión del devocional aquí..." />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-text-light">Pregunta de aplicación práctica *</label>
+          <input type="text" required value={form.question} onChange={e => setForm({ ...form, question: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="¿En qué áreas de tu vida necesitas confiar hoy la guía del Buen Pastor?" />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-text-light">Oración guiada *</label>
+          <textarea required value={form.prayer} onChange={e => setForm({ ...form, prayer: e.target.value })} rows={2}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Señor, te entrego mi mañana y mi caminar..." />
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          {editingId ? (
+            <><button type="submit" className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Save size={14} /> Guardar Cambios</button><button type="button" onClick={() => { setEditingId(null); setForm(emptyDevotional); }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300"><X size={14} /> Cancelar</button></>
+          ) : (
+            <button type="submit" className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90"><Plus size={14} /> Agregar Devocional</button>
+          )}
+        </div>
+      </form>
+
+      {/* CSV Import Form */}
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h3 className="font-semibold text-primary-dark text-sm border-b border-gray-100 pb-2 flex items-center gap-2">
+          <FileSpreadsheet size={16} /> Importación Masiva (Excel / CSV)
+        </h3>
+        
+        <div className="space-y-2">
+          <p className="text-xs text-text-light leading-relaxed">
+            Puedes pegar texto en formato CSV separado por punto y coma (<code>;</code>) o coma (<code>,</code>).
+            <br />
+            <strong>Formato de columnas (con o sin comillas):</strong>
+            <br />
+            <code className="bg-gray-100 px-1 py-0.5 rounded text-[10px]">título;versículo;referencia;reflexión;pregunta;oración;fecha_publicación</code>
+          </p>
+          <textarea
+            placeholder="Pegar líneas CSV aquí...&#10;Título de ejemplo;Texto del versículo;Juan 3:16;Reflexión de ejemplo;Pregunta de ejemplo;Oración de ejemplo;2026-07-16"
+            value={csvText}
+            onChange={e => setCsvText(e.target.value)}
+            rows={4}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleCsvImport}
+          disabled={importingCsv || !csvText.trim()}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-secondary text-white rounded-lg text-xs font-semibold hover:bg-secondary/90 transition-colors disabled:opacity-50"
+        >
+          <FileSpreadsheet size={14} /> {importingCsv ? 'Importando...' : 'Importar líneas de devocionales'}
+        </button>
+      </div>
+
+      {/* Devotionals List */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-primary-dark text-sm">Devocionales Programados / Registrados</h3>
+        {devotionals.length === 0 ? (
+          <p className="text-center text-text-light py-8">No hay devocionales cargados en el sistema.</p>
+        ) : (
+          <div className="space-y-3">
+            {devotionals.map(d => (
+              <div key={d.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                  <BookOpen size={16} />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="font-semibold text-primary-dark truncate text-sm">{d.title}</h4>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      d.publish_date ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {d.publish_date ? `Programado: ${d.publish_date}` : 'Rotación general'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-light italic">"{d.verse}" ({d.reference})</p>
+                  <p className="text-xs text-text-light line-clamp-2">{d.reflection}</p>
+                </div>
+                <div className="flex flex-col gap-1.5 items-end justify-center shrink-0">
+                  <button onClick={() => handleEdit(d)} className="p-1 text-text-light hover:text-primary transition-colors"><Pencil size={14} /></button>
+                  <button onClick={() => handleDelete(d.id)} className="p-1 text-text-light hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

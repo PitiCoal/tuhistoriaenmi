@@ -1,0 +1,252 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { getDailyDevotional, createDevotionalReply, getDevotionalReplies, getDevotionalReplyByUser, getSponsorById } from '@/lib/supabase';
+import { BookOpen, Send, CheckCircle, HelpCircle, Users, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+
+export default function DailyDevotional() {
+  const { user, signIn } = useAuth();
+  const [devotional, setDevotional] = useState<any>(null);
+  const [sponsor, setSponsor] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [answer, setAnswer] = useState('');
+  const [shareToMuro, setShareToMuro] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Other community replies
+  const [replies, setReplies] = useState<any[]>([]);
+  const [showReplies, setShowReplies] = useState(false);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+
+  const userId = user && user !== 'loading' ? (user as any).uid : null;
+  const displayName = user && user !== 'loading' ? (user as any).displayName : '';
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const dev = await getDailyDevotional();
+        setDevotional(dev);
+        if (dev && dev.sponsor_id) {
+          const sp = await getSponsorById(dev.sponsor_id);
+          setSponsor(sp);
+        }
+        if (userId && dev) {
+          const userReply = await getDevotionalReplyByUser(dev.id, userId);
+          if (userReply) {
+            setAnswer(userReply.answer);
+            setShareToMuro(userReply.shared_to_muro);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading daily devotional:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [userId]);
+
+  // Load other user responses
+  useEffect(() => {
+    if (!devotional || !showReplies) return;
+    setLoadingReplies(true);
+    getDevotionalReplies(devotional.id).then(data => {
+      // Filter out user's own reply if they want to see others
+      setReplies(data.filter(r => r.user_id !== userId));
+      setLoadingReplies(false);
+    });
+  }, [devotional, showReplies, userId]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userId || !devotional || !answer.trim() || saving) return;
+    setSaving(true);
+    setFeedback(null);
+
+    const { error } = await createDevotionalReply({
+      devotional_id: devotional.id,
+      user_id: userId,
+      display_name: displayName,
+      answer: answer.trim(),
+      shared_to_muro: shareToMuro,
+    });
+
+    if (error) {
+      setFeedback('Error al guardar: ' + error.message);
+    } else {
+      setFeedback('Reflexión guardada correctamente.');
+      // Refresh replies if open
+      if (showReplies) {
+        const data = await getDevotionalReplies(devotional.id);
+        setReplies(data.filter(r => r.user_id !== userId));
+      }
+      setTimeout(() => setFeedback(null), 3000);
+    }
+    setSaving(false);
+  }
+
+  if (loading) return <div className="text-center py-6 text-text-light text-sm">Cargando devocional diario...</div>;
+  if (!devotional) return null;
+
+  return (
+    <section className="bg-card rounded-xl md:rounded-2xl border border-gray-200/70 shadow-md overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-primary/10 to-secondary/5 px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+            <BookOpen size={16} />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-wide">Devocional Diario</span>
+            <h2 className="font-heading font-bold text-primary-dark text-sm md:text-base leading-tight">
+              {devotional.title}
+            </h2>
+          </div>
+        </div>
+
+        {sponsor && (
+          <a
+            href={sponsor.website_url || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[10px] bg-white px-2.5 py-1 rounded-full shadow-sm text-text-light hover:text-primary transition-colors border border-gray-100"
+          >
+            <span className="opacity-75">Patrocinado por</span>
+            {sponsor.logo_url && <img src={sponsor.logo_url} alt="" className="h-3.5 w-auto object-contain max-w-[50px]" />}
+            <span className="font-semibold">{sponsor.name}</span>
+          </a>
+        )}
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Daily Verse */}
+        <div className="bg-primary/[0.02] border-l-4 border-primary p-4 rounded-r-lg space-y-1.5">
+          <blockquote className="text-text text-sm italic leading-relaxed">
+            &ldquo;{devotional.verse}&rdquo;
+          </blockquote>
+          <cite className="text-xs font-semibold text-primary block not-italic">
+            — {devotional.reference}
+          </cite>
+        </div>
+
+        {/* Reflection */}
+        <div className="space-y-2">
+          <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider">Reflexión</h3>
+          <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">
+            {devotional.reflection}
+          </p>
+        </div>
+
+        {/* Guided Prayer */}
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-1.5">
+          <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider">Oración Guiada</h3>
+          <p className="text-sm text-text-light leading-relaxed italic">
+            &ldquo;{devotional.prayer}&rdquo;
+          </p>
+        </div>
+
+        {/* Interactive Application Question */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <HelpCircle size={16} className="text-primary shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="font-bold text-primary-dark text-sm leading-snug">Pregunta de Aplicación</h3>
+              <p className="text-xs md:text-sm text-text leading-relaxed">
+                {devotional.question}
+              </p>
+            </div>
+          </div>
+
+          {/* Form / Reply */}
+          {userId ? (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <textarea
+                placeholder="Escribe aquí tu respuesta, compromiso o lo que Dios te habló hoy..."
+                value={answer}
+                onChange={e => setAnswer(e.target.value)}
+                maxLength={1000}
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                required
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-light">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={shareToMuro}
+                    onChange={e => setShareToMuro(e.target.checked)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span>Compartir en el Muro Comunitario</span>
+                </label>
+                <button
+                  type="submit"
+                  disabled={!answer.trim() || saving}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50"
+                >
+                  <Send size={12} /> {saving ? 'Guardando...' : 'Guardar en mi diario'}
+                </button>
+              </div>
+              {feedback && (
+                <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <CheckCircle size={12} /> {feedback}
+                </p>
+              )}
+            </form>
+          ) : (
+            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-center space-y-2">
+              <Lock size={16} className="mx-auto text-text-light" />
+              <p className="text-xs text-text-light">
+                Inicia sesión para responder a la pregunta, guardar tu diario espiritual y ver respuestas de otros.
+              </p>
+              <button
+                onClick={() => signIn()}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors active:scale-95 shadow-sm"
+              >
+                Iniciar sesión con Google
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Community Answers accordion */}
+        {userId && (
+          <div className="border-t border-gray-100 pt-3">
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              className="w-full flex items-center justify-between text-xs font-semibold text-text-light hover:text-primary transition-colors py-1.5"
+            >
+              <span className="flex items-center gap-1.5">
+                <Users size={14} /> Respuestas de la comunidad
+              </span>
+              {showReplies ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showReplies && (
+              <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-100">
+                {loadingReplies ? (
+                  <p className="text-[10px] text-text-light/70 italic">Cargando respuestas...</p>
+                ) : replies.length === 0 ? (
+                  <p className="text-[10px] text-text-light/70 italic">Aún no hay respuestas públicas compartidas por otros usuarios.</p>
+                ) : (
+                  replies.map((reply, idx) => (
+                    <div key={reply.id || idx} className="space-y-1 text-xs">
+                      <p className="font-semibold text-primary-dark">
+                        {reply.display_name || 'Anónimo'}
+                      </p>
+                      <p className="text-text-light leading-relaxed bg-gray-50 p-2.5 rounded-lg italic">
+                        &ldquo;{reply.answer}&rdquo;
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
