@@ -642,27 +642,36 @@ export async function createDevotionalReply(reply: {
   display_name?: string;
   answer: string;
   shared_to_muro: boolean;
+  anonymous?: boolean;
 }) {
   if (reply.devotional_id.startsWith('fallback')) {
     return { data: null, error: { message: 'No se pueden guardar respuestas en devocionales de prueba. Por favor, crea un devocional real en el Panel Admin.' } };
   }
-  const { data, error } = await supabase.from('devotional_replies').upsert(reply, { onConflict: 'devotional_id,user_id' }).select().single();
+  const { data, error } = await supabase.from('devotional_replies').upsert({
+    devotional_id: reply.devotional_id,
+    user_id: reply.user_id,
+    display_name: reply.display_name,
+    answer: reply.answer,
+    shared_to_muro: reply.shared_to_muro
+  }, { onConflict: 'devotional_id,user_id' }).select().single();
   if (error) return { data: null, error };
 
-  // Si eligió compartir en el muro, creamos un post del muro
+  // Si eligió compartir en el muro, creamos un comentario en el post de "Versículo del Día" de hoy
   if (reply.shared_to_muro && data) {
-    // Buscar el devocional para armar el texto del post
-    const { data: dev } = await supabase.from('devotionals').select('title, question').eq('id', reply.devotional_id).maybeSingle();
-    const devTitle = dev?.title || 'Devocional Diario';
-    const devQuestion = dev?.question || 'Reflexión diaria';
-
-    const content = `✨ **Reflexión sobre el Devocional: "${devTitle}"**\n\n*Pregunta:* ${devQuestion}\n\n*Mi respuesta:* "${reply.answer}"\n\n#DevocionalDiario #TuHistoriaEnMí`;
-    await createMuroPost({
-      user_id: reply.user_id,
-      author_name: reply.display_name || 'Anónimo',
-      content,
-      image_url: null
-    });
+    const { data: dev } = await supabase.from('devotionals').select('title, verse, reference').eq('id', reply.devotional_id).maybeSingle();
+    const verseText = dev?.verse || 'El Señor es mi pastor, nada me faltará.';
+    const verseRef = dev?.reference || 'Salmo 23,1';
+    
+    // Obtener o asegurar el MuroPost del versículo de hoy
+    const versePost = await ensureDailyVerseMuroPost(verseText, verseRef);
+    if (versePost) {
+      await createMuroReply({
+        post_id: versePost.id,
+        user_id: reply.anonymous ? null : reply.user_id,
+        author_name: reply.anonymous ? 'Anónimo' : reply.display_name || 'Usuario',
+        content: `Reflexión: "${reply.answer}"`
+      });
+    }
   }
 
   return { data, error };

@@ -11,7 +11,7 @@ type Tab = 'muro' | 'actividades';
 
 const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
-  '🙏': <Heart size={12} />,
+  '🙏': <span className="text-xs select-none">🙏</span>,
   '❤️': <Heart size={12} className="text-red-500 fill-current" />,
   '😊': <Smile size={12} />,
   '✨': <Sparkles size={12} />,
@@ -21,6 +21,17 @@ const tabs: { id: Tab; label: string; icon: typeof Heart; desc: string }[] = [
   { id: 'muro', label: 'Muro Comunitario', icon: Grid3X3, desc: 'Comparte intenciones, oraciones, reflexiones y sugerencias.' },
   { id: 'actividades', label: 'Proyectos y Actividades', icon: Users, desc: 'Actividades disponibles para inscribirse.' },
 ];
+
+export function renderContentWithBold(content: string) {
+  if (!content) return '';
+  const parts = content.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 export default function ComunidadPage() {
   const { user, signIn } = useAuth();
@@ -461,7 +472,7 @@ export default function ComunidadPage() {
                   )}
                 </div>
 
-                <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{renderContentWithBold(post.content)}</p>
 
                 {post.image_url && (
                   <img src={post.image_url} alt="" className="max-h-80 rounded-lg object-cover border w-full sm:w-auto" />

@@ -8,7 +8,7 @@ import DonationGoal from '@/components/DonationGoal';
 import EpisodeCard from '@/components/EpisodeCard';
 import PlatformShowcase from '@/components/PlatformShowcase';
 import Link from 'next/link';
-import { Heart, MessageCircle, Users, HandHeart, ArrowRight, LogIn, User, BarChart3, Quote } from 'lucide-react';
+import { Heart, MessageCircle, Users, HandHeart, ArrowRight, LogIn, User, BarChart3, Quote, ShoppingBag } from 'lucide-react';
 import { getAllEpisodes } from '@/lib/episodes';
 import { countProfiles, countEpisodes, countTestimonios, countSponsors, getPublicTestimonios } from '@/lib/supabase';
 
@@ -127,6 +127,21 @@ export default function HomePage() {
             <EpisodeCard key={ep.id} episode={ep} />
           ))}
         </div>
+      </section>
+
+      {/* Sección Tienda */}
+      <section className="bg-card rounded-xl md:rounded-2xl p-5 md:p-8 border border-gray-200/70 shadow-md flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-br from-primary/[0.01] to-secondary/[0.03]">
+        <div className="space-y-1.5 text-center md:text-left">
+          <h2 className="font-heading text-lg md:text-xl font-bold text-primary-dark flex items-center gap-2 justify-center md:justify-start">
+            <ShoppingBag size={18} className="text-primary" /> Tienda Solidaria
+          </h2>
+          <p className="text-xs md:text-sm text-text-light max-w-lg leading-relaxed">
+            Consigue nuestras poleras y polerones oficiales con frases inspiradoras de la comunidad. El 100% de los excedentes ayuda a financiar el canal.
+          </p>
+        </div>
+        <Link href="/tienda" className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-primary/90 transition-colors active:scale-95 shrink-0 shadow-sm">
+          Ver Catálogo <ArrowRight size={14} />
+        </Link>
       </section>
 
       {/* Testimonios destacados */}

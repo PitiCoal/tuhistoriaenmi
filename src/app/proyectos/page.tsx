@@ -68,7 +68,22 @@ export default function ProyectosPage() {
       } else {
         await joinProject(projectId, userId);
         setJoined(prev => ({ ...prev, [projectId]: true }));
+        const project = projects.find(p => p.id === projectId);
         setProjects(prev => prev.map(p => p.id === projectId ? { ...p, participant_count: p.participant_count + 1 } : p));
+        
+        // Disparar correo de confirmación
+        if (project && user && typeof user === 'object' && user.email) {
+          fetch('/api/project/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email,
+              userName: user.displayName || '',
+              projectName: project.title,
+              projectDate: project.date,
+            }),
+          }).catch(err => console.error('Error triggering join email:', err));
+        }
       }
     } finally {
       setJoining(prev => ({ ...prev, [projectId]: false }));

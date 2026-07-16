@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type ProfileTab = 'perfil' | 'publicaciones';
+type ProfileTab = 'perfil' | 'publicaciones' | 'notificaciones';
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob);
@@ -209,6 +209,10 @@ export default function PerfilPage() {
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
           Mis Publicaciones
         </button>
+        <button onClick={() => setActiveTab('notificaciones')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notificaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
+          Notificaciones
+        </button>
       </div>
 
       {/* Feedback global */}
@@ -333,44 +337,6 @@ export default function PerfilPage() {
             </button>
           </div>
 
-          {/* ─── Preferencias de notificaciones ─── */}
-          <div className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
-            <div className="flex items-center gap-2">
-              <Bell size={18} className="text-primary" />
-              <h2 className="font-heading text-lg font-bold text-primary-dark">Notificaciones</h2>
-            </div>
-            <p className="text-xs text-text-light">Elige sobre qué quieres recibir notificaciones.</p>
-            <div className="space-y-3">
-              {[
-                { key: 'daily_verse', icon: '🙏', label: 'Versículo / Evangelio del día' },
-                { key: 'daily_phrase', icon: '✨', label: 'Frase o reflexión diaria' },
-                { key: 'comments', icon: '💬', label: 'Comentarios en mis publicaciones' },
-                { key: 'reactions', icon: '❤️', label: 'Reacciones a mis publicaciones' },
-                { key: 'announcements', icon: '📢', label: 'Anuncios del ministerio' },
-              ].map(({ key, icon, label }) => (
-                <label key={key} className="flex items-center justify-between gap-3 cursor-pointer py-1">
-                  <span className="text-sm text-text flex items-center gap-2">
-                    <span>{icon}</span> {label}
-                  </span>
-                  <div
-                    onClick={() => setNotifPrefs(p => ({ ...p, [key]: !p[key as keyof typeof p] }))}
-                    className={`relative w-10 h-6 rounded-full transition-colors cursor-pointer ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-4' : 'translate-x-0.5'
-                    }`} />
-                  </div>
-                </label>
-              ))}
-            </div>
-            <button onClick={handleSaveNotif} disabled={savingNotif}
-              className="w-full py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50">
-              {savingNotif ? 'Guardando...' : 'Guardar preferencias'}
-            </button>
-          </div>
-
           {/* ─── Nota privacidad ─── */}
           <div className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm">
             <p className="text-xs text-text-light text-center">
@@ -427,6 +393,60 @@ export default function PerfilPage() {
             </button>
           </div>
         </>
+      )}
+
+      {/* ============ TAB: NOTIFICACIONES ============ */}
+      {activeTab === 'notificaciones' && (
+        <div className="space-y-6">
+          <div className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
+            <div className="flex items-center gap-2">
+              <Bell size={18} className="text-primary" />
+              <h2 className="font-heading text-lg font-bold text-primary-dark">Notificaciones</h2>
+            </div>
+            <p className="text-xs text-text-light leading-relaxed">
+              Elige qué avisos deseas recibir en tu dispositivo (Notificaciones Push del navegador) y por correo electrónico.
+            </p>
+            <div className="space-y-3 pt-2">
+              {[
+                { key: 'daily_verse', icon: '🙏', label: 'Versículo / Evangelio del día', desc: 'Recibe la palabra de Dios cada mañana.' },
+                { key: 'daily_phrase', icon: '✨', label: 'Frase o reflexión diaria', desc: 'Inspiración del día de la comunidad.' },
+                { key: 'comments', icon: '💬', label: 'Comentarios en mis publicaciones', desc: 'Entérate de las respuestas a tus posts.' },
+                { key: 'reactions', icon: '❤️', label: 'Reacciones a mis publicaciones', desc: 'Avisos de oraciones 🙏 o corazones ❤️.' },
+                { key: 'announcements', icon: '📢', label: 'Anuncios del ministerio', desc: 'Mensajes masivos push y noticias del equipo.' },
+              ].map(({ key, icon, label, desc }) => (
+                <div key={key} className="flex items-start justify-between gap-4 py-2 border-b border-gray-50 last:border-0">
+                  <div className="space-y-0.5">
+                    <span className="text-sm font-semibold text-text-light flex items-center gap-1.5">
+                      <span>{icon}</span> {label}
+                    </span>
+                    <p className="text-[11px] text-text-light/60">{desc}</p>
+                  </div>
+                  <div
+                    onClick={() => setNotifPrefs(p => ({ ...p, [key]: !p[key as keyof typeof p] }))}
+                    className={`relative w-10 h-6 rounded-full transition-colors cursor-pointer shrink-0 mt-1 ${
+                      notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-4' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={handleSaveNotif} disabled={savingNotif}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
+              <Save size={16} /> {savingNotif ? 'Guardando...' : 'Guardar preferencias'}
+            </button>
+          </div>
+          
+          <div className="bg-card rounded-xl p-4 border border-primary/20 shadow-sm bg-gradient-to-br from-primary/[0.01] to-primary/[0.03]">
+            <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider mb-1">Sobre las notificaciones push</h3>
+            <p className="text-[11px] text-text-light leading-relaxed">
+              Las notificaciones de <strong>&quot;Anuncios del ministerio&quot;</strong> son mensajes directos que la directora del podcast envía de manera masiva. Llegan directamente como alertas del sistema a la pantalla de tu computadora o teléfono móvil si has habilitado los permisos de notificación de tu navegador.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* ============ TAB: MIS PUBLICACIONES ============ */}

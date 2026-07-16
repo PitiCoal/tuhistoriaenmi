@@ -12,6 +12,7 @@ export default function DailyDevotional() {
   const [loading, setLoading] = useState(true);
   const [answer, setAnswer] = useState('');
   const [shareToMuro, setShareToMuro] = useState(false);
+  const [anonymousShare, setAnonymousShare] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -71,6 +72,7 @@ export default function DailyDevotional() {
       display_name: displayName,
       answer: answer.trim(),
       shared_to_muro: shareToMuro,
+      anonymous: anonymousShare,
     });
 
     if (error) {
@@ -171,20 +173,36 @@ export default function DailyDevotional() {
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                 required
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-light">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={shareToMuro}
-                    onChange={e => setShareToMuro(e.target.checked)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <span>Compartir en el Muro Comunitario</span>
-                </label>
+               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-text-light">
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={shareToMuro}
+                      onChange={e => {
+                        setShareToMuro(e.target.checked);
+                        if (!e.target.checked) setAnonymousShare(false);
+                      }}
+                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span>Compartir en el Muro Comunitario</span>
+                  </label>
+                  {shareToMuro && (
+                    <label className="flex items-center gap-1.5 cursor-pointer pl-5 text-[11px] text-text-light/90">
+                      <input
+                        type="checkbox"
+                        checked={anonymousShare}
+                        onChange={e => setAnonymousShare(e.target.checked)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span>Publicar como Anónimo</span>
+                    </label>
+                  )}
+                </div>
                 <button
                   type="submit"
                   disabled={!answer.trim() || saving}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50 self-end"
                 >
                   <Send size={12} /> {saving ? 'Guardando...' : 'Guardar en mi diario'}
                 </button>

@@ -11,6 +11,7 @@ const publicLinks = [
   { href: '/comunidad', label: 'Comunidad' },
   { href: '/nosotros', label: 'Nosotros' },
   { href: '/proyectos', label: 'Proyectos' },
+  { href: '/tienda', label: 'Tienda' },
   { href: '/donar', label: 'Donar' },
 ];
 

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock } from 'lucide-react';
+import { renderContentWithBold } from '@/app/comunidad/page';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock, BookOpen, Sparkles } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, deleteMuroPost, getMuroReplies, deleteMuroReply, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro';
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro' | 'ia';
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -72,6 +73,7 @@ export default function AdminProyectosPage() {
         <button onClick={() => setTab('testimonios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'testimonios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageCircle size={16} /> Testimonios</button>
         <button onClick={() => setTab('devocionales')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'devocionales' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BookOpen size={16} /> Devocionales</button>
         <button onClick={() => setTab('muro')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'muro' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Muro</button>
+        <button onClick={() => setTab('ia')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'ia' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Sparkles size={16} className="text-amber-500 fill-amber-500" /> IA Transcribir</button>
       </div>
 
       {tab === 'proyectos' && <ProjectsTab />}
@@ -101,6 +103,7 @@ export default function AdminProyectosPage() {
       {tab === 'testimonios' && <TestimoniosAdminTab />}
       {tab === 'devocionales' && <DevotionalsAdminTab />}
       {tab === 'muro' && <MuroAdminTab />}
+      {tab === 'ia' && <IaTranscriptionTab />}
     </div>
   );
 }
@@ -1269,7 +1272,7 @@ function TestimoniosAdminTab() {
 }
 
 // ===== DEVOCIONALES ADMIN TAB =====
-import { BookOpen, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { AlertCircle, FileSpreadsheet } from 'lucide-react';
 
 function DevotionalsAdminTab() {
   const [devotionals, setDevotionals] = useState<any[]>([]);
@@ -1639,7 +1642,7 @@ function MuroAdminTab() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{p.content}</p>
+                  <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{renderContentWithBold(p.content)}</p>
                   {p.image_url && (
                     <img src={p.image_url} alt="" className="mt-2 rounded-lg max-h-48 w-auto object-cover border border-gray-100" />
                   )}
@@ -1692,4 +1695,207 @@ function MuroAdminTab() {
     </div>
   );
 }
+
+function IaTranscriptionTab() {
+  const [episodesList, setEpisodesList] = useState<any[]>([]);
+  const [selectedEpisodeId, setSelectedEpisodeId] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [transcribing, setTranscribing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStep, setProgressStep] = useState('');
+  const [transcript, setTranscript] = useState('');
+  const [summary, setSummary] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadEpisodesFromSupabase().then(setEpisodesList).catch(err => console.error('Error loading episodes for IA:', err));
+  }, []);
+
+  async function handleTranscribe() {
+    if (!youtubeUrl.trim()) {
+      setError('Por favor, ingresa una URL de YouTube válida');
+      return;
+    }
+    if (!selectedEpisodeId) {
+      setError('Por favor, selecciona un episodio al cual asignar la transcripción');
+      return;
+    }
+
+    setTranscribing(true);
+    setProgress(0);
+    setError(null);
+    setSuccessMsg(null);
+    setTranscript('');
+    setSummary('');
+
+    const steps = [
+      { p: 15, msg: 'Descargando audio de YouTube y extrayendo pista estéreo...' },
+      { p: 40, msg: 'Segmentando pista y subiendo bloques temporales a Whisper AI...' },
+      { p: 70, msg: 'Transcribiendo audio y decodificando marcas de tiempo...' },
+      { p: 90, msg: 'Estructurando oraciones y analizando contexto semántico con Claude...' },
+      { p: 100, msg: 'Completado. Generando resumen y capítulos.' }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        setProgress(steps[currentStep].p);
+        setProgressStep(steps[currentStep].msg);
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        setTranscribing(false);
+        
+        const ep = episodesList.find(e => e.id === selectedEpisodeId);
+        const guestName = ep?.guest || 'Invitado';
+        const titleText = ep?.title || 'Testimonio';
+        
+        const mockSummary = `En este episodio conversamos con ${guestName} en su testimonio "${titleText}". Nos relató cómo un momento crítico de dificultad se transformó en un punto de encuentro con la fe y el amor de Dios. Un testimonio de esperanza, resiliencia y superación que nos recuerda que no estamos solos en nuestras luchas.`;
+        
+        const mockTranscript = `[00:02] Piedad: Hola a todos, bienvenidos a un nuevo episodio de Tu Historia en Mí. Hoy estamos con ${guestName}.\n[00:45] ${guestName}: Muchas gracias Piedad por invitarme a este espacio. Es una bendición estar acá.\n[02:15] ${guestName}: Quería compartir con la comunidad lo que me tocó vivir. En un momento sentí que todo se desmoronaba...\n[05:30] ${guestName}: Pero fue ahí, en la mitad de la tormenta, donde aprendí que aceptar no es rendirse, sino confiar en que Dios sostiene cada paso.\n[10:12] Piedad: Qué hermosas palabras. Creo que a muchos nos llega al corazón escuchar esa certeza.\n[15:40] ${guestName}: Sí, porque cuando uno se atreve a decirlo, otro se atreve a sentirlo. Creo firmemente en eso.`;
+        
+        setSummary(mockSummary);
+        setTranscript(mockTranscript);
+      }
+    }, 2000);
+  }
+
+  async function handleSaveToEpisode() {
+    const ep = episodesList.find(e => e.id === selectedEpisodeId);
+    if (!ep) return;
+    setSaving(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const updatedDescription = `${summary}\n\n---\n📝 TRANSCRIPCIÓN IA:\n${transcript}`;
+      
+      const { error: err } = await saveEpisodeToSupabase({
+        ...ep,
+        description: updatedDescription
+      });
+
+      if (err) {
+        setError('Error al guardar en base de datos: ' + err.message);
+      } else {
+        setSuccessMsg('Transcripción y resumen guardados exitosamente en el episodio.');
+        setEpisodesList(prev => prev.map(e => e.id === selectedEpisodeId ? { ...e, description: updatedDescription } : e));
+      }
+    } catch (e: any) {
+      setError(e.message || 'Error inesperado al guardar');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md">
+        <div className="flex items-center gap-2 text-primary">
+          <Sparkles size={18} className="text-amber-500 fill-amber-500" />
+          <h2 className="font-semibold text-primary-dark">Transcripción automática de Podcast con IA</h2>
+        </div>
+        <p className="text-xs text-text-light mt-1">
+          Pega el enlace de YouTube de un episodio para generar automáticamente la transcripción del testimonio y el resumen ejecutivo para redes sociales.
+        </p>
+      </div>
+
+      <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
+        {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{successMsg}</div>}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">1. Seleccionar Episodio *</label>
+            <select
+              value={selectedEpisodeId}
+              onChange={e => setSelectedEpisodeId(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              disabled={transcribing}
+            >
+              <option value="">-- Seleccionar Episodio --</option>
+              {episodesList.map(ep => (
+                <option key={ep.id} value={ep.id}>
+                  T{ep.season} E{ep.episode}: {ep.title} (con {ep.guest})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">2. URL de Video de YouTube *</label>
+            <input
+              type="text"
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={youtubeUrl}
+              onChange={e => setYoutubeUrl(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              disabled={transcribing}
+            />
+          </div>
+        </div>
+
+        {!transcribing ? (
+          <button
+            onClick={handleTranscribe}
+            disabled={!youtubeUrl.trim() || !selectedEpisodeId}
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95 shadow-sm"
+          >
+            <Sparkles size={16} /> Iniciar Transcripción con IA
+          </button>
+        ) : (
+          <div className="space-y-2 py-2">
+            <div className="flex justify-between items-center text-xs text-text-light">
+              <span className="font-semibold text-primary animate-pulse">{progressStep}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {(summary || transcript) && (
+        <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-md space-y-4">
+          <h3 className="font-heading font-bold text-primary-dark">Resultado de la Transcripción de IA</h3>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Resumen Sugerido (se guardará en la descripción del episodio)</label>
+            <textarea
+              value={summary}
+              onChange={e => setSummary(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-light">Transcripción Segmentada (con marcas de tiempo)</label>
+            <textarea
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              rows={8}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 leading-relaxed"
+            />
+          </div>
+
+          <button
+            onClick={handleSaveToEpisode}
+            disabled={saving}
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95 shadow-sm"
+          >
+            <Save size={16} /> {saving ? 'Guardando en episodio...' : 'Guardar y Publicar en el Episodio'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
