@@ -50,3 +50,21 @@ ALTER TABLE testimonios ADD COLUMN IF NOT EXISTS public BOOLEAN DEFAULT false;
 
 -- 2. Unificación del Muro (Sprint 4): Agregar categoría a las publicaciones
 ALTER TABLE muro_posts ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
+
+-- 3. Tabla de notificaciones internas (Centro de Notificaciones en App)
+CREATE TABLE IF NOT EXISTS notifications (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  title       TEXT NOT NULL,
+  body        TEXT NOT NULL,
+  url         TEXT,
+  is_read     BOOLEAN DEFAULT false,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir lectura de notificaciones propias" ON notifications;
+DROP POLICY IF EXISTS "Permitir inserción de notificaciones" ON notifications;
+DROP POLICY IF EXISTS "Permitir actualización de notificaciones" ON notifications;
+CREATE POLICY "Permitir lectura de notificaciones propias" ON notifications FOR SELECT USING (true);
+CREATE POLICY "Permitir inserción de notificaciones" ON notifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Permitir actualización de notificaciones" ON notifications FOR UPDATE USING (true);

@@ -645,7 +645,37 @@ export async function createDevotionalReply(reply: {
   anonymous?: boolean;
 }) {
   if (reply.devotional_id.startsWith('fallback')) {
-    return { data: null, error: { message: 'No se pueden guardar respuestas en devocionales de prueba. Por favor, crea un devocional real en el Panel Admin.' } };
+    try {
+      const fallbackId = reply.devotional_id;
+      const fallback = FALLBACK_DEVOTIONALS.find(d => d.id === fallbackId) || FALLBACK_DEVOTIONALS[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data: existingDev } = await supabase.from('devotionals').select('id').eq('publish_date', today).eq('title', fallback.title).maybeSingle();
+      
+      if (existingDev) {
+        reply.devotional_id = existingDev.id;
+      } else {
+        const { data: seeded, error: seedError } = await supabase.from('devotionals').insert({
+          title: fallback.title,
+          verse: fallback.verse,
+          reference: fallback.reference,
+          reflection: fallback.reflection,
+          question: fallback.question,
+          prayer: fallback.prayer,
+          publish_date: today
+        }).select().single();
+        
+        if (seeded) {
+          reply.devotional_id = seeded.id;
+        } else {
+          console.error('Error inserting fallback devotional:', seedError);
+          return { data: null, error: seedError || { message: 'No se pudo inicializar el devocional en la base de datos.' } };
+        }
+      }
+    } catch (e: any) {
+      console.error('Dynamic seeding failed:', e);
+      return { data: null, error: { message: 'Error al inicializar devocional: ' + e.message } };
+    }
   }
   const { data, error } = await supabase.from('devotional_replies').upsert({
     devotional_id: reply.devotional_id,
@@ -696,4 +726,51 @@ export async function deleteDevotional(id: string) {
 export async function getSponsorById(id: string) {
   const { data } = await supabase.from('sponsors').select('*').eq('id', id).maybeSingle();
   return data;
+}
+
+// ===== IN-APP NOTIFICATIONS CENTER =====
+export async function getUserNotifications(userId: string) {
+  const { data } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return data || [];
+}
+
+export async function markNotificationAsRead(id: string) {
+  return supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', id);
+}
+
+export async function markAllNotificationsAsRead(userId: string) {
+  return supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', userId);
+}
+
+export async function getMuroRepliesByUser(userId: string) {
+  const { data } = await supabase
+    .from('muro_replies')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function getDevotionalRepliesByUser(userId: string) {
+  const { data } = await supabase
+    .from('devotional_replies')
+    .select('*, devotionals(title, verse, reference)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function deleteDevotionalReply(id: string) {
+  return supabase.from('devotional_replies').delete().eq('id', id);
 }

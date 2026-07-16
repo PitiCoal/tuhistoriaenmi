@@ -6,6 +6,7 @@ import {
   getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities, getActivities,
   getNotificationPreferences, saveNotificationPreferences,
   getMuroPostsByUser, getTestimoniosByUser, deleteAllUserData,
+  getMuroRepliesByUser, getDevotionalRepliesByUser, deleteDevotionalReply, deleteMuroPost, deleteMuroReply
 } from '@/lib/supabase';
 import {
   User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type ProfileTab = 'perfil' | 'publicaciones' | 'notificaciones';
+type ProfileTab = 'perfil' | 'publicaciones' | 'diario';
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob);
@@ -51,8 +52,13 @@ export default function PerfilPage() {
 
   // My publications
   const [muroPosts, setMuroPosts] = useState<any[]>([]);
+  const [muroComments, setMuroComments] = useState<any[]>([]);
   const [testimoniosList, setTestimoniosList] = useState<any[]>([]);
   const [loadingPubs, setLoadingPubs] = useState(false);
+
+  // My diary
+  const [devotionalReplies, setDevotionalReplies] = useState<any[]>([]);
+  const [loadingDiario, setLoadingDiario] = useState(false);
 
   // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -93,20 +99,37 @@ export default function PerfilPage() {
     setLoadingPubs(true);
     Promise.all([
       getMuroPostsByUser(userId),
+      getMuroRepliesByUser(userId),
       getTestimoniosByUser(userId),
-    ]).then(([posts, tList]) => {
+    ]).then(([posts, comments, tList]) => {
       setMuroPosts(posts);
+      setMuroComments(comments);
       setTestimoniosList(tList);
+      setLoadingPubs(false);
+    }).catch(err => {
+      console.error('Error loading publications:', err);
       setLoadingPubs(false);
     });
   }, [activeTab, userId]);
 
-  function toggleActivity(a: string) {
-    setSelectedActivities(prev => {
-      const next = new Set(prev);
-      if (next.has(a)) next.delete(a); else next.add(a);
-      return next;
+  useEffect(() => {
+    if (activeTab !== 'diario' || !userId) return;
+    setLoadingDiario(true);
+    getDevotionalRepliesByUser(userId).then(list => {
+      setDevotionalReplies(list);
+      setLoadingDiario(false);
+    }).catch(err => {
+      console.error('Error loading diary:', err);
+      setLoadingDiario(false);
     });
+  }, [activeTab, userId]);
+
+  async function toggleActivity(a: string) {
+    if (!userId) return;
+    const next = new Set(selectedActivities);
+    if (next.has(a)) next.delete(a); else next.add(a);
+    setSelectedActivities(next);
+    await setUserActivities(userId, [...next]);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -135,6 +158,24 @@ export default function PerfilPage() {
     return errors;
   }
 
+  async function handleDeletePost(postId: string) {
+    if (!confirm('¿Eliminar esta publicación del muro?')) return;
+    await deleteMuroPost(postId);
+    setMuroPosts(prev => prev.filter(p => p.id !== postId));
+  }
+
+  async function handleDeleteComment(replyId: string) {
+    if (!confirm('¿Eliminar este comentario del muro?')) return;
+    await deleteMuroReply(replyId);
+    setMuroComments(prev => prev.filter(c => c.id !== replyId));
+  }
+
+  async function handleDeleteDiaryEntry(entryId: string) {
+    if (!confirm('¿Eliminar esta reflexión de tu diario?')) return;
+    await deleteDevotionalReply(entryId);
+    setDevotionalReplies(prev => prev.filter(e => e.id !== entryId));
+  }
+
   async function handleSave() {
     if (!userId) return;
     const errors = validate();
@@ -155,7 +196,6 @@ export default function PerfilPage() {
       testimonio: testimonio.trim() || undefined,
     });
     if (error) { setFeedback({ ok: false, msg: 'Error al guardar: ' + error.message }); setSaving(false); return; }
-    await setUserActivities(userId, [...selectedActivities]);
     setFeedback({ ok: true, msg: 'Perfil guardado correctamente' });
     setProfile((p: any) => ({ ...p, display_name: displayName.trim() }));
     setSaving(false);
@@ -209,9 +249,9 @@ export default function PerfilPage() {
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
           Mis Publicaciones
         </button>
-        <button onClick={() => setActiveTab('notificaciones')}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notificaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
-          Notificaciones
+        <button onClick={() => setActiveTab('diario')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'diario' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
+          Mi Diario
         </button>
       </div>
 
@@ -329,6 +369,41 @@ export default function PerfilPage() {
                   </div>
                 </div>
               )}
+              {/* Preferencias de notificaciones */}
+              <div className="border-t border-gray-100 pt-5 space-y-4">
+                <div className="flex items-center gap-1.5">
+                  <Bell size={15} className="text-primary" />
+                  <h3 className="text-xs font-semibold text-primary-dark">Preferencias de Alertas</h3>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { key: 'daily_verse', label: 'Versículo del día', desc: 'Alertas del versículo matutino' },
+                    { key: 'comments', label: 'Comentarios', desc: 'Respuestas a tus posts en el muro' },
+                    { key: 'reactions', label: 'Reacciones', desc: 'Notificaciones de corazones o rezos' },
+                  ].map(({ key, label, desc }) => (
+                    <div key={key} className="flex items-center justify-between gap-3 py-1 text-xs">
+                      <div>
+                        <span className="font-semibold text-text-light">{label}</span>
+                        <p className="text-[10px] text-text-light/50">{desc}</p>
+                      </div>
+                      <div
+                        onClick={() => setNotifPrefs(p => {
+                          const updated = { ...p, [key]: !p[key as keyof typeof p] };
+                          saveNotificationPreferences(userId, updated); // Guardar de forma inmediata al hacer clic
+                          return updated;
+                        })}
+                        className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                          notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                          notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-3.5' : 'translate-x-0.5'
+                        }`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <button onClick={handleSave} disabled={saving}
@@ -395,57 +470,58 @@ export default function PerfilPage() {
         </>
       )}
 
-      {/* ============ TAB: NOTIFICACIONES ============ */}
-      {activeTab === 'notificaciones' && (
+      {/* ============ TAB: MI DIARIO ============ */}
+      {activeTab === 'diario' && (
         <div className="space-y-6">
-          <div className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
+          <div className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.01] to-secondary/[0.03]">
             <div className="flex items-center gap-2">
-              <Bell size={18} className="text-primary" />
-              <h2 className="font-heading text-lg font-bold text-primary-dark">Notificaciones</h2>
+              <Sparkles size={18} className="text-primary" />
+              <h2 className="font-heading text-lg font-bold text-primary-dark">Mi Diario Devocional</h2>
             </div>
             <p className="text-xs text-text-light leading-relaxed">
-              Elige qué avisos deseas recibir en tu dispositivo (Notificaciones Push del navegador) y por correo electrónico.
+              Aquí puedes ver tu registro personal de respuestas y reflexiones escritas en los devocionales diarios. Estas reflexiones te ayudan a recordar tu camino de fe.
             </p>
-            <div className="space-y-3 pt-2">
-              {[
-                { key: 'daily_verse', icon: '🙏', label: 'Versículo / Evangelio del día', desc: 'Recibe la palabra de Dios cada mañana.' },
-                { key: 'daily_phrase', icon: '✨', label: 'Frase o reflexión diaria', desc: 'Inspiración del día de la comunidad.' },
-                { key: 'comments', icon: '💬', label: 'Comentarios en mis publicaciones', desc: 'Entérate de las respuestas a tus posts.' },
-                { key: 'reactions', icon: '❤️', label: 'Reacciones a mis publicaciones', desc: 'Avisos de oraciones 🙏 o corazones ❤️.' },
-                { key: 'announcements', icon: '📢', label: 'Anuncios del ministerio', desc: 'Mensajes masivos push y noticias del equipo.' },
-              ].map(({ key, icon, label, desc }) => (
-                <div key={key} className="flex items-start justify-between gap-4 py-2 border-b border-gray-50 last:border-0">
-                  <div className="space-y-0.5">
-                    <span className="text-sm font-semibold text-text-light flex items-center gap-1.5">
-                      <span>{icon}</span> {label}
-                    </span>
-                    <p className="text-[11px] text-text-light/60">{desc}</p>
+          </div>
+
+          {loadingDiario ? (
+            <p className="text-center text-text-light py-8 text-xs">Cargando tu diario devocional...</p>
+          ) : devotionalReplies.length === 0 ? (
+            <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-sm text-center">
+              <p className="text-xs text-text-light">Aún no has respondido a las preguntas de aplicación de los devocionales diarios.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {devotionalReplies.map(entry => (
+                <div key={entry.id} className="bg-card rounded-2xl p-5 border border-gray-200/70 shadow-md space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                        {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                      <h3 className="font-heading font-semibold text-primary-dark text-xs md:text-sm">
+                        Devocional: {entry.devotionals?.title || 'Devocional Diario'}
+                      </h3>
+                    </div>
+                    <button onClick={() => handleDeleteDiaryEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar reflexión">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                  <div
-                    onClick={() => setNotifPrefs(p => ({ ...p, [key]: !p[key as keyof typeof p] }))}
-                    className={`relative w-10 h-6 rounded-full transition-colors cursor-pointer shrink-0 mt-1 ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-4' : 'translate-x-0.5'
-                    }`} />
+
+                  {entry.devotionals?.verse && (
+                    <blockquote className="bg-gray-50 border-l-4 border-primary/20 px-3 py-2 text-[11px] text-text-light italic rounded-r-lg leading-relaxed">
+                      &ldquo;{entry.devotionals.verse}&rdquo;
+                      <span className="block text-[9px] font-medium text-text-light/70 mt-0.5">— {entry.devotionals.reference}</span>
+                    </blockquote>
+                  )}
+
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold text-text-light/60 uppercase tracking-wider">Mi Reflexión</span>
+                    <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.answer}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <button onClick={handleSaveNotif} disabled={savingNotif}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
-              <Save size={16} /> {savingNotif ? 'Guardando...' : 'Guardar preferencias'}
-            </button>
-          </div>
-          
-          <div className="bg-card rounded-xl p-4 border border-primary/20 shadow-sm bg-gradient-to-br from-primary/[0.01] to-primary/[0.03]">
-            <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider mb-1">Sobre las notificaciones push</h3>
-            <p className="text-[11px] text-text-light leading-relaxed">
-              Las notificaciones de <strong>&quot;Anuncios del ministerio&quot;</strong> son mensajes directos que la directora del podcast envía de manera masiva. Llegan directamente como alertas del sistema a la pantalla de tu computadora o teléfono móvil si has habilitado los permisos de notificación de tu navegador.
-            </p>
-          </div>
+          )}
         </div>
       )}
 
@@ -457,20 +533,51 @@ export default function PerfilPage() {
           ) : (
             <>
               {/* Posts del muro */}
-              <section className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
+              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
                 <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
-                  <MessageCircle size={18} className="text-primary" /> Posts en el Muro
+                  <MessageCircle size={18} className="text-primary" /> Mis Publicaciones en el Muro
                 </h2>
                 {muroPosts.length === 0 ? (
-                  <p className="text-sm text-text-light">Aún no has publicado en el muro.</p>
+                  <p className="text-xs text-text-light">Aún no has creado publicaciones en el muro.</p>
                 ) : (
                   <div className="space-y-3">
                     {muroPosts.map(post => (
-                      <div key={post.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-1">
-                        <p className="text-sm text-text leading-relaxed line-clamp-3">{post.content}</p>
-                        <p className="text-xs text-text-light">
-                          {new Date(post.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
+                      <div key={post.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{post.content}</p>
+                          <p className="text-[10px] text-text-light">
+                            {new Date(post.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <button onClick={() => handleDeletePost(post.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar publicación">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Comentarios del muro */}
+              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
+                <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
+                  <MessageSquare size={18} className="text-primary" /> Mis Comentarios en el Muro
+                </h2>
+                {muroComments.length === 0 ? (
+                  <p className="text-xs text-text-light">Aún no has comentado en ninguna publicación.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {muroComments.map(comment => (
+                      <div key={comment.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{comment.content}</p>
+                          <p className="text-[10px] text-text-light">
+                            {new Date(comment.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <button onClick={() => handleDeleteComment(comment.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar comentario">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -478,13 +585,13 @@ export default function PerfilPage() {
               </section>
 
               {/* Testimonios enviados */}
-              <section className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
+              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
                 <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
                   <FileText size={18} className="text-primary" /> Testimonios Enviados
                 </h2>
                 {testimoniosList.length === 0 ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-text-light">Aún no has enviado ningún testimonio.</p>
+                    <p className="text-xs text-text-light">Aún no has enviado ningún testimonio.</p>
                     <Link href="/testimonio" className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline">
                       Compartir mi historia <ArrowRight size={12} />
                     </Link>
@@ -492,10 +599,10 @@ export default function PerfilPage() {
                 ) : (
                   <div className="space-y-3">
                     {testimoniosList.map(t => (
-                      <div key={t.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-1">
-                        <p className="text-sm text-text leading-relaxed line-clamp-3">{t.message}</p>
+                      <div key={t.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 space-y-1">
+                        <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{t.message}</p>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${t.public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${t.public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                             {t.public ? 'Aprobado' : 'Pendiente de revisión'}
                           </span>
                           <p className="text-xs text-text-light">

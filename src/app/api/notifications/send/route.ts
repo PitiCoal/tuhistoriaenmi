@@ -44,6 +44,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, skipped: true, reason: 'User disabled notifications of this type' });
       }
 
+      // Guardar en la tabla de notificaciones internas de la App
+      try {
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          title: title || 'Nueva interacción',
+          body: body || 'Tienes una nueva notificación en la plataforma.',
+          url: url || '/comunidad',
+          is_read: false
+        });
+      } catch (dbErr) {
+        console.error('Error writing in-app notification to DB:', dbErr);
+      }
+
       // 2. Fetch Recipient Profile
       const { data: profile } = await supabase
         .from('profiles')
