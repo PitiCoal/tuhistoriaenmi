@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { renderContentWithBold } from '@/app/comunidad/page';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock, BookOpen, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock, BookOpen, Sparkles, ChevronDown, Shield } from 'lucide-react';
 import { episodes as defaultEpisodes } from '@/lib/episodes';
 import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, deleteMuroPost, getMuroReplies, deleteMuroReply, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
 
 type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro' | 'ia';
-type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number };
+type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number; max_participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
 const ADMIN_EMAIL = 'piti.coal@gmail.com';
@@ -25,9 +25,67 @@ function saveToStorage(key: string, data: any) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '', participants: 0 };
+const emptyProject = { title: '', description: '', date: '', status: 'próximo', image: '', participants: 0, max_participants: 0 };
 const emptyEpisode = { season: 1, episode: 1, title: '', guest: '', description: '', image: '', image_position: 'center', youtube: '', spotify: '', apple: '', amazon: '' };
 const HERO_KEY = 'tm_hero_image';
+
+interface AdminItem {
+  id: Tab;
+  label: string;
+  icon: any;
+}
+
+interface AdminCategory {
+  id: string;
+  label: string;
+  icon: any;
+  items: AdminItem[];
+}
+
+const adminCategories: AdminCategory[] = [
+  {
+    id: 'content',
+    label: 'Contenido Principal',
+    icon: FileText,
+    items: [
+      { id: 'inicio', label: 'Inicio (Hero banner)', icon: ImageIcon },
+      { id: 'paginas', label: 'Páginas Estáticas', icon: FileText },
+      { id: 'metricas', label: 'Métricas y Visitas', icon: BarChart3 },
+    ]
+  },
+  {
+    id: 'media',
+    label: 'Episodios y Devocionales',
+    icon: Mic,
+    items: [
+      { id: 'episodios', label: 'Episodios (Podcast)', icon: Mic },
+      { id: 'devocionales', label: 'Devocionales Diarios', icon: BookOpen },
+      { id: 'testimonios', label: 'Testimonios de Fe', icon: MessageCircle },
+    ]
+  },
+  {
+    id: 'community',
+    label: 'Comunidad y Muro',
+    icon: Users,
+    items: [
+      { id: 'proyectos', label: 'Proyectos', icon: FolderKanban },
+      { id: 'actividades', label: 'Actividades', icon: CalendarCheck },
+      { id: 'muro', label: 'Muro Comunitario', icon: MessageSquare },
+      { id: 'participa', label: 'Participación', icon: MessageSquare },
+      { id: 'auspiciadores', label: 'Auspiciadores', icon: Handshake },
+    ]
+  },
+  {
+    id: 'system',
+    label: 'Usuarios y Sistema',
+    icon: Shield,
+    items: [
+      { id: 'perfiles', label: 'Perfiles de Usuario', icon: Users },
+      { id: 'notificaciones', label: 'Alertas Push', icon: Bell },
+      { id: 'ia', label: 'IA Transcripción', icon: Sparkles },
+    ]
+  }
+];
 
 export default function AdminProyectosPage() {
   const { user, signIn, signOut } = useAuth();
@@ -36,6 +94,14 @@ export default function AdminProyectosPage() {
   const [episodes, setEpisodes] = useState<EpisodeData[]>([]);
   const [eForm, setEForm] = useState(emptyEpisode);
   const [eEditingId, setEEditingId] = useState<string | null>(null);
+
+  // Collapsible categories state
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({
+    content: true,
+    media: true,
+    community: true,
+    system: true,
+  });
 
   useEffect(() => {
     setEpisodes(loadFromStorage(STORAGE_EPISODES, []));
@@ -52,58 +118,97 @@ export default function AdminProyectosPage() {
     );
   }
 
+  const toggleCat = (catId: string) => {
+    setExpandedCats(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-primary-dark">Panel Admin</h1>
-        <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-light hover:text-primary transition-colors"><LogOut size={14} /> Cerrar sesión</button>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-card rounded-2xl p-5 border border-gray-200/70 shadow-md">
+        <div className="flex items-center gap-3">
+          <Shield className="text-primary w-6 h-6 animate-pulse" />
+          <div>
+            <h1 className="font-heading text-xl md:text-2xl font-bold text-primary-dark">Panel de Administración</h1>
+            <p className="text-[11px] text-text-light">Gestión del sitio web, podcast y comunidad de Tu Historia En Mí.</p>
+          </div>
+        </div>
+        <button onClick={() => signOut()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-light hover:text-primary transition-colors border border-gray-200 hover:border-primary/20 bg-card rounded-lg active:scale-95"><LogOut size={13} /> Cerrar sesión</button>
       </div>
 
-      <div className="flex gap-2 flex-wrap justify-center">
-        <button onClick={() => setTab('proyectos')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'proyectos' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FolderKanban size={16} /> Proyectos</button>
-        <button onClick={() => setTab('episodios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'episodios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Mic size={16} /> Episodios</button>
-        <button onClick={() => setTab('inicio')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'inicio' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><ImageIcon size={16} /> Inicio</button>
-        <button onClick={() => setTab('participa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'participa' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Participación</button>
-        <button onClick={() => setTab('auspiciadores')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'auspiciadores' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Handshake size={16} /> Auspiciadores</button>
-        <button onClick={() => setTab('perfiles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'perfiles' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Users size={16} /> Perfiles</button>
-        <button onClick={() => setTab('paginas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'paginas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><FileText size={16} /> Páginas</button>
-        <button onClick={() => setTab('metricas')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'metricas' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BarChart3 size={16} /> Métricas</button>
-        <button onClick={() => setTab('notificaciones')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'notificaciones' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Bell size={16} /> Notificaciones</button>
-        <button onClick={() => setTab('actividades')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'actividades' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><CalendarCheck size={16} /> Actividades</button>
-        <button onClick={() => setTab('testimonios')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'testimonios' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageCircle size={16} /> Testimonios</button>
-        <button onClick={() => setTab('devocionales')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'devocionales' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><BookOpen size={16} /> Devocionales</button>
-        <button onClick={() => setTab('muro')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'muro' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><MessageSquare size={16} /> Muro</button>
-        <button onClick={() => setTab('ia')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'ia' ? 'bg-primary text-white' : 'bg-card border border-gray-200/70 text-text-light hover:bg-gray-50'}`}><Sparkles size={16} className="text-amber-500 fill-amber-500" /> IA Transcribir</button>
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Navigation Sidebar */}
+        <div className="w-full md:w-64 shrink-0 space-y-3">
+          {adminCategories.map(cat => {
+            const CatIcon = cat.icon;
+            const isExpanded = expandedCats[cat.id];
+            return (
+              <div key={cat.id} className="bg-card rounded-xl border border-gray-200/70 shadow-sm overflow-hidden">
+                {/* Category Header */}
+                <button 
+                  onClick={() => toggleCat(cat.id)}
+                  className="w-full px-4 py-3 flex items-center justify-between bg-gray-50/50 hover:bg-gray-50 border-b border-gray-150 transition-colors text-left"
+                >
+                  <span className="flex items-center gap-2 text-xs font-bold text-primary-dark uppercase tracking-wider">
+                    <CatIcon size={14} className="text-primary" />
+                    {cat.label}
+                  </span>
+                  <ChevronDown size={14} className={`text-text-light/70 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Collapsible Items */}
+                {isExpanded && (
+                  <div className="p-1.5 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {cat.items.map(item => {
+                      const ItemIcon = item.icon;
+                      const isActive = tab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setTab(item.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                            isActive
+                              ? 'bg-primary text-white shadow-sm font-semibold'
+                              : 'text-text-light hover:bg-primary/5 hover:text-primary'
+                          }`}
+                        >
+                          <ItemIcon size={14} className={isActive ? 'text-white' : 'text-text-light/70'} />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Tab Content Panel */}
+        <div className="flex-1 min-w-0">
+          {tab === 'proyectos' && <ProjectsTab />}
+
+          {tab === 'episodios' && (
+            <EpisodesTab
+              episodes={episodes} setEpisodes={setEpisodes} storageKey={STORAGE_EPISODES}
+              form={eForm} setForm={setEForm} editingId={eEditingId} setEditingId={setEEditingId}
+            />
+          )}
+
+          {tab === 'inicio' && <HeroSettingsTab />}
+          {tab === 'participa' && <ParticipaTab />}
+          {tab === 'auspiciadores' && <AuspiciadoresTab />}
+          {tab === 'perfiles' && <PerfilesTab />}
+          {tab === 'paginas' && <PaginasTab />}
+          {tab === 'metricas' && <MetricasTab />}
+          {tab === 'notificaciones' && <NotificacionesTab />}
+          {tab === 'actividades' && <ActividadesTab />}
+          {tab === 'testimonios' && <TestimoniosAdminTab />}
+          {tab === 'devocionales' && <DevotionalsAdminTab />}
+          {tab === 'muro' && <MuroAdminTab />}
+          {tab === 'ia' && <IaTranscriptionTab />}
+        </div>
       </div>
-
-      {tab === 'proyectos' && <ProjectsTab />}
-
-      {tab === 'episodios' && (
-        <EpisodesTab
-          episodes={episodes} setEpisodes={setEpisodes} storageKey={STORAGE_EPISODES}
-          form={eForm} setForm={setEForm} editingId={eEditingId} setEditingId={setEEditingId}
-        />
-      )}
-
-      {tab === 'inicio' && <HeroSettingsTab />}
-
-      {tab === 'participa' && <ParticipaTab />}
-
-      {tab === 'auspiciadores' && <AuspiciadoresTab />}
-
-      {tab === 'perfiles' && <PerfilesTab />}
-
-      {tab === 'paginas' && <PaginasTab />}
-
-      {tab === 'metricas' && <MetricasTab />}
-
-      {tab === 'notificaciones' && <NotificacionesTab />}
-
-      {tab === 'actividades' && <ActividadesTab />}
-      {tab === 'testimonios' && <TestimoniosAdminTab />}
-      {tab === 'devocionales' && <DevotionalsAdminTab />}
-      {tab === 'muro' && <MuroAdminTab />}
-      {tab === 'ia' && <IaTranscriptionTab />}
     </div>
   );
 }
@@ -152,7 +257,16 @@ function ProjectsTab() {
   async function add() {
     if (!form.title.trim()) return;
     setError(null);
-    const res = await createProject({ ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png', participants: form.participants || 0 });
+    const res = await createProject({ 
+      ...form, 
+      title: form.title.trim(), 
+      description: form.description.trim(), 
+      date: form.date.trim(), 
+      status: form.status, 
+      image: form.image.trim() || '/images/logo.png', 
+      participants: form.participants || 0,
+      max_participants: form.max_participants || 0 
+    });
     if (res.error) { setError(res.error.message || 'Error creando proyecto'); return; }
     if (res.data) { save([...projects, res.data]); setForm(emptyProject); }
   }
@@ -160,7 +274,16 @@ function ProjectsTab() {
   async function update() {
     if (!editingId || !form.title.trim()) return;
     setError(null);
-    const res = await updateProject(editingId, { ...form, title: form.title.trim(), description: form.description.trim(), date: form.date.trim(), status: form.status, image: form.image.trim() || '/images/logo.png', participants: form.participants || 0 });
+    const res = await updateProject(editingId, { 
+      ...form, 
+      title: form.title.trim(), 
+      description: form.description.trim(), 
+      date: form.date.trim(), 
+      status: form.status, 
+      image: form.image.trim() || '/images/logo.png', 
+      participants: form.participants || 0,
+      max_participants: form.max_participants || 0 
+    });
     if (res.error) { setError(res.error.message || 'Error actualizando proyecto'); return; }
     if (res.data) { save(projects.map((p: any) => p.id === editingId ? { ...p, ...(res.data as any) } : p)); setEditingId(null); setForm(emptyProject); }
   }
@@ -173,7 +296,18 @@ function ProjectsTab() {
     save(projects.filter((p: any) => p.id !== id));
   }
 
-  function edit(p: any) { setEditingId(p.id); setForm({ title: p.title, description: p.description, date: p.date, status: p.status, image: p.image, participants: p.participants || 0 }); }
+  function edit(p: any) { 
+    setEditingId(p.id); 
+    setForm({ 
+      title: p.title, 
+      description: p.description, 
+      date: p.date, 
+      status: p.status, 
+      image: p.image, 
+      participants: p.participants || 0,
+      max_participants: p.max_participants || 0 
+    }); 
+  }
 
   if (loading) return <p className="text-center text-text-light py-8">Cargando proyectos...</p>;
 
@@ -207,8 +341,8 @@ function ProjectsTab() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-text-light">Participantes (Nº personas inscritas)</label>
-            <input type="number" placeholder="Participantes" min="0" value={form.participants || 0} onChange={e => setForm({ ...form, participants: parseInt(e.target.value) || 0 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <label className="text-xs font-medium text-text-light">Cupo Máximo de Inscripciones (0 = ilimitado)</label>
+            <input type="number" placeholder="Ej: 30" min="0" value={form.max_participants || 0} onChange={e => setForm({ ...form, max_participants: parseInt(e.target.value) || 0 })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
 
           <div className="col-span-1 sm:col-span-2 space-y-2">
@@ -250,12 +384,22 @@ function ProjectsTab() {
       <div className="space-y-3">
         {projects.map((p: any) => (
           <div key={p.id} className="bg-card rounded-xl p-5 border border-gray-200/70 shadow-md flex gap-4">
-            <img src={p.image} alt="" className="w-16 h-16 rounded-lg object-contain bg-gray-50" />
-            <div className="flex-1 min-w-0"><h3 className="font-semibold text-primary-dark">{p.title}</h3><p className="text-sm text-text-light line-clamp-2">{p.description}</p></div>
-            <div className="flex flex-col gap-1.5 items-end">
-              {p.participants && p.participants > 0 && <span className="text-sm text-primary font-medium">👥 {p.participants}</span>}
-              <button onClick={() => edit(p)} className="p-1.5 text-text-light hover:text-primary"><Pencil size={16} /></button>
-              <button onClick={() => del(p.id)} className="p-1.5 text-text-light hover:text-red-500"><Trash2 size={16} /></button>
+            <img src={p.image} alt="" className="w-16 h-16 rounded-lg object-contain bg-gray-50 bg-blend-multiply" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-primary-dark">{p.title}</h3>
+              <p className="text-sm text-text-light line-clamp-2">{p.description}</p>
+            </div>
+            <div className="flex flex-col gap-1.5 items-end justify-between">
+              <div className="text-xs text-text-light text-right space-y-0.5">
+                <span className="font-semibold text-primary block">👥 {p.participant_count || 0} {p.max_participants ? `/ ${p.max_participants}` : ''} inscritos</span>
+                {p.max_participants && (p.participant_count || 0) >= p.max_participants && (
+                  <span className="inline-block px-1.5 py-0.5 bg-red-150 text-red-700 font-bold rounded-[4px] text-[9px] uppercase tracking-wide">Cupos llenos</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => edit(p)} className="p-1.5 text-text-light hover:text-primary" title="Editar"><Pencil size={15} /></button>
+                <button onClick={() => del(p.id)} className="p-1.5 text-text-light hover:text-red-500" title="Eliminar"><Trash2 size={15} /></button>
+              </div>
             </div>
           </div>
         ))}

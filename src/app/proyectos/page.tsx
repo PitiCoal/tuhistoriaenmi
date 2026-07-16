@@ -13,6 +13,7 @@ type Project = {
   status: 'próximo' | 'en curso' | 'completado';
   image: string;
   participant_count: number;
+  max_participants?: number;
 };
 
 const statusColors: Record<string, string> = {
@@ -143,7 +144,9 @@ export default function ProyectosPage() {
                     {/* Contador de inscritos */}
                     <span className="flex items-center gap-1 text-primary font-semibold">
                       <Users size={12} />
-                      {p.participant_count} {p.participant_count === 1 ? 'inscrito' : 'inscritos'}
+                      {p.participant_count}
+                      {p.max_participants && p.max_participants > 0 ? ` / ${p.max_participants}` : ''}
+                      {p.participant_count === 1 ? ' inscrito' : ' inscritos'}
                     </span>
                   </div>
 
@@ -151,17 +154,21 @@ export default function ProyectosPage() {
                   {p.status !== 'completado' && (
                     <button
                       onClick={() => handleJoin(p.id)}
-                      disabled={joining[p.id]}
+                      disabled={joining[p.id] || !!(p.max_participants && p.max_participants > 0 && p.participant_count >= p.max_participants && !joined[p.id])}
                       className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-60 ${
                         joined[p.id]
                           ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
-                          : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
+                          : p.max_participants && p.max_participants > 0 && p.participant_count >= p.max_participants
+                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                            : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
                       }`}
                     >
                       {joining[p.id] ? (
                         <><Loader2 size={12} className="animate-spin" /> Procesando...</>
                       ) : joined[p.id] ? (
                         <><CheckCircle size={12} /> Ya estoy inscrito</>
+                      ) : p.max_participants && p.max_participants > 0 && p.participant_count >= p.max_participants ? (
+                        <>Cupos agotados</>
                       ) : !userId ? (
                         <><LogIn size={12} /> Iniciar sesión para unirme</>
                       ) : (

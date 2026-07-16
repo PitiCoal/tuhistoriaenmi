@@ -68,3 +68,10 @@ DROP POLICY IF EXISTS "Permitir actualización de notificaciones" ON notificatio
 CREATE POLICY "Permitir lectura de notificaciones propias" ON notifications FOR SELECT USING (true);
 CREATE POLICY "Permitir inserción de notificaciones" ON notifications FOR INSERT WITH CHECK (true);
 CREATE POLICY "Permitir actualización de notificaciones" ON notifications FOR UPDATE USING (true);
+
+-- 4. Asegurar columna participants en projects y agregar max_participants
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS participants INTEGER DEFAULT 0;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS max_participants INTEGER DEFAULT 0;
+
+-- Recargar el caché de esquema de PostgREST
+NOTIFY pgrst, 'reload schema';

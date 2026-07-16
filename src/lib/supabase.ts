@@ -357,13 +357,13 @@ export async function getProjects() {
   return data || [];
 }
 
-export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string; participants?: number }) {
+export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string; participants?: number; max_participants?: number }) {
   const { data, error } = await supabase.from('projects').insert(p).select().single();
   if (error) { console.error('createProject error:', error); }
   return { data, error };
 }
 
-export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string; participants?: number }) {
+export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string; participants?: number; max_participants?: number }) {
   const { data, error } = await supabase.from('projects').update(p).eq('id', id).select().single();
   if (error) { console.error('updateProject error:', error); }
   return { data, error };
