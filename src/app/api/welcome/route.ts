@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
             
             <p style="margin-bottom: 0;">Con mucho cariño y en oración,</p>
             <p style="margin-top: 4px; font-weight: 700; color: #1A3A5C;">M. Piedad Correa</p>
-            <p style="margin: 0; font-size: 13px; color: #6B6358;">Creadora y Host &mdash; Tu Historia En Mí</p>
+            <p style="margin: 0; font-size: 13px; color: #6B6358;">Tu Historia En Mí</p>
           </div>
           
           <!-- Footer -->
