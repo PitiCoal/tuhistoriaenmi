@@ -21,8 +21,10 @@ const AuthContext = createContext<AuthContextType>({
 /** Modal de consentimiento (primera vez) */
 function ConsentModal({ userId, name, email, onAccept }: { userId: string; name: string; email: string; onAccept: () => void }) {
   const [accepting, setAccepting] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   async function handleAccept() {
+    if (!checked) return;
     setAccepting(true);
     await saveUserConsent(userId);
     try {
@@ -45,39 +47,47 @@ function ConsentModal({ userId, name, email, onAccept }: { userId: string; name:
             <img src="/images/logo.png" alt="" className="h-8 w-8" />
           </div>
           <h2 className="font-heading text-xl font-bold text-primary-dark">Bienvenida/o a Tu Historia en Mí</h2>
-          <p className="text-text-light text-sm leading-relaxed">
-            Para continuar, necesitamos que leas y aceptes nuestros documentos legales. Son breves y claros.
+          <p className="text-text-light text-xs md:text-sm leading-relaxed">
+            Para continuar y crear tu cuenta de comunidad, necesitamos que leas y aceptes explícitamente nuestros términos legales.
           </p>
         </div>
 
-        <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-2 border border-gray-100">
-          <p className="text-text leading-relaxed">
-            Al usar esta plataforma, confirmas que tienes <strong>18 años o más</strong> y aceptas:
+        <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-3 border border-gray-100">
+          <p className="text-text leading-relaxed text-xs">
+            Al registrarte en esta plataforma, tus datos de perfil (nombre y país) se utilizarán exclusivamente para identificarte dentro del muro comunitario, proyectos y actividades. Tu diario íntimo y reflexiones personales son de carácter estrictamente privado y seguro.
           </p>
-          <ul className="space-y-1 pl-4">
-            <li className="list-disc text-text-light">
-              <Link href="/terminos" target="_blank" className="text-primary underline font-medium">Términos de Uso</Link>
-            </li>
-            <li className="list-disc text-text-light">
-              <Link href="/privacidad" target="_blank" className="text-primary underline font-medium">Política de Privacidad</Link>
-            </li>
-          </ul>
-          <p className="text-xs text-text-light/70">
-            Tus datos serán tratados de forma segura y solo para fines del ministerio. Puedes eliminar tu cuenta en cualquier momento desde tu perfil.
-          </p>
+          
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              id="consent-check"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+              className="w-4.5 h-4.5 mt-0.5 text-primary border-gray-300 rounded focus:ring-primary/30 cursor-pointer"
+            />
+            <label htmlFor="consent-check" className="text-xs text-text leading-snug cursor-pointer select-none">
+              Confirmo que tengo <strong>18 años o más</strong> y acepto de manera obligatoria la <Link href="/privacidad" target="_blank" className="text-primary underline font-semibold">Política de Privacidad</Link> y los <Link href="/terminos" target="_blank" className="text-primary underline font-semibold">Términos de Uso</Link> del sitio.
+            </label>
+          </div>
         </div>
 
-        <button
-          onClick={handleAccept}
-          disabled={accepting}
-          className="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 active:scale-95"
-        >
-          {accepting ? 'Guardando...' : 'Acepto y quiero participar'}
-        </button>
-
-        <p className="text-center text-xs text-text-light/60">
-          Si no aceptas, por favor cierra sesión.
-        </p>
+        <div className="flex flex-col gap-2 pt-1">
+          <button
+            onClick={handleAccept}
+            disabled={accepting || !checked}
+            className="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors active:scale-95 shadow-sm"
+          >
+            {accepting ? 'Guardando...' : 'Acepto y quiero participar'}
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => signOutUser()}
+            className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-text font-semibold rounded-xl transition-colors active:scale-95 text-xs"
+          >
+            No acepto, cerrar sesión
+          </button>
+        </div>
       </div>
     </div>
   );
