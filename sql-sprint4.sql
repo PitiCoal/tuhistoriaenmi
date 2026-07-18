@@ -75,3 +75,54 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS max_participants INTEGER DEFAULT 0
 
 -- Recargar el caché de esquema de PostgREST
 NOTIFY pgrst, 'reload schema';
+
+-- 5. Tabla de diario personal (Personal Journal)
+CREATE TABLE IF NOT EXISTS personal_journal (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  content     TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE personal_journal ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso total personal_journal" ON personal_journal;
+CREATE POLICY "Acceso total personal_journal" ON personal_journal FOR ALL USING (true) WITH CHECK (true);
+
+-- 6. Asegurar políticas de user_activities para permitir inscripciones
+ALTER TABLE user_activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso total user_activities" ON user_activities;
+CREATE POLICY "Acceso total user_activities" ON user_activities FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. Tabla de productos (Tienda)
+CREATE TABLE IF NOT EXISTS products (
+  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name              TEXT NOT NULL,
+  type              TEXT NOT NULL, -- 'polera' | 'poleron'
+  phrase            TEXT NOT NULL,
+  price             INTEGER NOT NULL,
+  colors            JSONB NOT NULL DEFAULT '[]'::jsonb, -- array of {name, hex}
+  sizes             JSONB NOT NULL DEFAULT '[]'::jsonb, -- array of strings e.g. ["S", "M", "L"]
+  description       TEXT NOT NULL,
+  image_placeholder TEXT NOT NULL DEFAULT 'bg-primary-dark/80 text-white',
+  created_at        TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Acceso lectura products" ON products;
+DROP POLICY IF EXISTS "Acceso total products" ON products;
+CREATE POLICY "Acceso lectura products" ON products FOR SELECT USING (true);
+CREATE POLICY "Acceso total products" ON products FOR ALL USING (true) WITH CHECK (true);
+
+-- Insertar productos por defecto si no existen
+INSERT INTO products (name, type, phrase, price, colors, sizes, description, image_placeholder)
+SELECT 'Polera "Atreverse"', 'polera', 'Cuando alguien se atreve a decirlo, otro se atreve a sentirlo', 12990, '[{"name": "Negro", "hex": "#1A1A1A"}, {"name": "Blanco", "hex": "#FFFFFF"}]'::jsonb, '["S", "M", "L", "XL"]'::jsonb, 'Polera de calce clásico unisex confeccionada en 100% Algodón Premium peinado de 180g. Estampa en serigrafía de alta definición con la frase icónica del podcast. Tacto ultrasuave y costuras reforzadas.', 'bg-primary-dark/80 text-white'
+WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Polera "Atreverse"');
+
+INSERT INTO products (name, type, phrase, price, colors, sizes, description, image_placeholder)
+SELECT 'Polerón "Eco"', 'poleron', 'Donde tu historia encuentra eco', 24990, '[{"name": "Azul Marino", "hex": "#1C2D42"}, {"name": "Gris Melange", "hex": "#A3A3A3"}]'::jsonb, '["M", "L", "XL"]'::jsonb, 'Polerón de calce relajado con capucha y bolsillo canguro. Interior de felpa perchada premium de 320g para máxima suavidad y abrigo. Frase bordada delicadamente en el centro del pecho.', 'bg-secondary text-white'
+WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Polerón "Eco"');
+
+INSERT INTO products (name, type, phrase, price, colors, sizes, description, image_placeholder)
+SELECT 'Polera "Propósito"', 'polera', 'Cada historia tiene un propósito. La tuya también.', 12990, '[{"name": "Blanco", "hex": "#FFFFFF"}, {"name": "Verde Botella", "hex": "#1D3B2F"}]'::jsonb, '["S", "M", "L"]'::jsonb, 'Polera minimalista confeccionada en algodón orgánico. Estampado suave al tacto con una tipografía elegante inspiradora en el pecho. Diseño versátil para el día a día o encuentros de comunidad.', 'bg-primary/80 text-white'
+WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Polera "Propósito"');
+
+-- Recargar el caché de esquema de PostgREST
+NOTIFY pgrst, 'reload schema';

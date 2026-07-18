@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
           <div style="padding: 32px 24px; color: #333333; line-height: 1.6;">
             <p style="font-size: 16px; font-weight: 600; color: #1A3A5C; margin-top: 0;">¡Hola, ${displayName}!</p>
             
-            <p>Es una gran alegría para mí darte la bienvenida a nuestra comunidad. <strong>Tu Historia En Mí</strong> nace del profundo deseo de ser un puente de unión y comunicación de fe; un espacio donde cada testimonio de vida nos recuerda que Dios está actuando, y que en nuestras luchas y esperanzas nunca estamos solos.</p>
+            <p>Es una gran alegría para mí darte la bienvenida a nuestra comunidad. <strong>Tu Historia En Mí</strong> nace del profundo deseo de ser un puente de unión y comunicación de fe; un espacio donde cada testimonio de vida nos recuerda que Dios está actuando, y que en nuestras dificultades, desafíos y esperanzas nunca estamos solos.</p>
             
             <p>Queremos acompañarte día a día en tu caminar espiritual. Por eso, en esta plataforma encontrarás:</p>
             

@@ -12,8 +12,7 @@ const episodesDropdown = [
 ];
 
 const dropdownLinks = [
-  { href: '/comunidad', label: 'Muro Comunitario' },
-  { href: '/proyectos', label: 'Proyectos' },
+  { href: '/comunidad', label: 'Muro' },
   { href: '/tienda', label: 'Tienda Solidaria' },
 ];
 
@@ -88,7 +87,10 @@ export default function Header() {
             onMouseEnter={() => setEpisodesMenuOpen(true)}
             onMouseLeave={() => setEpisodesMenuOpen(false)}
           >
-            <button className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none">
+            <button 
+              onClick={() => setEpisodesMenuOpen(!episodesMenuOpen)}
+              className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none"
+            >
               Episodios
               <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -113,13 +115,20 @@ export default function Header() {
             Nosotros
           </Link>
 
+          <Link href="/proyectos" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Proyectos
+          </Link>
+
           {/* Menú Desplegable Comunidad */}
           <div
             className="relative py-2"
             onMouseEnter={() => setMenuOpen(true)}
             onMouseLeave={() => setMenuOpen(false)}
           >
-            <button className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none"
+            >
               Comunidad
               <ChevronDown size={14} className={`transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
             </button>

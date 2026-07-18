@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost, getActivitiesWithCounts } from '@/lib/supabase';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
+
 import { getVerseOfDay } from '@/lib/verses';
 import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles, HandHeart } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'muro' | 'actividades';
+
 
 const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
@@ -17,20 +19,13 @@ const EMOJI_ICONS: Record<string, React.ReactNode> = {
   '✨': <Sparkles size={12} />,
 };
 
-const tabs: { id: Tab; label: string; icon: typeof Heart; desc: string }[] = [
-  { id: 'muro', label: 'Muro Comunitario', icon: Grid3X3, desc: 'Comparte intenciones, oraciones, reflexiones y sugerencias.' },
-  { id: 'actividades', label: 'Proyectos y Actividades', icon: Users, desc: 'Actividades disponibles para inscribirse.' },
-];
-
-export function renderContentWithBold(content: string) {
+export function renderContentWithBold(content: string): React.ReactNode {
   if (!content) return '';
-  // Primero dividimos por doble asterisco ** (negrita fuerte) soportando saltos de línea
   const parts = content.split(/(\*\*[\s\S]*?\*\*)/g);
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
     }
-    // Para las partes sin **, soportamos también asterisco simple * para negrita
     const subparts = part.split(/(\*[\s\S]*?\*)/g);
     return subparts.map((subpart, subindex) => {
       if (subpart.startsWith('*') && subpart.endsWith('*')) {
@@ -41,9 +36,9 @@ export function renderContentWithBold(content: string) {
   });
 }
 
-export default function ComunidadPage() {
+function ComunidadContent() {
   const { user, signIn } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('muro');
+  const router = useRouter();
 
   const [muroPosts, setMuroPosts] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -54,36 +49,27 @@ export default function ComunidadPage() {
   const [muroImage, setMuroImage] = useState<File | null>(null);
   const [muroImagePreview, setMuroImagePreview] = useState<string | null>(null);
   const [muroUploading, setMuroUploading] = useState(false);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [repliesData, setRepliesData] = useState<Record<string, any[]>>({});
   const [muroReactionCounts, setMuroReactionCounts] = useState<Record<string, Record<string, number>>>({});
   const [muroUserReactions, setMuroUserReactions] = useState<Record<string, Set<string>>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Swipe state
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const userId = user && user !== 'loading' ? (user as any).uid : null;
+
+  const searchParams = useSearchParams();
+  const filterParam = searchParams.get('filter');
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const filter = params.get('filter');
-    const hash = window.location.hash.replace('#', '');
-    const target = filter || hash;
-    
-    if (target === 'actividades') {
-      setActiveTab('actividades');
-    } else if (['oracion', 'reflexion', 'sugerencia', 'general'].includes(target)) {
-      setActiveTab('muro');
-      setSelectedFilter(target as any);
+    if (filterParam && ['oracion', 'reflexion', 'sugerencia', 'general'].includes(filterParam)) {
+      setSelectedFilter(filterParam as any);
+    } else if (filterParam === null || filterParam === '') {
+      setSelectedFilter('todos');
     }
-  }, []);
+  }, [filterParam]);
 
-  useEffect(() => {
-    window.location.hash = activeTab;
-  }, [activeTab]);
 
   useEffect(() => {
     if (user && user !== 'loading') {
@@ -103,16 +89,12 @@ export default function ComunidadPage() {
     }
   }, [user, muroPosts]);
 
-  useEffect(() => {
-    if (activeTab === 'muro') loadMuro();
-  }, [activeTab]);
+  useEffect(() => { loadMuro(); }, []);
 
-  useEffect(() => {
-    getActivitiesWithCounts().then(list => {
-      setActivities(list);
-      setActivitiesLoading(false);
-    }).catch(() => setActivitiesLoading(false));
-  }, []);
+
+
+
+
 
   async function loadMuro() {
     const verse = getVerseOfDay();
@@ -291,38 +273,12 @@ export default function ComunidadPage() {
     }
   }
 
-  function handleTouchStart(e: React.TouchEvent) { touchStartX.current = e.touches[0].clientX; }
-  function handleTouchEnd(e: React.TouchEvent) {
-    touchEndX.current = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX.current;
-    const tabOrder: Tab[] = ['muro', 'actividades'];
-    const idx = tabOrder.indexOf(activeTab);
-    if (Math.abs(diff) > 50) {
-      if (diff > 0 && idx < tabOrder.length - 1) setActiveTab(tabOrder[idx + 1]);
-      else if (diff < 0 && idx > 0) setActiveTab(tabOrder[idx - 1]);
-    }
-  }
-
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
 
   const filteredMuroPosts = selectedFilter === 'todos'
     ? muroPosts
     : muroPosts.filter(p => (p.category || 'general') === selectedFilter);
 
-  const tabBar = (
-    <div className="bg-card rounded-xl p-1 border border-gray-200/70 shadow-md flex gap-0.5">
-      {tabs.map(t => {
-        const Ti = t.icon;
-        return (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all active:scale-95 ${
-              activeTab === t.id ? 'bg-primary text-white shadow-sm' : 'text-text-light hover:bg-gray-50'
-            }`}
-          ><Ti size={14} /> <span>{t.label}</span></button>
-        );
-      })}
-    </div>
-  );
 
   const muroContent = (
     <>
@@ -414,7 +370,13 @@ export default function ComunidadPage() {
         ].map(f => (
           <button
             key={f.id}
-            onClick={() => setSelectedFilter(f.id as any)}
+            onClick={() => {
+              if (f.id === 'todos') {
+                router.push('/comunidad');
+              } else {
+                router.push(`/comunidad?filter=${f.id}`);
+              }
+            }}
             className={`px-3 py-1 rounded-full text-[11px] md:text-xs font-medium border transition-all active:scale-95 ${
               selectedFilter === f.id
                 ? 'bg-secondary text-white border-secondary shadow-sm'
@@ -546,60 +508,9 @@ export default function ComunidadPage() {
     </>
   );
 
-  const instagramCard = (
-    <div className="bg-card rounded-xl overflow-hidden border border-gray-200/70 shadow-sm">
-      <div className="flex flex-col sm:flex-row">
-        <div className="sm:w-32 h-24 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] flex items-center justify-center">
-          <Camera size={24} className="text-white/80" />
-        </div>
-        <div className="flex-1 p-3 flex items-center justify-between gap-2">
-          <div>
-            <h3 className="font-heading font-bold text-primary-dark text-sm">@tuhistoria.enmi</h3>
-            <p className="text-xs text-text-light">Síguenos en Instagram</p>
-          </div>
-          <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 bg-instagram text-white rounded-lg text-xs font-semibold hover:opacity-90 active:scale-95 transition-all">
-            <Camera size={12} /> Seguir
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-
-  const whatsappCard = (
-    <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
-      className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-whatsapp/20 flex items-center justify-center shrink-0">
-          <WhatsAppIcon size={18} className="text-whatsapp" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-heading font-bold text-primary-dark text-sm">WhatsApp</h3>
-          <p className="text-xs text-text-light">Grupo de la comunidad</p>
-        </div>
-        <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
-      </div>
-    </a>
-  );
-
-  const perfilCard = (
-    <Link href="/perfil"
-      className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <User size={18} className="text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-heading font-bold text-primary-dark text-sm">Mi Perfil</h3>
-          <p className="text-xs text-text-light">Foto, país, edad, bio</p>
-        </div>
-        <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
-      </div>
-    </Link>
-  );
 
   return (
-    <div className="space-y-4 md:space-y-6 max-w-4xl mx-auto" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="space-y-4 md:space-y-6 max-w-4xl mx-auto">
       {/* Hero */}
       <div className="bg-card rounded-xl md:rounded-2xl p-5 md:p-8 border border-gray-200/70 shadow-md text-center">
         <h1 className="font-heading text-xl md:text-3xl font-bold text-primary-dark">Comunidad</h1>
@@ -616,69 +527,87 @@ export default function ComunidadPage() {
         </div>
       )}
 
-      {/* Instagram - always visible */}
-      {instagramCard}
-
-      {/* Quote when not logged in */}
-      {!user && (
-        <div className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md text-center">
-          <p className="font-heading text-sm md:text-base italic text-primary-dark">&ldquo;Porque cuando alguien se atreve a decirlo, otro se atreve a sentirlo.&rdquo;</p>
-        </div>
-      )}
-
-      {/* Main content: tabs + participa (Visible to everyone!) */}
+      {/* Main content: Muro + sidebar */}
       <div className="md:grid md:grid-cols-3 md:gap-6">
+        {/* Muro Content */}
         <div className="md:col-span-2 space-y-4">
-          {tabBar}
-          
-          {activeTab === 'muro' ? muroContent : (
-            <div className="space-y-3">
-              {activitiesLoading ? (
-                <div className="text-center py-8 text-text-light">Cargando actividades...</div>
-              ) : activities.length === 0 ? (
-                <div className="bg-card rounded-xl p-6 md:p-8 border border-gray-200/70 shadow-md text-center space-y-3">
-                  <Users size={48} className="mx-auto text-text-light" />
-                  <h2 className="font-heading text-lg font-bold text-primary-dark">Sin actividades disponibles</h2>
-                  <p className="text-sm text-text-light">El administrador aún no ha creado actividades.</p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-xs text-text-light mb-2">Actividades disponibles para inscribirse desde tu perfil</p>
-                  <div className="space-y-3">
-                    {activities.map(a => (
-                      <div key={a.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-primary-dark">{a.name}</h3>
-                          {a.description && <p className="text-sm text-text-light line-clamp-2 mt-1">{a.description}</p>}
-                          <p className="text-xs text-primary mt-1 flex items-center gap-1">
-                            <Users size={10} /> {a.participants || 0} personas inscritas
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                            👥 {a.participants || 0}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+          {muroContent}
         </div>
 
         {/* Desktop sidebar */}
-        <div className="hidden md:flex md:flex-col gap-4">
-          {whatsappCard}
-          {user && perfilCard}
+        <div className="hidden md:flex md:flex-col gap-4 mt-0">
+          {/* Instagram */}
+          <div className="bg-card rounded-xl overflow-hidden border border-gray-200/70 shadow-sm">
+            <div className="flex flex-col sm:flex-row">
+              <div className="sm:w-24 h-20 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] flex items-center justify-center">
+                <Camera size={22} className="text-white/80" />
+              </div>
+              <div className="flex-1 p-3 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-heading font-bold text-primary-dark text-sm">@tuhistoria.enmi</h3>
+                  <p className="text-xs text-text-light">Síguenos en Instagram</p>
+                </div>
+                <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#833AB4] to-[#FD1D1D] text-white rounded-lg text-xs font-semibold hover:opacity-90 active:scale-95 transition-all">
+                  <Camera size={11} /> Seguir
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* WhatsApp */}
+          <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
+            className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                <WhatsAppIcon size={18} className="text-green-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-heading font-bold text-primary-dark text-sm">WhatsApp</h3>
+                <p className="text-xs text-text-light">Grupo de la comunidad</p>
+              </div>
+              <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
+            </div>
+          </a>
+
+          {/* Mi Perfil */}
+          {user && (
+            <Link href="/perfil"
+              className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User size={18} className="text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-heading font-bold text-primary-dark text-sm">Mi Perfil</h3>
+                  <p className="text-xs text-text-light">Diario, actividades, bio</p>
+                </div>
+                <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
+              </div>
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* WhatsApp on mobile */}
-      <div className="md:hidden">
-        {whatsappCard}
+      {/* Mobile: cards row */}
+      <div className="md:hidden flex gap-3 overflow-x-auto pb-1">
+        <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
+          className="shrink-0 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+          <Camera size={14} /> Instagram
+        </a>
+        <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
+          className="shrink-0 bg-green-500 text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+          <WhatsAppIcon size={14} /> WhatsApp
+        </a>
       </div>
     </div>
+  );
+}
+
+export default function ComunidadPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-text-light">Cargando...</div>}>
+      <ComunidadContent />
+    </Suspense>
   );
 }

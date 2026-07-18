@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { renderContentWithBold } from '@/app/comunidad/page';
-import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock, BookOpen, Sparkles, ChevronDown, Shield } from 'lucide-react';
-import { episodes as defaultEpisodes } from '@/lib/episodes';
-import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, deleteMuroPost, getMuroReplies, deleteMuroReply, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional } from '@/lib/supabase';
+import { Plus, Pencil, Trash2, LogOut, LogIn, Save, X, FolderKanban, Mic, Image as ImageIcon, MessageSquare, Heart, MessageCircle, Handshake, Users, Search, FileText, BarChart3, Bell, Send, CalendarCheck, CheckCircle, Clock, BookOpen, Sparkles, ChevronDown, Shield, ShoppingBag } from 'lucide-react';
 
-type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro' | 'ia';
+import { episodes as defaultEpisodes } from '@/lib/episodes';
+import { getSponsors, createSponsor, updateSponsor, deleteSponsor, getAllProfiles, getPageContent, upsertPageContent, getImpactMetrics, createImpactMetric, updateImpactMetric, deleteImpactMetric, countProfiles, countEpisodes, countTestimonios, countSponsors, getAllPushSubscriptions, getPushSubscriptionCount, saveEpisodeToSupabase, loadEpisodesFromSupabase, deleteEpisodeFromSupabase, uploadFile, mergeEpisodesWithDefaults, getActivities, createActivity, updateActivity, deleteActivity, getProjects, createProject, updateProject, deleteProject, getHeroImage, saveHeroImage, getParticipaEntries, createParticipaEntry, deleteParticipaEntry, clearAllParticipaEntries, getMuroPosts, deleteMuroPost, getMuroReplies, deleteMuroReply, getAllReactionCounts, getTotalReactionCount, getTestimonios, approveTestimonio, deleteTestimonioPublico, getPageViewsCount, getEpisodeClicksCount, getEpisodeClicksCountByPlatform, getDevotionals, saveDevotional, deleteDevotional, getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/supabase';
+
+type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' | 'perfiles' | 'paginas' | 'metricas' | 'notificaciones' | 'actividades' | 'testimonios' | 'devocionales' | 'muro' | 'ia' | 'tienda' | 'donacion';
+
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number; max_participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
@@ -49,6 +51,7 @@ const adminCategories: AdminCategory[] = [
     icon: FileText,
     items: [
       { id: 'inicio', label: 'Inicio (Hero banner)', icon: ImageIcon },
+      { id: 'donacion', label: 'Meta de Donación', icon: Heart },
       { id: 'paginas', label: 'Páginas Estáticas', icon: FileText },
       { id: 'metricas', label: 'Métricas y Visitas', icon: BarChart3 },
     ]
@@ -70,9 +73,11 @@ const adminCategories: AdminCategory[] = [
     items: [
       { id: 'proyectos', label: 'Proyectos', icon: FolderKanban },
       { id: 'actividades', label: 'Actividades', icon: CalendarCheck },
+      { id: 'tienda', label: 'Tienda Online', icon: ShoppingBag },
       { id: 'muro', label: 'Muro Comunitario', icon: MessageSquare },
       { id: 'participa', label: 'Participación', icon: MessageSquare },
       { id: 'auspiciadores', label: 'Auspiciadores', icon: Handshake },
+
     ]
   },
   {
@@ -196,6 +201,7 @@ export default function AdminProyectosPage() {
           )}
 
           {tab === 'inicio' && <HeroSettingsTab />}
+          {tab === 'donacion' && <DonacionAdminTab />}
           {tab === 'participa' && <ParticipaTab />}
           {tab === 'auspiciadores' && <AuspiciadoresTab />}
           {tab === 'perfiles' && <PerfilesTab />}
@@ -207,6 +213,8 @@ export default function AdminProyectosPage() {
           {tab === 'devocionales' && <DevotionalsAdminTab />}
           {tab === 'muro' && <MuroAdminTab />}
           {tab === 'ia' && <IaTranscriptionTab />}
+          {tab === 'tienda' && <TiendaAdminSection />}
+
         </div>
       </div>
     </div>
@@ -1896,7 +1904,7 @@ function IaTranscriptionTab() {
         const guestName = ep?.guest || 'Invitado';
         const titleText = ep?.title || 'Testimonio';
         
-        const mockSummary = `En este episodio conversamos con ${guestName} en su testimonio "${titleText}". Nos relató cómo un momento crítico de dificultad se transformó en un punto de encuentro con la fe y el amor de Dios. Un testimonio de esperanza, resiliencia y superación que nos recuerda que no estamos solos en nuestras luchas.`;
+        const mockSummary = `En este episodio conversamos con ${guestName} en su testimonio "${titleText}". Nos relató cómo un momento crítico de dificultad se transformó en un punto de encuentro con la fe y el amor de Dios. Un testimonio de esperanza, resiliencia y superación que nos recuerda que no estamos solos en nuestras dificultades y desafíos.`;
         
         const mockTranscript = `[00:02] Piedad: Hola a todos, bienvenidos a un nuevo episodio de Tu Historia en Mí. Hoy estamos con ${guestName}.\n[00:45] ${guestName}: Muchas gracias Piedad por invitarme a este espacio. Es una bendición estar acá.\n[02:15] ${guestName}: Quería compartir con la comunidad lo que me tocó vivir. En un momento sentí que todo se desmoronaba...\n[05:30] ${guestName}: Pero fue ahí, en la mitad de la tormenta, donde aprendí que aceptar no es rendirse, sino confiar en que Dios sostiene cada paso.\n[10:12] Piedad: Qué hermosas palabras. Creo que a muchos nos llega al corazón escuchar esa certeza.\n[15:40] ${guestName}: Sí, porque cuando uno se atreve a decirlo, otro se atreve a sentirlo. Creo firmemente en eso.`;
         
@@ -2042,4 +2050,298 @@ function IaTranscriptionTab() {
   );
 }
 
+function TiendaAdminSection() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  const emptyForm = { name: '', type: 'polera', phrase: '', price: 0, description: '', image_placeholder: '' };
+  const [form, setForm] = useState({ ...emptyForm });
+
+  useEffect(() => {
+    getProducts().then(d => { setProducts(d); setLoading(false); });
+  }, []);
+
+  function startEdit(p: any) {
+    setEditing(p);
+    setForm({ name: p.name, type: p.type, phrase: p.phrase, price: p.price, description: p.description || '', image_placeholder: p.image_placeholder || '' });
+  }
+
+  function cancelEdit() { setEditing(null); setForm({ ...emptyForm }); }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    if (editing) {
+      const { error } = await updateProduct(editing.id, form);
+      if (!error) {
+        setProducts(prev => prev.map(p => p.id === editing.id ? { ...p, ...form } : p));
+        setFeedback({ ok: true, msg: 'Producto actualizado' });
+      } else {
+        setFeedback({ ok: false, msg: 'Error: ' + error.message });
+      }
+      cancelEdit();
+    } else {
+      const { data, error } = await createProduct(form as any);
+      if (data) {
+        setProducts(prev => [data, ...prev]);
+        setFeedback({ ok: true, msg: 'Producto creado' });
+        setForm({ ...emptyForm });
+      } else {
+        setFeedback({ ok: false, msg: 'Error: ' + (error as any)?.message });
+      }
+    }
+    setSaving(false);
+    setTimeout(() => setFeedback(null), 3000);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('¿Eliminar este producto?')) return;
+    await deleteProduct(id);
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <ShoppingBag size={24} className="text-primary" />
+        <h2 className="font-heading text-2xl font-bold text-primary-dark">Gestión de Tienda</h2>
+      </div>
+
+      {feedback && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
+          feedback.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {feedback.ok ? <CheckCircle size={16} /> : <X size={16} />} {feedback.msg}
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSave} className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
+        <h3 className="font-heading font-bold text-primary-dark">{editing ? 'Editar Producto' : 'Agregar Producto'}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">Nombre del producto</label>
+            <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Ej: Polera Salmo 23" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">Tipo</label>
+            <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="polera">Polera</option>
+              <option value="cuaderno">Cuaderno</option>
+              <option value="taza">Taza</option>
+              <option value="pulsera">Pulsera</option>
+              <option value="poster">Póster</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-xs font-medium text-text-light">Frase / Versículo estampado</label>
+            <input value={form.phrase} onChange={e => setForm(f => ({ ...f, phrase: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Ej: 'El Señor es mi pastor' - Salmo 23:1" />
+
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">Precio (CLP)</label>
+            <input type="number" min={0} value={form.price} onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="15000" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">URL Imagen (opcional)</label>
+            <input value={form.image_placeholder} onChange={e => setForm(f => ({ ...f, image_placeholder: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="https://..." />
+          </div>
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-xs font-medium text-text-light">Descripción</label>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={2} className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Descripción breve del producto..." />
+          </div>
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button type="submit" disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            <Save size={14} /> {saving ? 'Guardando...' : (editing ? 'Actualizar' : 'Agregar Producto')}
+          </button>
+          {editing && (
+            <button type="button" onClick={cancelEdit}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-text-light rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+              <X size={14} /> Cancelar
+            </button>
+          )}
+        </div>
+      </form>
+
+      {/* Products list */}
+      {loading ? (
+        <p className="text-center text-text-light py-8 text-sm">Cargando productos...</p>
+      ) : products.length === 0 ? (
+        <p className="text-center text-text-light py-8 text-sm">No hay productos aún. Agrega el primero arriba.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {products.map(p => (
+            <div key={p.id} className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm space-y-3">
+              {p.image_placeholder && (
+                <img src={p.image_placeholder} alt={p.name} className="w-full h-40 object-cover rounded-lg border" />
+              )}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-heading font-bold text-primary-dark text-sm">{p.name}</h4>
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">{p.type}</span>
+                </div>
+                {p.phrase && <p className="text-xs italic text-text-light">“{p.phrase}”</p>}
+
+                {p.description && <p className="text-xs text-text line-clamp-2">{p.description}</p>}
+                <p className="font-bold text-primary-dark text-sm">${p.price?.toLocaleString('es-CL')} CLP</p>
+              </div>
+              <div className="flex gap-2 pt-1 border-t border-gray-100">
+                <button onClick={() => startEdit(p)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                  <Pencil size={12} /> Editar
+                </button>
+                <button onClick={() => handleDelete(p.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors">
+                  <Trash2 size={12} /> Eliminar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DonacionAdminTab() {
+  const [active, setActive] = useState(false);
+  const [title, setTitle] = useState('');
+  const [target, setTarget] = useState(0);
+  const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    getPageContent('donation').then(data => {
+      setActive(data.active === 'true');
+      setTitle(data.title || 'Apoyo mensual al Ministerio');
+      setTarget(parseInt(data.target) || 0);
+      setCurrent(parseInt(data.current) || 0);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setFeedback(null);
+    try {
+      await upsertPageContent('donation', 'active', String(active));
+      await upsertPageContent('donation', 'title', title.trim());
+      await upsertPageContent('donation', 'target', String(target));
+      await upsertPageContent('donation', 'current', String(current));
+      setFeedback({ ok: true, msg: 'Meta de donación guardada con éxito' });
+    } catch (err: any) {
+      setFeedback({ ok: false, msg: 'Error al guardar: ' + err.message });
+    }
+    setSaving(false);
+    setTimeout(() => setFeedback(null), 3000);
+  }
+
+  if (loading) return <p className="text-center text-text-light py-8 text-sm">Cargando meta de donación...</p>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 bg-card rounded-xl p-5 border border-gray-200/70 shadow-md">
+        <Heart size={24} className="text-primary animate-pulse" />
+        <div>
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Configuración de Meta de Donación</h2>
+          <p className="text-xs text-text-light">Administra la barra de progreso de recaudación que se muestra en el Inicio y en la pestaña de Donar.</p>
+        </div>
+      </div>
+
+      {feedback && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
+          feedback.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {feedback.ok ? <CheckCircle size={16} /> : <X size={16} />} {feedback.msg}
+        </div>
+      )}
+
+      <form onSubmit={handleSave} className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+          <input
+            type="checkbox"
+            id="active"
+            checked={active}
+            onChange={e => setActive(e.target.checked)}
+            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary/30"
+          />
+          <label htmlFor="active" className="text-sm font-semibold text-primary-dark cursor-pointer select-none">
+            Mostrar Barra de Donación en la Web y Aplicación (PWA)
+          </label>
+        </div>
+
+        <div className="space-y-4 pt-2">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-light">Título de la Meta (ej. Hosting y Servidores)</label>
+            <input
+              required
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Ej: Financiamiento para Hosting PWA y Producción"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-text-light">Monto Objetivo (CLP)</label>
+              <input
+                required
+                type="number"
+                min={0}
+                value={target}
+                onChange={e => setTarget(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Ej: 1000000"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-text-light">Monto Recaudado Actualmente (CLP)</label>
+              <input
+                required
+                type="number"
+                min={0}
+                value={current}
+                onChange={e => setCurrent(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Ej: 380000"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95 shadow-sm"
+          >
+            <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Cambios de Donación'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

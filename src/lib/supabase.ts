@@ -3,7 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        cache: 'no-store',
+      });
+    },
+  },
+});
 
 export async function loadEpisodes() {
   const { data } = await supabase.from('episodes').select('*').order('season').order('episode');
@@ -68,24 +77,41 @@ export async function getAllUserActivities() {
   return data || [];
 }
 
-// ===== PAGE CONTENT (CMS) =====
+// ===== PAGE CONTENT (CMS via settings table fallback) =====
 export async function getPageContent(page: string) {
-  const { data } = await supabase.from('page_content').select('section, content').eq('page', page);
+  const { data } = await supabase.from('settings').select('key, value').like('key', `${page}_%`);
   const map: Record<string, string> = {};
-  (data || []).forEach(r => { map[r.section] = r.content || ''; });
+  (data || []).forEach(r => {
+    const section = r.key.replace(`${page}_`, '');
+    map[section] = r.value || '';
+  });
   return map;
 }
 
 export async function upsertPageContent(page: string, section: string, content: string) {
-  return supabase.from('page_content').upsert(
-    { page, section, content, updated_at: new Date().toISOString() },
-    { onConflict: 'page,section' }
-  );
+  const key = `${page}_${section}`;
+  const { data: existing } = await supabase.from('settings').select('key').eq('key', key).maybeSingle();
+  if (existing) {
+    return supabase.from('settings').update({ value: content, updated_at: new Date().toISOString() }).eq('key', key);
+  } else {
+    return supabase.from('settings').insert({ key, value: content });
+  }
 }
 
 export async function getAllPagesContent() {
-  const { data } = await supabase.from('page_content').select('*').order('page').order('section');
-  return data || [];
+  const { data } = await supabase.from('settings').select('*').order('key');
+  return (data || []).map(r => {
+    const parts = r.key.split('_');
+    const page = parts[0] || 'settings';
+    const section = parts.slice(1).join('_') || '';
+    return {
+      id: r.key,
+      page,
+      section,
+      content: r.value,
+      updated_at: r.updated_at
+    };
+  });
 }
 
 // ===== IMPACT METRICS =====
@@ -773,4 +799,79 @@ export async function getDevotionalRepliesByUser(userId: string) {
 
 export async function deleteDevotionalReply(id: string) {
   return supabase.from('devotional_replies').delete().eq('id', id);
+}
+
+// ===== PERSONAL JOURNAL =====
+export async function getPersonalJournal(userId: string) {
+  const { data } = await supabase
+    .from('personal_journal')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createJournalEntry(userId: string, content: string) {
+  return supabase.from('personal_journal').insert({ user_id: userId, content }).select().single();
+}
+
+export async function deleteJournalEntry(id: string) {
+  return supabase.from('personal_journal').delete().eq('id', id);
+}
+
+// ===== INDIVIDUAL ACTIVITY ENROLLMENT =====
+export async function joinActivity(userId: string, activityName: string) {
+  return supabase.from('user_activities').upsert(
+    { user_id: userId, activity: activityName },
+    { onConflict: 'user_id,activity' }
+  );
+}
+
+export async function leaveActivity(userId: string, activityName: string) {
+  return supabase.from('user_activities').delete()
+    .eq('user_id', userId)
+    .eq('activity', activityName);
+}
+
+export async function isUserInActivity(userId: string, activityName: string): Promise<boolean> {
+  const { data } = await supabase.from('user_activities').select('id')
+    .eq('user_id', userId)
+    .eq('activity', activityName)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getProducts() {
+  const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createProduct(p: {
+  name: string;
+  type: string;
+  phrase: string;
+  price: number;
+  colors: any[];
+  sizes: string[];
+  description: string;
+  image_placeholder?: string;
+}) {
+  return supabase.from('products').insert(p).select().single();
+}
+
+export async function updateProduct(id: string, p: {
+  name?: string;
+  type?: string;
+  phrase?: string;
+  price?: number;
+  colors?: any[];
+  sizes?: string[];
+  description?: string;
+  image_placeholder?: string;
+}) {
+  return supabase.from('products').update(p).eq('id', id);
+}
+
+export async function deleteProduct(id: string) {
+  return supabase.from('products').delete().eq('id', id);
 }

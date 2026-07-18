@@ -24,6 +24,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#0085C2',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -38,7 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-20 md:pb-8">
             {children}
           </main>
-          <MobileNav />
+          <Suspense fallback={null}>
+            <MobileNav />
+          </Suspense>
           <InstallPrompt />
           <NotificationPrompt />
           <Footer />

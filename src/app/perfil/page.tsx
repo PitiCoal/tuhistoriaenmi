@@ -6,13 +6,17 @@ import {
   getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities, getActivities,
   getNotificationPreferences, saveNotificationPreferences,
   getMuroPostsByUser, getTestimoniosByUser, deleteAllUserData,
-  getMuroRepliesByUser, getDevotionalRepliesByUser, deleteDevotionalReply, deleteMuroPost, deleteMuroReply
+  getMuroRepliesByUser, getDevotionalRepliesByUser, deleteDevotionalReply, deleteMuroPost, deleteMuroReply,
+  getPersonalJournal, createJournalEntry, deleteJournalEntry,
+  joinActivity, leaveActivity,
+
 } from '@/lib/supabase';
 import {
   User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon,
   MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle, MessageCircle,
-  Bell, FileText, Trash2, AlertTriangle, Heart, Sparkles, Megaphone,
+  Bell, FileText, Trash2, AlertTriangle, Heart, Sparkles, Megaphone, BookOpen,
 } from 'lucide-react';
+
 import Link from 'next/link';
 
 type ProfileTab = 'perfil' | 'publicaciones' | 'diario';
@@ -56,15 +60,133 @@ export default function PerfilPage() {
   const [testimoniosList, setTestimoniosList] = useState<any[]>([]);
   const [loadingPubs, setLoadingPubs] = useState(false);
 
-  // My diary
-  const [devotionalReplies, setDevotionalReplies] = useState<any[]>([]);
-  const [loadingDiario, setLoadingDiario] = useState(false);
+  const [savingActivity, setSavingActivity] = useState<string | null>(null);
+
 
   // Delete account
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // My diary & Personal Journal states
+  const [devotionalReplies, setDevotionalReplies] = useState<any[]>([]);
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
+  const [journalText, setJournalText] = useState('');
+  const [savingJournal, setSavingJournal] = useState(false);
+  const [loadingDiario, setLoadingDiario] = useState(false);
+  const [diaryFeedback, setDiaryFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+
   const userId = user && user !== 'loading' ? (user as any).uid : null;
+
+  // Load diary/journal data when activeTab becomes 'diario' or user logs in
+  useEffect(() => {
+    if (activeTab !== 'diario' || !userId) return;
+
+    let localEntries: any[] = [];
+    try {
+      const saved = localStorage.getItem('tg_local_journal');
+      if (saved) localEntries = JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading local journal:', e);
+    }
+
+    setLoadingDiario(true);
+    Promise.all([
+      getPersonalJournal(userId),
+      getDevotionalRepliesByUser(userId)
+    ]).then(([journal, devReplies]) => {
+      setJournalEntries([...localEntries, ...journal]);
+      setDevotionalReplies(devReplies);
+      setLoadingDiario(false);
+    }).catch(err => {
+      console.error('Error loading diary/journal data:', err);
+      setJournalEntries(localEntries);
+      setLoadingDiario(false);
+    });
+  }, [userId, activeTab]);
+
+  async function handleSaveJournalEntry(e: React.FormEvent) {
+    e.preventDefault();
+    const text = journalText.trim();
+    if (!text) return;
+    setSavingJournal(true);
+    setDiaryFeedback(null);
+
+    if (!userId) {
+      try {
+        const newEntry = {
+          id: 'local_' + Date.now(),
+          content: text,
+          created_at: new Date().toISOString(),
+          is_local: true
+        };
+        const saved = localStorage.getItem('tg_local_journal');
+        const list = saved ? JSON.parse(saved) : [];
+        list.unshift(newEntry);
+        localStorage.setItem('tg_local_journal', JSON.stringify(list));
+        
+        setJournalEntries(prev => [newEntry, ...prev]);
+        setJournalText('');
+        setDiaryFeedback({ ok: true, msg: 'Entrada guardada localmente' });
+        setTimeout(() => setDiaryFeedback(null), 3000);
+      } catch (err: any) {
+        setDiaryFeedback({ ok: false, msg: `Error al guardar localmente: ${err.message}` });
+      } finally {
+        setSavingJournal(false);
+      }
+      return;
+    }
+
+    try {
+      const { data, error } = await createJournalEntry(userId, text);
+      if (error) {
+        setDiaryFeedback({ ok: false, msg: `Error al guardar en la nube: ${error.message}` });
+      } else if (data) {
+        setJournalEntries(prev => [data, ...prev]);
+        setJournalText('');
+        setDiaryFeedback({ ok: true, msg: 'Entrada guardada en tu diario (Nube)' });
+        setTimeout(() => setDiaryFeedback(null), 3000);
+      }
+    } catch (err: any) {
+      setDiaryFeedback({ ok: false, msg: `Error: ${err.message}` });
+    } finally {
+      setSavingJournal(false);
+    }
+  }
+
+  async function handleDeleteJournalEntry(id: string) {
+    if (!confirm('¿Eliminar esta entrada de tu diario personal?')) return;
+    if (String(id).startsWith('local_')) {
+      try {
+        const saved = localStorage.getItem('tg_local_journal');
+        if (saved) {
+          const list = JSON.parse(saved);
+          const filtered = list.filter((item: any) => item.id !== id);
+          localStorage.setItem('tg_local_journal', JSON.stringify(filtered));
+        }
+        setJournalEntries(prev => prev.filter(item => item.id !== id));
+      } catch (err) {
+        console.error('Error deleting local entry:', err);
+      }
+      return;
+    }
+
+    const { error } = await deleteJournalEntry(id);
+    if (error) {
+      alert(`Error al eliminar: ${error.message}`);
+    } else {
+      setJournalEntries(prev => prev.filter(item => item.id !== id));
+    }
+  }
+
+  async function handleDeleteDiaryEntry(entryId: string) {
+    if (!confirm('¿Eliminar esta reflexión de tu diario?')) return;
+    const { error } = await deleteDevotionalReply(entryId);
+    if (error) {
+      alert(`Error al eliminar: ${error.message}`);
+    } else {
+      setDevotionalReplies(prev => prev.filter(e => e.id !== entryId));
+    }
+  }
 
   useEffect(() => {
     if (!userId || !user || user === 'loading') return;
@@ -112,24 +234,22 @@ export default function PerfilPage() {
     });
   }, [activeTab, userId]);
 
-  useEffect(() => {
-    if (activeTab !== 'diario' || !userId) return;
-    setLoadingDiario(true);
-    getDevotionalRepliesByUser(userId).then(list => {
-      setDevotionalReplies(list);
-      setLoadingDiario(false);
-    }).catch(err => {
-      console.error('Error loading diary:', err);
-      setLoadingDiario(false);
-    });
-  }, [activeTab, userId]);
+
 
   async function toggleActivity(a: string) {
     if (!userId) return;
+    setSavingActivity(a);
     const next = new Set(selectedActivities);
-    if (next.has(a)) next.delete(a); else next.add(a);
-    setSelectedActivities(next);
-    await setUserActivities(userId, [...next]);
+    if (next.has(a)) {
+      next.delete(a);
+      setSelectedActivities(next);
+      await leaveActivity(userId, a);
+    } else {
+      next.add(a);
+      setSelectedActivities(next);
+      await joinActivity(userId, a);
+    }
+    setSavingActivity(null);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -170,11 +290,7 @@ export default function PerfilPage() {
     setMuroComments(prev => prev.filter(c => c.id !== replyId));
   }
 
-  async function handleDeleteDiaryEntry(entryId: string) {
-    if (!confirm('¿Eliminar esta reflexión de tu diario?')) return;
-    await deleteDevotionalReply(entryId);
-    setDevotionalReplies(prev => prev.filter(e => e.id !== entryId));
-  }
+
 
   async function handleSave() {
     if (!userId) return;
@@ -245,13 +361,13 @@ export default function PerfilPage() {
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'perfil' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
           Mi Perfil
         </button>
-        <button onClick={() => setActiveTab('publicaciones')}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
-          Mis Publicaciones
-        </button>
         <button onClick={() => setActiveTab('diario')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'diario' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
           Mi Diario
+        </button>
+        <button onClick={() => setActiveTab('publicaciones')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
+          Mis Publicaciones
         </button>
       </div>
 
@@ -348,27 +464,43 @@ export default function PerfilPage() {
                 <p className="text-xs text-text-light/60 mt-1">{testimonio.length}/500</p>
               </div>
 
+
               {/* Actividades */}
               {activitiesOptions.length > 0 && (
-                <div className="border-t border-gray-100 pt-4">
-                  <label className="block text-xs font-medium text-text-light mb-3">
-                    ¿A qué actividades o eventos te gustaría participar?
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {activitiesOptions.map(a => (
-                      <label key={a}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors ${
-                          selectedActivities.has(a)
-                            ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
-                            : 'bg-card border-gray-200 text-text-light hover:border-gray-300'
-                        }`}>
-                        <input type="checkbox" checked={selectedActivities.has(a)} onChange={() => toggleActivity(a)} className="accent-primary" />
-                        {a}
-                      </label>
-                    ))}
+                <div className="border-t border-gray-100 pt-4 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-text-light mb-0.5">
+                      ¿A qué actividades o eventos te gustaría participar?
+                    </label>
+                    <p className="text-[10px] text-text-light/50">Tu selección se guarda automáticamente al hacer clic.</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {activitiesOptions.map(a => {
+                      const isSelected = selectedActivities.has(a);
+                      const isSaving = savingActivity === a;
+                      return (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => toggleActivity(a)}
+                          disabled={!!savingActivity}
+                          className={`flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-all active:scale-[0.99] text-left ${
+                            isSelected
+                              ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
+                              : 'bg-card border-gray-200 text-text-light hover:border-primary/20 hover:bg-primary/5'
+                          }`}
+                        >
+                          <span>{a}</span>
+                          <span className={`text-[10px] font-bold ml-2 shrink-0 ${isSelected ? 'text-primary' : 'text-text-light/40'}`}>
+                            {isSaving ? '⏳ Guardando...' : isSelected ? '✓ Inscrito' : '+ Inscribirme'}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
+
               {/* Preferencias de notificaciones */}
               <div className="border-t border-gray-100 pt-5 space-y-4">
                 <div className="flex items-center gap-1.5">
@@ -470,60 +602,7 @@ export default function PerfilPage() {
         </>
       )}
 
-      {/* ============ TAB: MI DIARIO ============ */}
-      {activeTab === 'diario' && (
-        <div className="space-y-6">
-          <div className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.01] to-secondary/[0.03]">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-primary" />
-              <h2 className="font-heading text-lg font-bold text-primary-dark">Mi Diario Devocional</h2>
-            </div>
-            <p className="text-xs text-text-light leading-relaxed">
-              Aquí puedes ver tu registro personal de respuestas y reflexiones escritas en los devocionales diarios. Estas reflexiones te ayudan a recordar tu camino de fe.
-            </p>
-          </div>
 
-          {loadingDiario ? (
-            <p className="text-center text-text-light py-8 text-xs">Cargando tu diario devocional...</p>
-          ) : devotionalReplies.length === 0 ? (
-            <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-sm text-center">
-              <p className="text-xs text-text-light">Aún no has respondido a las preguntas de aplicación de los devocionales diarios.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {devotionalReplies.map(entry => (
-                <div key={entry.id} className="bg-card rounded-2xl p-5 border border-gray-200/70 shadow-md space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                        {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </span>
-                      <h3 className="font-heading font-semibold text-primary-dark text-xs md:text-sm">
-                        Devocional: {entry.devotionals?.title || 'Devocional Diario'}
-                      </h3>
-                    </div>
-                    <button onClick={() => handleDeleteDiaryEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar reflexión">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  {entry.devotionals?.verse && (
-                    <blockquote className="bg-gray-50 border-l-4 border-primary/20 px-3 py-2 text-[11px] text-text-light italic rounded-r-lg leading-relaxed">
-                      &ldquo;{entry.devotionals.verse}&rdquo;
-                      <span className="block text-[9px] font-medium text-text-light/70 mt-0.5">— {entry.devotionals.reference}</span>
-                    </blockquote>
-                  )}
-
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-text-light/60 uppercase tracking-wider">Mi Reflexión</span>
-                    <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.answer}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ============ TAB: MIS PUBLICACIONES ============ */}
       {activeTab === 'publicaciones' && (
@@ -615,6 +694,126 @@ export default function PerfilPage() {
                 )}
               </section>
             </>
+          )}
+        </div>
+      )}
+
+      {/* ============ TAB: MI DIARIO ============ */}
+      {activeTab === 'diario' && (
+        <div className="space-y-6">
+          <div className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.01] to-secondary/[0.03]">
+            <div className="flex items-center gap-2">
+              <BookOpen size={20} className="text-primary" />
+              <h2 className="font-heading text-lg font-bold text-primary-dark">Mi Diario Personal</h2>
+            </div>
+            <p className="text-xs md:text-sm text-text-light leading-relaxed">
+              Este es tu rincón íntimo de intimidad con Dios. Escribe tus pensamientos, oraciones, notas y reflexiones del día. Todo lo que escribas aquí es completamente privado y solo visible para ti.
+            </p>
+
+            <form onSubmit={handleSaveJournalEntry} className="space-y-3 pt-2">
+              <textarea
+                placeholder="Querido Señor, hoy quiero entregarte..."
+                value={journalText}
+                onChange={e => setJournalText(e.target.value)}
+                rows={5}
+                className="w-full px-3.5 py-3 rounded-xl border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white shadow-inner leading-relaxed"
+                required
+              />
+              {diaryFeedback && (
+                <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                  diaryFeedback.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {diaryFeedback.msg}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={savingJournal || !journalText.trim()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs md:text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95 shadow-md shadow-primary/20"
+              >
+                <Save size={14} /> {savingJournal ? 'Guardando...' : 'Guardar en mi diario'}
+              </button>
+            </form>
+          </div>
+
+          {loadingDiario ? (
+            <div className="text-center py-12 text-xs text-text-light flex flex-col items-center justify-center gap-2">
+              <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Cargando tu diario...
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Bitácora Personal */}
+              <div className="space-y-3">
+                <h3 className="font-heading font-bold text-primary-dark text-sm flex items-center gap-2 px-1">
+                  ✍️ Mis Notas y Oraciones Privadas
+                </h3>
+                {journalEntries.length === 0 ? (
+                  <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-sm text-center">
+                    <p className="text-xs text-text-light">Aún no has escrito notas personales. Comienza redactando tu primera entrada arriba.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {journalEntries.map(entry => (
+                      <div key={entry.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-2 hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                            {entry.is_local && (
+                              <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[8px] font-bold">Local</span>
+                            )}
+                            {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <button onClick={() => handleDeleteJournalEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar entrada">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                        <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Devocionales contestados */}
+              {devotionalReplies.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-heading font-bold text-primary-dark text-sm flex items-center gap-2 px-1">
+                    🕊️ Mis Respuestas a Devocionales
+                  </h3>
+                  <div className="space-y-3">
+                    {devotionalReplies.map(entry => (
+                      <div key={entry.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-3 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                              {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </span>
+                            <h4 className="font-heading font-semibold text-primary-dark text-xs md:text-sm">
+                              Devocional: {entry.devotionals?.title || 'Devocional Diario'}
+                            </h4>
+                          </div>
+                          <button onClick={() => handleDeleteDiaryEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar reflexión">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        {entry.devotionals?.verse && (
+                          <blockquote className="bg-gray-50 border-l-4 border-primary/20 px-3 py-1.5 text-[11px] text-text-light italic rounded-r-lg leading-relaxed">
+                            &ldquo;{entry.devotionals.verse}&rdquo;
+                            <span className="block text-[9px] font-medium text-text-light/70 mt-0.5">— {entry.devotionals.reference}</span>
+                          </blockquote>
+                        )}
+
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-bold text-text-light/60 uppercase tracking-wider">Mi Reflexión</span>
+                          <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.answer}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

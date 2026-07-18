@@ -21,6 +21,9 @@ export default function DailyDevotional() {
   const [showReplies, setShowReplies] = useState(false);
   const [loadingReplies, setLoadingReplies] = useState(false);
 
+  const [showReflection, setShowReflection] = useState(false);
+  const [showQuestion, setShowQuestion] = useState(false);
+
   const userId = user && user !== 'loading' ? (user as any).uid : null;
   const displayName = user && user !== 'loading' ? (user as any).displayName : '';
 
@@ -133,98 +136,123 @@ export default function DailyDevotional() {
           </cite>
         </div>
 
-        {/* Reflection */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider">Reflexión</h3>
-          <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">
-            {devotional.reflection}
-          </p>
+        {/* Reflection Accordion */}
+        <div className="border-t border-gray-100/60 pt-3">
+          <button
+            type="button"
+            onClick={() => setShowReflection(!showReflection)}
+            className="w-full flex items-center justify-between text-xs font-bold text-primary-dark hover:text-primary transition-colors py-1.5 uppercase tracking-wider focus:outline-none"
+          >
+            <span>💬 Reflexión de hoy</span>
+            <span className="text-[10px] text-text-light font-normal lowercase bg-gray-100 px-2.5 py-0.5 rounded border border-gray-200/50">
+              {showReflection ? 'ocultar' : 'leer reflexión'}
+            </span>
+          </button>
+          {showReflection && (
+            <div className="mt-2 text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap bg-gray-50/50 p-4 rounded-xl border border-gray-100/70 animate-in fade-in slide-in-from-top-1">
+              {devotional.reflection}
+            </div>
+          )}
         </div>
 
         {/* Guided Prayer */}
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-1.5">
+        <div className="bg-gray-50/80 rounded-xl p-4 border border-gray-100/70 space-y-1.5">
           <h3 className="font-semibold text-primary-dark text-xs uppercase tracking-wider">Oración Guiada</h3>
-          <p className="text-sm text-text-light leading-relaxed italic">
+          <p className="text-xs md:text-sm text-text-light leading-relaxed italic">
             &ldquo;{devotional.prayer}&rdquo;
           </p>
         </div>
 
-        {/* Interactive Application Question */}
-        <div className="border-t border-gray-100 pt-4 space-y-3">
-          <div className="flex items-start gap-2">
-            <HelpCircle size={16} className="text-primary shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h3 className="font-bold text-primary-dark text-sm leading-snug">Pregunta de Aplicación</h3>
-              <p className="text-xs md:text-sm text-text leading-relaxed">
-                {devotional.question}
-              </p>
-            </div>
-          </div>
-
-          {/* Form / Reply */}
-          {userId ? (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <textarea
-                placeholder="Escribe aquí tu respuesta, compromiso o lo que Dios te habló hoy..."
-                value={answer}
-                onChange={e => setAnswer(e.target.value)}
-                maxLength={1000}
-                rows={3}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                required
-              />
-               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-text-light">
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={shareToMuro}
-                      onChange={e => {
-                        setShareToMuro(e.target.checked);
-                        if (!e.target.checked) setAnonymousShare(false);
-                      }}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span>Compartir en el Muro Comunitario</span>
-                  </label>
-                  {shareToMuro && (
-                    <label className="flex items-center gap-1.5 cursor-pointer pl-5 text-[11px] text-text-light/90">
-                      <input
-                        type="checkbox"
-                        checked={anonymousShare}
-                        onChange={e => setAnonymousShare(e.target.checked)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <span>Publicar como Anónimo</span>
-                    </label>
-                  )}
+        {/* Interactive Application Question Accordion */}
+        <div className="border-t border-gray-100/60 pt-3">
+          <button
+            type="button"
+            onClick={() => setShowQuestion(!showQuestion)}
+            className="w-full flex items-center justify-between text-xs font-bold text-primary-dark hover:text-primary transition-colors py-1.5 uppercase tracking-wider focus:outline-none"
+          >
+            <span>❓ Pregunta para reflexionar</span>
+            <span className="text-[10px] text-text-light font-normal lowercase bg-gray-100 px-2.5 py-0.5 rounded border border-gray-200/50">
+              {showQuestion ? 'ocultar' : 'responder pregunta'}
+            </span>
+          </button>
+          {showQuestion && (
+            <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-start gap-2.5 bg-gray-50/50 p-3.5 rounded-xl border border-gray-100">
+                <HelpCircle size={16} className="text-primary shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-primary-dark text-xs uppercase tracking-wider">Pregunta de Aplicación</h4>
+                  <p className="text-xs md:text-sm text-text leading-relaxed">
+                    {devotional.question}
+                  </p>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!answer.trim() || saving}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50 self-end"
-                >
-                  <Send size={12} /> {saving ? 'Guardando...' : 'Guardar en mi diario'}
-                </button>
               </div>
-              {feedback && (
-                <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                  <CheckCircle size={12} /> {feedback}
-                </p>
+
+              {/* Form / Reply */}
+              {userId ? (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <textarea
+                    placeholder="Escribe aquí tu respuesta, compromiso o lo que Dios te habló hoy..."
+                    value={answer}
+                    onChange={e => setAnswer(e.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                    required
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-text-light">
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={shareToMuro}
+                          onChange={e => {
+                            setShareToMuro(e.target.checked);
+                            if (!e.target.checked) setAnonymousShare(false);
+                          }}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span>Compartir en el Muro Comunitario</span>
+                      </label>
+                      {shareToMuro && (
+                        <label className="flex items-center gap-1.5 cursor-pointer pl-5 text-[11px] text-text-light/90">
+                          <input
+                            type="checkbox"
+                            checked={anonymousShare}
+                            onChange={e => setAnonymousShare(e.target.checked)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span>Publicar como Anónimo</span>
+                        </label>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!answer.trim() || saving}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors active:scale-95 disabled:opacity-50 self-end shadow-sm"
+                    >
+                      <Send size={12} /> {saving ? 'Guardando...' : 'Guardar en mi diario'}
+                    </button>
+                  </div>
+                  {feedback && (
+                    <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-1">
+                      <CheckCircle size={12} /> {feedback}
+                    </p>
+                  )}
+                </form>
+              ) : (
+                <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-center space-y-2">
+                  <Lock size={16} className="mx-auto text-text-light" />
+                  <p className="text-xs text-text-light">
+                    Inicia sesión para responder a la pregunta, guardar tu diario espiritual y ver respuestas de otros.
+                  </p>
+                  <button
+                    onClick={() => signIn()}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors active:scale-95 shadow-sm"
+                  >
+                    Iniciar sesión con Google
+                  </button>
+                </div>
               )}
-            </form>
-          ) : (
-            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-center space-y-2">
-              <Lock size={16} className="mx-auto text-text-light" />
-              <p className="text-xs text-text-light">
-                Inicia sesión para responder a la pregunta, guardar tu diario espiritual y ver respuestas de otros.
-              </p>
-              <button
-                onClick={() => signIn()}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors active:scale-95 shadow-sm"
-              >
-                Iniciar sesión con Google
-              </button>
             </div>
           )}
         </div>
