@@ -1,85 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingBag, Eye, X, MessageSquare, Tag, Shirt } from 'lucide-react';
+import { getProducts } from '@/lib/supabase';
 
-type Product = {
-  id: string;
-  name: string;
-  type: 'polera' | 'poleron';
-  phrase: string;
-  price: number;
-  colors: { name: string; hex: string }[];
-  sizes: string[];
-  description: string;
-  imagePlaceholder: string;
+const colorHexMap: Record<string, string> = {
+  'negro': '#1A1A1A',
+  'blanco': '#FFFFFF',
+  'azul': '#1E3A8A',
+  'azul marino': '#1C2D42',
+  'gris': '#78716C',
+  'gris melange': '#A3A3A3',
+  'rojo': '#DC2626',
+  'verde': '#15803D',
+  'verde botella': '#1D3B2F',
+  'amarillo': '#F59E0B',
+  'rosa': '#EC4899',
+  'celeste': '#60A5FA',
 };
 
-const PRODUCTS: Product[] = [
-  {
-    id: 'polera-atreverse',
-    name: 'Polera "Atreverse"',
-    type: 'polera',
-    phrase: 'Cuando alguien se atreve a decirlo, otro se atreve a sentirlo',
-    price: 12990,
-    colors: [
-      { name: 'Negro', hex: '#1A1A1A' },
-      { name: 'Blanco', hex: '#FFFFFF' }
-    ],
-    sizes: ['S', 'M', 'L', 'XL'],
-    description: 'Polera de calce clásico unisex confeccionada en 100% Algodón Premium peinado de 180g. Estampa en serigrafía de alta definición con la frase icónica del podcast. Tacto ultrasuave y costuras reforzadas.',
-    imagePlaceholder: 'bg-primary-dark/80 text-white'
-  },
-  {
-    id: 'poleron-eco',
-    name: 'Polerón "Eco"',
-    type: 'poleron',
-    phrase: 'Donde tu historia encuentra eco',
-    price: 24990,
-    colors: [
-      { name: 'Azul Marino', hex: '#1C2D42' },
-      { name: 'Gris Melange', hex: '#A3A3A3' }
-    ],
-    sizes: ['M', 'L', 'XL'],
-    description: 'Polerón de calce relajado con capucha y bolsillo canguro. Interior de felpa perchada premium de 320g para máxima suavidad y abrigo. Frase bordada delicadamente en el centro del pecho.',
-    imagePlaceholder: 'bg-secondary text-white'
-  },
-  {
-    id: 'polera-proposito',
-    name: 'Polera "Propósito"',
-    type: 'polera',
-    phrase: 'Cada historia tiene un propósito. La tuya también.',
-    price: 12990,
-    colors: [
-      { name: 'Blanco', hex: '#FFFFFF' },
-      { name: 'Verde Botella', hex: '#1D3B2F' }
-    ],
-    sizes: ['S', 'M', 'L'],
-    description: 'Polera minimalista confeccionada en algodón orgánico. Estampado suave al tacto con una tipografía elegante inspiradora en el pecho. Diseño versátil para el día a día o encuentros de comunidad.',
-    imagePlaceholder: 'bg-primary/80 text-white'
-  }
-];
+function parseColors(colorsStr?: string) {
+  if (!colorsStr) return [{ name: 'Estándar', hex: '#8B5CF6' }];
+  return colorsStr.split(',').map(c => {
+    const name = c.trim();
+    const hex = colorHexMap[name.toLowerCase()] || '#8B5CF6';
+    return { name, hex };
+  });
+}
+
+function parseSizes(sizesStr?: string) {
+  if (!sizesStr) return ['Única'];
+  return sizesStr.split(',').map(s => s.trim());
+}
 
 export default function TiendaPage() {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
+
+  useEffect(() => {
+    getProducts().then(data => {
+      setProducts(data);
+      setLoading(false);
+    });
+  }, []);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val);
   };
 
-  function openDetails(product: Product) {
-    setSelectedProduct(product);
-    setSelectedSize(product.sizes[0]);
-    setSelectedColor(product.colors[0].name);
+  function openDetails(product: any) {
+    const parsedColors = parseColors(product.colors);
+    const parsedSizes = parseSizes(product.sizes);
+    setSelectedProduct({
+      ...product,
+      parsedColors,
+      parsedSizes
+    });
+    setSelectedSize(parsedSizes[0] || 'Única');
+    setSelectedColor(parsedColors[0]?.name || 'Estándar');
   }
 
-  function handleOrder(product: Product) {
+  function handleOrder(product: any) {
     const phone = '56930263654'; // Teléfono del ministerio para pedidos
     const text = `Hola Piedad, me interesa adquirir el producto del catálogo:\n\n*${product.name}*\n🎨 Color: ${selectedColor}\n📐 Talla: ${selectedSize}\n💵 Precio: ${formatCurrency(product.price)}\n\n¿Cómo puedo realizar el pago y coordinar la entrega?`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
+  }
+
+  function getProductBg(product: any) {
+    if (product.image_placeholder && (product.image_placeholder.startsWith('http') || product.image_placeholder.startsWith('/'))) {
+      return `url(${product.image_placeholder})`;
+    }
+    return null;
   }
 
   return (
@@ -96,46 +91,66 @@ export default function TiendaPage() {
       </div>
 
       {/* Grid de Productos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {PRODUCTS.map(product => (
-          <div key={product.id} className="bg-card rounded-xl border border-gray-200/70 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
-            {/* Imagen Preview */}
-            <div className={`aspect-square flex flex-col items-center justify-center p-6 text-center ${product.imagePlaceholder} relative overflow-hidden`}>
-              <Shirt size={48} className="opacity-40 mb-3 group-hover:scale-110 transition-transform duration-300" />
-              <p className="font-heading italic text-sm md:text-base font-semibold max-w-[80%] leading-relaxed">
-                &ldquo;{product.phrase}&rdquo;
-              </p>
-              <span className="absolute top-3 left-3 bg-white/20 backdrop-blur-md text-[10px] uppercase font-bold px-2 py-0.5 rounded-full text-white tracking-wider">
-                {product.type}
-              </span>
-            </div>
-
-            {/* Info */}
-            <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white">
-              <div>
-                <h3 className="font-heading font-bold text-primary-dark text-base leading-tight">
-                  {product.name}
-                </h3>
-                <p className="text-[11px] text-text-light/80 mt-1 line-clamp-2">
-                  {product.description}
+      {loading ? (
+        <div className="text-center py-20 text-text-light">Cargando catálogo...</div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-20 text-text-light bg-card rounded-xl border border-gray-200/70">
+          No hay productos disponibles por el momento.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {products.map(product => (
+            <div key={product.id} className="bg-card rounded-xl border border-gray-200/70 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+              {/* Imagen Preview */}
+              <div 
+                className="aspect-square flex flex-col items-center justify-center p-6 text-center bg-cover bg-center relative overflow-hidden"
+                style={{
+                  backgroundImage: getProductBg(product) || undefined,
+                  backgroundColor: getProductBg(product) ? undefined : (product.type === 'polera' ? '#1A3A5C' : '#6B6358'),
+                  color: '#ffffff'
+                }}
+              >
+                {!getProductBg(product) && (
+                  <Shirt size={48} className="opacity-40 mb-3 group-hover:scale-110 transition-transform duration-300 text-white" />
+                )}
+                {getProductBg(product) && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+                )}
+                <p className="font-heading italic text-sm md:text-base font-semibold max-w-[80%] leading-relaxed relative z-10 text-white">
+                  &ldquo;{product.phrase}&rdquo;
                 </p>
+                <span className="absolute top-3 left-3 bg-white/20 backdrop-blur-md text-[10px] uppercase font-bold px-2 py-0.5 rounded-full text-white tracking-wider z-10">
+                  {product.type}
+                </span>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="font-bold text-sm text-primary">
-                  {formatCurrency(product.price)}
-                </span>
-                <button
-                  onClick={() => openDetails(product)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-semibold rounded-lg"
-                >
-                  <Eye size={12} /> Ver detalles
-                </button>
+              {/* Info */}
+              <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white">
+                <div>
+                  <h3 className="font-heading font-bold text-primary-dark text-base leading-tight">
+                    {product.name}
+                  </h3>
+                  <p className="text-[11px] text-text-light/80 mt-1 line-clamp-2">
+                    {product.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-bold text-sm text-primary">
+                    {formatCurrency(product.price)}
+                  </span>
+                  <button
+                    onClick={() => openDetails(product)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-semibold rounded-lg"
+                  >
+                    <Eye size={12} /> Ver detalles
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Footer Banner */}
       <div className="bg-card border border-gray-200/70 shadow-sm rounded-xl p-5 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -174,8 +189,18 @@ export default function TiendaPage() {
 
             <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
               {/* Product Preview */}
-              <div className={`aspect-[2/1] rounded-xl flex items-center justify-center p-4 text-center ${selectedProduct.imagePlaceholder}`}>
-                <p className="font-heading italic text-xs font-semibold max-w-[90%] leading-relaxed">
+              <div 
+                className="aspect-[2/1] rounded-xl flex items-center justify-center p-4 text-center bg-cover bg-center relative overflow-hidden"
+                style={{
+                  backgroundImage: getProductBg(selectedProduct) || undefined,
+                  backgroundColor: getProductBg(selectedProduct) ? undefined : (selectedProduct.type === 'polera' ? '#1A3A5C' : '#6B6358'),
+                  color: '#ffffff'
+                }}
+              >
+                {getProductBg(selectedProduct) && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+                )}
+                <p className="font-heading italic text-xs font-semibold max-w-[90%] leading-relaxed relative z-10 text-white">
                   &ldquo;{selectedProduct.phrase}&rdquo;
                 </p>
               </div>
@@ -187,42 +212,46 @@ export default function TiendaPage() {
               </div>
 
               {/* Selector Color */}
-              <div className="space-y-1.5">
-                <span className="block text-xs font-medium text-text-light">Color seleccionado: <strong className="text-primary-dark">{selectedColor}</strong></span>
-                <div className="flex gap-2">
-                  {selectedProduct.colors.map(color => (
-                    <button
-                      key={color.name}
-                      onClick={() => setSelectedColor(color.name)}
-                      className={`w-6 h-6 rounded-full border-2 transition-all ${
-                        selectedColor === color.name ? 'border-primary scale-110 shadow-sm' : 'border-gray-200'
-                      }`}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                    />
-                  ))}
+              {selectedProduct.parsedColors && selectedProduct.parsedColors.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="block text-xs font-medium text-text-light">Color seleccionado: <strong className="text-primary-dark">{selectedColor}</strong></span>
+                  <div className="flex gap-2">
+                    {selectedProduct.parsedColors.map((color: any) => (
+                      <button
+                        key={color.name}
+                        onClick={() => setSelectedColor(color.name)}
+                        className={`w-6 h-6 rounded-full border-2 transition-all ${
+                          selectedColor === color.name ? 'border-primary scale-110 shadow-sm' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Selector Talla */}
-              <div className="space-y-1.5">
-                <span className="block text-xs font-medium text-text-light">Talla seleccionada: <strong className="text-primary-dark">{selectedSize}</strong></span>
-                <div className="flex gap-2">
-                  {selectedProduct.sizes.map(size => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`w-8 h-8 rounded-lg text-xs font-semibold border transition-all ${
-                        selectedSize === size
-                          ? 'bg-primary text-white border-primary shadow-sm'
-                          : 'bg-card text-text-light border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+              {selectedProduct.parsedSizes && selectedProduct.parsedSizes.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="block text-xs font-medium text-text-light">Talla seleccionada: <strong className="text-primary-dark">{selectedSize}</strong></span>
+                  <div className="flex gap-2">
+                    {selectedProduct.parsedSizes.map((size: string) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`w-8 h-8 rounded-lg text-xs font-semibold border transition-all ${
+                          selectedSize === size
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-card text-text-light border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Botón WhatsApp */}
               <button

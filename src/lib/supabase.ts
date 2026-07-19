@@ -842,8 +842,60 @@ export async function isUserInActivity(userId: string, activityName: string): Pr
 }
 
 export async function getProducts() {
-  const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-  return data || [];
+  const { data } = await supabase.from('settings').select('value').eq('key', 'tienda_products').maybeSingle();
+  if (!data?.value) {
+    // Default products seeded if database is empty
+    return [
+      {
+        id: 'polera-atreverse',
+        name: 'Polera "Atreverse"',
+        type: 'polera',
+        phrase: 'Cuando alguien se atreve a decirlo, otro se atreve a sentirlo',
+        price: 12990,
+        colors: 'Negro, Blanco',
+        sizes: 'S, M, L, XL',
+        description: 'Polera de calce clásico unisex confeccionada en 100% Algodón Premium peinado de 180g. Estampa en serigrafía de alta definición con la frase icónica del podcast. Tacto ultrasuave y costuras reforzadas.',
+        image_placeholder: '/images/logo.png'
+      },
+      {
+        id: 'poleron-eco',
+        name: 'Polerón "Eco"',
+        type: 'poleron',
+        phrase: 'Donde tu historia encuentra eco',
+        price: 24990,
+        colors: 'Azul Marino, Gris Melange',
+        sizes: 'M, L, XL',
+        description: 'Polerón de calce relajado con capucha y bolsillo canguro. Interior de felpa perchada premium de 320g para máxima suavidad y abrigo. Frase bordada delicadamente en el centro del pecho.',
+        image_placeholder: '/images/logo.png'
+      },
+      {
+        id: 'polera-proposito',
+        name: 'Polera "Propósito"',
+        type: 'polera',
+        phrase: 'Cada historia tiene un propósito. La tuya también.',
+        price: 12990,
+        colors: 'Blanco, Verde Botella',
+        sizes: 'S, M, L',
+        description: 'Polera minimalista confeccionada en algodón orgánico. Estampado suave al tacto con una tipografía elegante inspiradora en el pecho. Diseño versátil para el día a día o encuentros de comunidad.',
+        image_placeholder: '/images/logo.png'
+      }
+    ];
+  }
+  try {
+    return JSON.parse(data.value);
+  } catch (e) {
+    console.error('Error parsing products:', e);
+    return [];
+  }
+}
+
+export async function saveProducts(products: any[]) {
+  const existing = await supabase.from('settings').select('id').eq('key', 'tienda_products').maybeSingle();
+  const value = JSON.stringify(products);
+  if (existing.data) {
+    return supabase.from('settings').update({ value }).eq('key', 'tienda_products');
+  }
+  return supabase.from('settings').insert({ key: 'tienda_products', value });
 }
 
 export async function createProduct(p: {
@@ -851,12 +903,17 @@ export async function createProduct(p: {
   type: string;
   phrase: string;
   price: number;
-  colors: any[];
-  sizes: string[];
+  colors?: string;
+  sizes?: string;
   description: string;
   image_placeholder?: string;
 }) {
-  return supabase.from('products').insert(p).select().single();
+  const list = await getProducts();
+  const newId = 'prod-' + Date.now();
+  const newProduct = { id: newId, ...p };
+  list.unshift(newProduct);
+  const { error } = await saveProducts(list);
+  return { data: error ? null : newProduct, error };
 }
 
 export async function updateProduct(id: string, p: {
@@ -864,14 +921,23 @@ export async function updateProduct(id: string, p: {
   type?: string;
   phrase?: string;
   price?: number;
-  colors?: any[];
-  sizes?: string[];
+  colors?: string;
+  sizes?: string;
   description?: string;
   image_placeholder?: string;
 }) {
-  return supabase.from('products').update(p).eq('id', id);
+  const list = await getProducts();
+  const idx = list.findIndex((item: any) => item.id === id);
+  if (idx === -1) return { error: { message: 'Producto no encontrado' } };
+  
+  list[idx] = { ...list[idx], ...p };
+  const { error } = await saveProducts(list);
+  return { error };
 }
 
 export async function deleteProduct(id: string) {
-  return supabase.from('products').delete().eq('id', id);
+  const list = await getProducts();
+  const filtered = list.filter((item: any) => item.id !== id);
+  const { error } = await saveProducts(filtered);
+  return { error };
 }

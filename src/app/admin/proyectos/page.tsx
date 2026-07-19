@@ -2057,7 +2057,7 @@ function TiendaAdminSection() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  const emptyForm = { name: '', type: 'polera', phrase: '', price: 0, description: '', image_placeholder: '' };
+  const emptyForm = { name: '', type: 'polera', phrase: '', price: 0, description: '', image_placeholder: '', colors: '', sizes: '' };
   const [form, setForm] = useState({ ...emptyForm });
 
   useEffect(() => {
@@ -2066,7 +2066,16 @@ function TiendaAdminSection() {
 
   function startEdit(p: any) {
     setEditing(p);
-    setForm({ name: p.name, type: p.type, phrase: p.phrase, price: p.price, description: p.description || '', image_placeholder: p.image_placeholder || '' });
+    setForm({
+      name: p.name,
+      type: p.type,
+      phrase: p.phrase,
+      price: p.price,
+      description: p.description || '',
+      image_placeholder: p.image_placeholder || '',
+      colors: p.colors || '',
+      sizes: p.sizes || ''
+    });
   }
 
   function cancelEdit() { setEditing(null); setForm({ ...emptyForm }); }
@@ -2158,6 +2167,18 @@ function TiendaAdminSection() {
             <input value={form.image_placeholder} onChange={e => setForm(f => ({ ...f, image_placeholder: e.target.value }))}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="https://..." />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">Colores (separados por coma)</label>
+            <input value={form.colors} onChange={e => setForm(f => ({ ...f, colors: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Ej: Negro, Blanco, Gris Melange" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-text-light">Tallas (separadas por coma)</label>
+            <input value={form.sizes} onChange={e => setForm(f => ({ ...f, sizes: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              placeholder="Ej: S, M, L, XL" />
           </div>
           <div className="space-y-1 md:col-span-2">
             <label className="text-xs font-medium text-text-light">Descripción</label>
