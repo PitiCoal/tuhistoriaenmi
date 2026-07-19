@@ -2256,6 +2256,15 @@ function DonacionAdminTab() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  // Bank details states
+  const [bankActive, setBankActive] = useState(false);
+  const [bankTitular, setBankTitular] = useState('');
+  const [bankRut, setBankRut] = useState('');
+  const [bankBanco, setBankBanco] = useState('');
+  const [bankTipo, setBankTipo] = useState('');
+  const [bankNumero, setBankNumero] = useState('');
+  const [bankEmail, setBankEmail] = useState('');
+
   useEffect(() => {
     getPageContent('donation').then(data => {
       setActive(data.active === 'true');
@@ -2263,6 +2272,15 @@ function DonacionAdminTab() {
       setDescription(data.description || '');
       setTarget(parseInt(data.target) || 0);
       setCurrent(parseInt(data.current) || 0);
+
+      // Load bank details
+      setBankActive(data.bank_active === 'true');
+      setBankTitular(data.bank_titular || '');
+      setBankRut(data.bank_rut || '');
+      setBankBanco(data.bank_banco || '');
+      setBankTipo(data.bank_tipo || '');
+      setBankNumero(data.bank_numero || '');
+      setBankEmail(data.bank_email || '');
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -2277,7 +2295,17 @@ function DonacionAdminTab() {
       await upsertPageContent('donation', 'description', description.trim());
       await upsertPageContent('donation', 'target', String(target));
       await upsertPageContent('donation', 'current', String(current));
-      setFeedback({ ok: true, msg: 'Meta de donación guardada con éxito' });
+
+      // Save bank details
+      await upsertPageContent('donation', 'bank_active', String(bankActive));
+      await upsertPageContent('donation', 'bank_titular', bankTitular.trim());
+      await upsertPageContent('donation', 'bank_rut', bankRut.trim());
+      await upsertPageContent('donation', 'bank_banco', bankBanco.trim());
+      await upsertPageContent('donation', 'bank_tipo', bankTipo.trim());
+      await upsertPageContent('donation', 'bank_numero', bankNumero.trim());
+      await upsertPageContent('donation', 'bank_email', bankEmail.trim());
+
+      setFeedback({ ok: true, msg: 'Configuración de donación guardada con éxito' });
     } catch (err: any) {
       setFeedback({ ok: false, msg: 'Error al guardar: ' + err.message });
     }
@@ -2292,8 +2320,8 @@ function DonacionAdminTab() {
       <div className="flex items-center gap-3 bg-card rounded-xl p-5 border border-gray-200/70 shadow-md">
         <Heart size={24} className="text-primary animate-pulse" />
         <div>
-          <h2 className="font-heading text-xl font-bold text-primary-dark">Configuración de Meta de Donación</h2>
-          <p className="text-xs text-text-light">Administra la barra de progreso de recaudación que se muestra en el Inicio y en la pestaña de Donar.</p>
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Configuración de Meta y Métodos de Donación</h2>
+          <p className="text-xs text-text-light">Administra la barra de progreso de recaudación y los datos bancarios para transferencia.</p>
         </div>
       </div>
 
@@ -2370,6 +2398,92 @@ function DonacionAdminTab() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Datos Bancarios Section */}
+        <div className="pt-4 border-t border-gray-100 space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="bankActive"
+              checked={bankActive}
+              onChange={e => setBankActive(e.target.checked)}
+              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary/30"
+            />
+            <label htmlFor="bankActive" className="text-sm font-semibold text-primary-dark cursor-pointer select-none">
+              Habilitar Datos de Transferencia Bancaria Directa
+            </label>
+          </div>
+
+          {bankActive && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-200/50">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Nombre Titular / Razón Social</label>
+                <input
+                  type="text"
+                  value={bankTitular}
+                  onChange={e => setBankTitular(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: Fundación Tu Historia En Mí"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">RUT</label>
+                <input
+                  type="text"
+                  value={bankRut}
+                  onChange={e => setBankRut(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: 76.543.210-K"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Banco</label>
+                <input
+                  type="text"
+                  value={bankBanco}
+                  onChange={e => setBankBanco(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: Banco Estado"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Tipo de Cuenta</label>
+                <input
+                  type="text"
+                  value={bankTipo}
+                  onChange={e => setBankTipo(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: Cuenta Corriente"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Número de Cuenta</label>
+                <input
+                  type="text"
+                  value={bankNumero}
+                  onChange={e => setBankNumero(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: 123456789"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Email para Confirmación</label>
+                <input
+                  type="email"
+                  value={bankEmail}
+                  onChange={e => setBankEmail(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: contacto.tuhistoriaenmi@gmail.com"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="pt-2">
