@@ -109,7 +109,10 @@ export default function AdminProyectosPage() {
   });
 
   useEffect(() => {
-    setEpisodes(loadFromStorage(STORAGE_EPISODES, []));
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_EPISODES);
+    }
+    setEpisodes([]);
   }, []);
 
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
@@ -422,7 +425,10 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
   const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
-    setEpisodes(loadFromStorage(storageKey, []));
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(storageKey);
+    }
+    setEpisodes([]);
     loadEpisodesFromSupabase().then(setCloudEpisodes);
   }, []);
 
@@ -442,17 +448,16 @@ function EpisodesTab({ episodes, setEpisodes, storageKey, form, setForm, editing
       if (idx >= 0) merged[idx] = { ...merged[idx], ...ep };
       else merged.push(ep);
     }
-    // Override with local edits
-    for (const ae of episodes) {
-      const idx = merged.findIndex((e: EpisodeData) => e.id === ae.id);
-      if (idx >= 0) merged[idx] = ae;
-      else merged.push(ae);
-    }
     return merged;
   }
   const mergedEpisodes = getMergedEpisodes();
 
-  function save(updated: EpisodeData[]) { setEpisodes(updated); saveToStorage(storageKey, updated); }
+  function save(updated: EpisodeData[]) { 
+    setEpisodes([]); 
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(storageKey);
+    }
+  }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
