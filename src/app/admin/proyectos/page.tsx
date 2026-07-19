@@ -13,7 +13,7 @@ type Tab = 'proyectos' | 'episodios' | 'inicio' | 'participa' | 'auspiciadores' 
 type Project = { id: string; title: string; description: string; date: string; status: string; image: string; participants?: number; max_participants?: number };
 type EpisodeData = { id: string; season: number; episode: number; title: string; guest: string; description: string; image: string; image_position: string; youtube: string; spotify: string; apple: string; amazon: string; };
 
-const ADMIN_EMAIL = 'piti.coal@gmail.com';
+const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
 const STORAGE_PROJECTS = 'tm_projects';
 const STORAGE_EPISODES = 'tm_episodes_admin';
 
@@ -113,7 +113,7 @@ export default function AdminProyectosPage() {
   }, []);
 
   if (user === 'loading') return <div className="text-center py-20 text-text-light">Cargando...</div>;
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || !ADMIN_EMAILS.includes(user.email || '')) {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-6">
         <h1 className="font-heading text-2xl font-bold text-primary-dark">Acceso restringido</h1>

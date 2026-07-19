@@ -16,7 +16,7 @@ const dropdownLinks = [
   { href: '/tienda', label: 'Tienda Solidaria' },
 ];
 
-const ADMIN_EMAIL = 'piti.coal@gmail.com';
+const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
 
 export default function Header() {
   const { user, signIn, signOut } = useAuth();
@@ -28,8 +28,8 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
-  const isAdmin = typeof user === 'object' && user?.email === ADMIN_EMAIL;
-  const fbUser = typeof user === 'object' && user;
+  const isAdmin = typeof user === 'object' && user && ADMIN_EMAILS.includes(user.email || '');
+  const fbUser = typeof user === 'object' && user ? user : null;
 
   useEffect(() => {
     if (!fbUser || !fbUser.uid) return;

@@ -555,7 +555,7 @@ export default function PerfilPage() {
           </div>
 
           {/* ─── Admin shortcut ─── */}
-          {fbUser.email === 'piti.coal@gmail.com' && (
+          {['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'].includes(fbUser.email || '') && (
             <div className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
               <div className="flex items-center gap-2">
                 <Shield size={18} className="text-primary" />

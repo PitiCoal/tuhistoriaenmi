@@ -7,7 +7,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 export default function DonationGoal() {
   const { user } = useAuth();
-  const isAdmin = user && user !== 'loading' && user.email === 'piti.coal@gmail.com';
+  const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
+  const isAdmin = user && user !== 'loading' && ADMIN_EMAILS.includes(user.email || '');
 
   const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '' });
   const [loading, setLoading] = useState(true);
