@@ -2,18 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { getPageContent, upsertPageContent } from '@/lib/supabase';
-import { HandHeart, Pencil, X, Save, Check } from 'lucide-react';
+import { HandHeart, Pencil, X, Save, Check, Heart } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import Link from 'next/link';
 
 export default function DonationGoal() {
   const { user } = useAuth();
   const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
   const isAdmin = user && user !== 'loading' && ADMIN_EMAILS.includes(user.email || '');
 
-  const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '' });
+  const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '', description: '' });
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ active: false, target: 0, current: 0, title: '' });
+  const [editForm, setEditForm] = useState({ active: false, target: 0, current: 0, title: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -23,9 +24,10 @@ export default function DonationGoal() {
       const target = parseInt(data.target) || 0;
       const current = parseInt(data.current) || 0;
       const title = data.title || 'Apoyo mensual al Ministerio';
+      const description = data.description || '';
 
-      setGoal({ active, target, current, title });
-      setEditForm({ active, target, current, title });
+      setGoal({ active, target, current, title, description });
+      setEditForm({ active, target, current, title, description });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -46,6 +48,7 @@ export default function DonationGoal() {
     try {
       await upsertPageContent('donation', 'active', String(editForm.active));
       await upsertPageContent('donation', 'title', editForm.title.trim());
+      await upsertPageContent('donation', 'description', editForm.description.trim());
       await upsertPageContent('donation', 'target', String(editForm.target));
       await upsertPageContent('donation', 'current', String(editForm.current));
       
@@ -118,6 +121,17 @@ export default function DonationGoal() {
               />
             </div>
 
+            <div>
+              <label className="block text-[10px] font-semibold text-text-light mb-0.5">Descripción / Destino de Fondos</label>
+              <textarea
+                value={editForm.description}
+                onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                rows={3}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                placeholder="Describe el destino de los fondos..."
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[10px] font-semibold text-text-light mb-0.5">Meta (CLP)</label>
@@ -168,9 +182,12 @@ export default function DonationGoal() {
             <h3 className="font-heading font-bold text-sm md:text-base text-primary-dark">Meta de Recaudación</h3>
           </div>
           
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h4 className="font-semibold text-xs md:text-sm text-text pr-12">{goal.title}</h4>
-            <div className="flex justify-between items-end text-xs text-text-light">
+            {goal.description && (
+              <p className="text-xs text-text-light leading-relaxed pr-6 whitespace-pre-line">{goal.description}</p>
+            )}
+            <div className="flex justify-between items-end text-xs text-text-light pt-1">
               <span>{formatCurrency(goal.current)} recaudados</span>
               <span className="font-semibold">{formatCurrency(goal.target)} meta</span>
             </div>
@@ -184,6 +201,16 @@ export default function DonationGoal() {
               />
             </div>
             <p className="text-[10px] text-right font-bold text-primary">{pct.toFixed(0)}% completado</p>
+          </div>
+
+          <div className="pt-1">
+            <Link 
+              href="/donar"
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all active:scale-95 shadow-sm"
+            >
+              <Heart size={12} className="fill-current text-white" />
+              Apoyar Colecta / Donar
+            </Link>
           </div>
         </>
       )}

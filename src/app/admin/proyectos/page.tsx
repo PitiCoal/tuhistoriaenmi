@@ -2244,6 +2244,7 @@ function TiendaAdminSection() {
 function DonacionAdminTab() {
   const [active, setActive] = useState(false);
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [target, setTarget] = useState(0);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -2254,6 +2255,7 @@ function DonacionAdminTab() {
     getPageContent('donation').then(data => {
       setActive(data.active === 'true');
       setTitle(data.title || 'Apoyo mensual al Ministerio');
+      setDescription(data.description || '');
       setTarget(parseInt(data.target) || 0);
       setCurrent(parseInt(data.current) || 0);
       setLoading(false);
@@ -2267,6 +2269,7 @@ function DonacionAdminTab() {
     try {
       await upsertPageContent('donation', 'active', String(active));
       await upsertPageContent('donation', 'title', title.trim());
+      await upsertPageContent('donation', 'description', description.trim());
       await upsertPageContent('donation', 'target', String(target));
       await upsertPageContent('donation', 'current', String(current));
       setFeedback({ ok: true, msg: 'Meta de donación guardada con éxito' });
@@ -2321,6 +2324,17 @@ function DonacionAdminTab() {
               onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="Ej: Financiamiento para Hosting PWA y Producción"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-text-light">Descripción / Detalle de la Colecta</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              placeholder="Describe el destino de los fondos..."
             />
           </div>
 

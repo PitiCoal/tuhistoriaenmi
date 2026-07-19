@@ -13,6 +13,7 @@ const episodesDropdown = [
 
 const dropdownLinks = [
   { href: '/comunidad', label: 'Muro' },
+  { href: '/proyectos', label: 'Proyectos' },
   { href: '/tienda', label: 'Tienda Solidaria' },
 ];
 
@@ -113,10 +114,6 @@ export default function Header() {
 
           <Link href="/nosotros" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
             Nosotros
-          </Link>
-
-          <Link href="/proyectos" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
-            Proyectos
           </Link>
 
           {/* Menú Desplegable Comunidad */}
