@@ -8,10 +8,15 @@ import { getPageContent } from '@/lib/supabase';
 export default function DonarPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [bankDetails, setBankDetails] = useState<any>(null);
+  const [donationUrl, setDonationUrl] = useState('https://ceneka.net/tuhistoriaenmi');
+  const [donationBtnText, setDonationBtnText] = useState('Donar vía Ceneka (MercadoPago)');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getPageContent('donation').then(data => {
+      if (data.donation_url) setDonationUrl(data.donation_url);
+      if (data.donation_btn_text) setDonationBtnText(data.donation_btn_text);
+
       if (data.bank_active === 'true') {
         setBankDetails({
           titular: data.bank_titular || '',
@@ -57,12 +62,12 @@ export default function DonarPage() {
 
         <div className="flex flex-col items-center gap-3 pt-2">
           <a
-            href="https://ceneka.net/tuhistoriaenmi"
+            href={donationUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-base font-bold hover:bg-primary/90 transition-colors shadow-sm"
           >
-            <HandHeart size={20} /> Donar vía Ceneka (MercadoPago)
+            <HandHeart size={20} /> {donationBtnText}
             <ExternalLink size={16} />
           </a>
           <p className="text-[11px] text-text-light">

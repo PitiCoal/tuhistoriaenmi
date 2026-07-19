@@ -11,7 +11,7 @@ export default function DonationGoal() {
   const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
   const isAdmin = user && user !== 'loading' && ADMIN_EMAILS.includes(user.email || '');
 
-  const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '', description: '' });
+  const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '', description: '', goal_btn_url: '/donar' });
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ active: false, target: 0, current: 0, title: '', description: '' });
@@ -25,8 +25,9 @@ export default function DonationGoal() {
       const current = parseInt(data.current) || 0;
       const title = data.title || 'Apoyo mensual al Ministerio';
       const description = data.description || '';
+      const goal_btn_url = data.goal_btn_url || '/donar';
 
-      setGoal({ active, target, current, title, description });
+      setGoal({ active, target, current, title, description, goal_btn_url });
       setEditForm({ active, target, current, title, description });
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -52,7 +53,7 @@ export default function DonationGoal() {
       await upsertPageContent('donation', 'target', String(editForm.target));
       await upsertPageContent('donation', 'current', String(editForm.current));
       
-      setGoal({ ...editForm });
+      setGoal({ ...editForm, goal_btn_url: goal.goal_btn_url });
       setSuccess(true);
       setIsEditing(false);
       setTimeout(() => setSuccess(false), 3000);
@@ -204,13 +205,25 @@ export default function DonationGoal() {
           </div>
 
           <div className="pt-1">
-            <Link 
-              href="/donar"
-              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all active:scale-95 shadow-sm"
-            >
-              <Heart size={12} className="fill-current text-white" />
-              Apoyar Colecta / Donar
-            </Link>
+            {(goal.goal_btn_url || '/donar').startsWith('http') ? (
+              <a 
+                href={goal.goal_btn_url || '/donar'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all active:scale-95 shadow-sm"
+              >
+                <Heart size={12} className="fill-current text-white" />
+                Apoyar Colecta / Donar
+              </a>
+            ) : (
+              <Link 
+                href={goal.goal_btn_url || '/donar'}
+                className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all active:scale-95 shadow-sm"
+              >
+                <Heart size={12} className="fill-current text-white" />
+                Apoyar Colecta / Donar
+              </Link>
+            )}
           </div>
         </>
       )}

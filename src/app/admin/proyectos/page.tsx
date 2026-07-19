@@ -2256,6 +2256,11 @@ function DonacionAdminTab() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
+  // Button URLs and configuration states
+  const [donationUrl, setDonationUrl] = useState('');
+  const [donationBtnText, setDonationBtnText] = useState('');
+  const [goalBtnUrl, setGoalBtnUrl] = useState('');
+
   // Bank details states
   const [bankActive, setBankActive] = useState(false);
   const [bankTitular, setBankTitular] = useState('');
@@ -2272,6 +2277,11 @@ function DonacionAdminTab() {
       setDescription(data.description || '');
       setTarget(parseInt(data.target) || 0);
       setCurrent(parseInt(data.current) || 0);
+
+      // Load button configurations
+      setDonationUrl(data.donation_url || 'https://ceneka.net/tuhistoriaenmi');
+      setDonationBtnText(data.donation_btn_text || 'Donar vía Ceneka (MercadoPago)');
+      setGoalBtnUrl(data.goal_btn_url || '/donar');
 
       // Load bank details
       setBankActive(data.bank_active === 'true');
@@ -2295,6 +2305,11 @@ function DonacionAdminTab() {
       await upsertPageContent('donation', 'description', description.trim());
       await upsertPageContent('donation', 'target', String(target));
       await upsertPageContent('donation', 'current', String(current));
+
+      // Save button configurations
+      await upsertPageContent('donation', 'donation_url', donationUrl.trim());
+      await upsertPageContent('donation', 'donation_btn_text', donationBtnText.trim());
+      await upsertPageContent('donation', 'goal_btn_url', goalBtnUrl.trim());
 
       // Save bank details
       await upsertPageContent('donation', 'bank_active', String(bankActive));
@@ -2321,7 +2336,7 @@ function DonacionAdminTab() {
         <Heart size={24} className="text-primary animate-pulse" />
         <div>
           <h2 className="font-heading text-xl font-bold text-primary-dark">Configuración de Meta y Métodos de Donación</h2>
-          <p className="text-xs text-text-light">Administra la barra de progreso de recaudación y los datos bancarios para transferencia.</p>
+          <p className="text-xs text-text-light">Administra la barra de progreso de recaudación, las redirecciones de botones y los datos bancarios.</p>
         </div>
       </div>
 
@@ -2396,6 +2411,54 @@ function DonacionAdminTab() {
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 placeholder="Ej: 380000"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Enlaces y Redirecciones de Donación */}
+        <div className="pt-4 border-t border-gray-100 space-y-4">
+          <h3 className="text-sm font-bold text-primary-dark">Enlaces y Direccionamiento de Botones</h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-text-light">Dirección del botón &ldquo;Apoyar Colecta&rdquo;</label>
+              <input
+                required
+                type="text"
+                value={goalBtnUrl}
+                onChange={e => setGoalBtnUrl(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Ej: /donar o enlace externo completo https://..."
+              />
+              <span className="text-[10px] text-text-light block">Por defecto es /donar (la pestaña de donación). Puedes cambiarlo si quieres enviarlos directo a otro link.</span>
+            </div>
+
+            <div className="space-y-1 col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Enlace Externo de Donación (Botón Principal)</label>
+                <input
+                  required
+                  type="text"
+                  value={donationUrl}
+                  onChange={e => setDonationUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: https://ceneka.net/tuhistoriaenmi"
+                />
+                <span className="text-[10px] text-text-light block">Enlace al que se redirigirá al donar en línea (Ceneka, Flow, MercadoPago, etc).</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-light">Texto del Botón Enlace Externo</label>
+                <input
+                  required
+                  type="text"
+                  value={donationBtnText}
+                  onChange={e => setDonationBtnText(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Ej: Donar vía Ceneka (MercadoPago)"
+                />
+                <span className="text-[10px] text-text-light block">El nombre que aparecerá dentro del botón de donación externa.</span>
+              </div>
             </div>
           </div>
         </div>
