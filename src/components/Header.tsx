@@ -24,6 +24,7 @@ const fontSizes = [
   { value: 'md' as const, label: 'A', subtitle: 'Mediano' },
   { value: 'lg' as const, label: 'A', subtitle: 'Grande' },
   { value: 'xl' as const, label: 'A', subtitle: 'Extra grande' },
+  { value: 'xxl' as const, label: 'A', subtitle: 'Muy grande' },
 ];
 
 export default function Header() {
@@ -214,7 +215,7 @@ export default function Header() {
                               ? 'bg-primary text-white'
                               : 'bg-gray-100 text-text-light hover:bg-gray-200'
                           }`}
-                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : '16px' }}
+                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : fs.value === 'xl' ? '16px' : '20px' }}
                           title={fs.subtitle}
                         >
                           {fs.label}
@@ -321,7 +322,7 @@ export default function Header() {
                           className={`flex-1 flex items-center justify-center py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             fontSize === fs.value ? 'bg-primary text-white' : 'bg-gray-100 text-text-light hover:bg-gray-200'
                           }`}
-                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : '16px' }}
+                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : fs.value === 'xl' ? '16px' : '20px' }}
                           title={fs.subtitle}
                         >
                           {fs.label}{fontSize === fs.value && <Check size={10} className="ml-0.5" />}
@@ -387,7 +388,7 @@ export default function Header() {
                           className={`flex-1 flex items-center justify-center py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             fontSize === fs.value ? 'bg-primary text-white' : 'bg-gray-100 text-text-light hover:bg-gray-200'
                           }`}
-                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : '16px' }}
+                          style={{ fontSize: fs.value === 'sm' ? '10px' : fs.value === 'md' ? '12px' : fs.value === 'lg' ? '14px' : fs.value === 'xl' ? '16px' : '20px' }}
                         >
                           {fs.label}{fontSize === fs.value && <Check size={10} className="ml-0.5" />}
                         </button>

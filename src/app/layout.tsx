@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
         <script dangerouslySetInnerHTML={{
-          __html: `(function(){try{var t=localStorage.getItem('theme'),f=localStorage.getItem('fontSize');if(t)document.documentElement.setAttribute('data-theme',t);if(f)document.documentElement.style.fontSize=({sm:'14px',md:'16px',lg:'18px',xl:'20px'})[f]||'16px'}catch(e){}})()`
+          __html: `(function(){try{var t=localStorage.getItem('theme'),f=localStorage.getItem('fontSize');if(t)document.documentElement.setAttribute('data-theme',t);if(f)document.documentElement.style.fontSize=({sm:'14px',md:'16px',lg:'18px',xl:'20px',xxl:'24px'})[f]||'16px'}catch(e){}})()`
         }} />
         <ThemeProvider>
           <AuthProvider>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
-type FontSize = 'sm' | 'md' | 'lg' | 'xl'
+type FontSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
 type Theme = 'light' | 'dark'
 
 const FONT_SIZES: Record<FontSize, string> = {
@@ -10,6 +10,7 @@ const FONT_SIZES: Record<FontSize, string> = {
   md: '16px',
   lg: '18px',
   xl: '20px',
+  xxl: '24px',
 }
 
 interface ThemeContextValue {
