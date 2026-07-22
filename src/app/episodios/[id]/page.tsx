@@ -27,15 +27,16 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).single();
+  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).maybeSingle();
   const defaultEp = getEpisodeById(id);
 
   if (!cloudEp && !defaultEp) return {};
 
-  const title = cloudEp?.title ?? defaultEp!.title;
-  const guest = cloudEp?.guest ?? defaultEp!.guest;
-  const description = cloudEp?.description ?? defaultEp!.description;
-  const image = cloudEp?.image || defaultEp!.image;
+  const ep = cloudEp || defaultEp!;
+  const title = ep.title;
+  const guest = ep.guest;
+  const description = ep.description || '';
+  const image = ep.image || '/images/logo.png';
 
   return {
     title: `${title} con ${guest} — Tu Historia En Mí`,
@@ -57,28 +58,28 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function EpisodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).single();
+  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).maybeSingle();
   const defaultEp = getEpisodeById(id);
 
   if (!cloudEp && !defaultEp) notFound();
 
   const episode = {
     id: id,
-    season: cloudEp?.season ?? defaultEp!.season,
-    episode: cloudEp?.episode ?? defaultEp!.episode,
-    title: cloudEp?.title ?? defaultEp!.title,
-    guest: cloudEp?.guest ?? defaultEp!.guest,
-    description: cloudEp?.description ?? defaultEp!.description,
-    image: cloudEp?.image || defaultEp!.image,
+    season: cloudEp?.season ?? defaultEp?.season ?? 1,
+    episode: cloudEp?.episode ?? defaultEp?.episode ?? 1,
+    title: cloudEp?.title ?? defaultEp?.title ?? '',
+    guest: cloudEp?.guest ?? defaultEp?.guest ?? '',
+    description: cloudEp?.description ?? defaultEp?.description ?? '',
+    image: cloudEp?.image || defaultEp?.image || '/images/logo.png',
     image_position: (cloudEp as any)?.image_position || 'center',
     links: {
-      youtube: cloudEp?.youtube || defaultEp!.links.youtube || '',
-      spotify: cloudEp?.spotify || defaultEp!.links.spotify || '',
-      apple: cloudEp?.apple || defaultEp!.links.apple || '',
-      amazon: cloudEp?.amazon || defaultEp!.links.amazon || '',
+      youtube: cloudEp?.youtube || defaultEp?.links?.youtube || '',
+      spotify: cloudEp?.spotify || defaultEp?.links?.spotify || '',
+      apple: cloudEp?.apple || defaultEp?.links?.apple || '',
+      amazon: cloudEp?.amazon || defaultEp?.links?.amazon || '',
     },
     tags: defaultEp?.tags || [],
-    sponsor_id: cloudEp?.sponsor_id || null,
+    sponsor_id: (cloudEp as any)?.sponsor_id || null,
   };
 
   const sponsor = episode.sponsor_id ? await getSponsorById(episode.sponsor_id).catch(() => null) : null;
@@ -111,7 +112,7 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
 
         {sponsor && (
           <a
-            href={sponsor.website_url || '#'}
+            href={sponsor.url || '#'}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 bg-card border border-gray-200 text-xs font-semibold text-text-light hover:text-primary transition-all rounded-xl shadow-sm self-start sm:self-center"

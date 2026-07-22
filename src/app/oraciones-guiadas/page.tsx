@@ -1,12 +1,28 @@
 'use client'
 
-import { oracionesGuiadas } from '@/lib/oraciones-guiadas'
+import { useState, useEffect } from 'react'
+import { getOracionesGuiadas } from '@/lib/supabase'
+import { oracionesGuiadas as fallbackOraciones } from '@/lib/oraciones-guiadas'
 import OracionGuiadaCard from '@/components/formacion/OracionGuiadaCard'
-import { Headphones, BookOpen } from 'lucide-react'
+import { Headphones, BookOpen, X } from 'lucide-react'
 import Link from 'next/link'
 
 export default function OracionesGuiadasPage() {
-  const temas = [...new Set(oracionesGuiadas.map(o => o.tema))]
+  const [items, setItems] = useState<any[]>([])
+  const [selectedTema, setSelectedTema] = useState<string | null>(null)
+
+  useEffect(() => {
+    getOracionesGuiadas().then(cloud => {
+      if (cloud.length > 0) {
+        setItems(cloud)
+      } else {
+        setItems(fallbackOraciones)
+      }
+    })
+  }, [])
+
+  const temas = [...new Set(items.map(o => o.tema))]
+  const filtered = selectedTema ? items.filter(o => o.tema === selectedTema) : items
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -31,18 +47,41 @@ export default function OracionesGuiadasPage() {
 
       {/* Filter by theme */}
       <div className="flex gap-1.5 flex-wrap">
+        <button
+          onClick={() => setSelectedTema(null)}
+          className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
+            !selectedTema
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-gray-100 text-text-light hover:bg-gray-200'
+          }`}
+        >
+          Todas
+        </button>
         {temas.map(tema => (
-          <span key={tema} className="px-3 py-1 bg-primary/5 text-primary rounded-full text-[11px] font-medium border border-primary/10">
+          <button
+            key={tema}
+            onClick={() => setSelectedTema(tema === selectedTema ? null : tema)}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 ${
+              selectedTema === tema
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-primary/5 text-primary border border-primary/10 hover:bg-primary/10'
+            }`}
+          >
             {tema}
-          </span>
+            {selectedTema === tema && <X size={10} />}
+          </button>
         ))}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {oracionesGuiadas.map(o => (
+        {filtered.map(o => (
           <OracionGuiadaCard key={o.id} oracion={o} />
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center text-text-light text-sm py-8">No hay oraciones de este tema.</p>
+      )}
 
       {/* Link a diario */}
       <div className="text-center pt-4">

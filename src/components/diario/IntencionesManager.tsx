@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import { getIntenciones, createIntencion, updateIntencionEstado, deleteIntencion } from '@/lib/supabase'
-import { Plus, X, Trash2, ChevronDown, CheckCircle, Clock, Heart, Sparkles } from 'lucide-react'
+import { getIntenciones, createIntencion, updateIntencionEstado, deleteIntencion, getIntencionRespuestas, createIntencionRespuesta, createMuroPost } from '@/lib/supabase'
+import { Plus, Trash2, Heart, Send, Share2, MessageCircle, Check } from 'lucide-react'
 
 const ESTADOS = [
   { value: 'pidiendo', label: '🙏 Pidiendo', color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -21,6 +21,13 @@ export default function IntencionesManager() {
   const [titulo, setTitulo] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [filter, setFilter] = useState<string>('todas')
+  const [isPublic, setIsPublic] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [respuestas, setRespuestas] = useState<Record<string, any[]>>({})
+  const [replyText, setReplyText] = useState('')
+  const [sharing, setSharing] = useState<string | null>(null)
+  const [lastSharedId, setLastSharedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (userId) loadIntenciones()
@@ -34,9 +41,23 @@ export default function IntencionesManager() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!userId || !titulo.trim()) return
-    await createIntencion({ user_id: userId, titulo: titulo.trim(), descripcion: descripcion.trim() || undefined })
+    const result = await createIntencion({
+      user_id: userId,
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim() || undefined,
+    })
+    if (isPublic && result.data) {
+      await createMuroPost({
+        user_id: isAnonymous ? null : userId,
+        author_name: isAnonymous ? 'Anónimo' : null,
+        content: `🙏 Intención de oración: "${titulo.trim()}"${descripcion.trim() ? `\n\n${descripcion.trim()}` : ''}`,
+        category: 'oracion',
+      })
+    }
     setTitulo('')
     setDescripcion('')
+    setIsPublic(false)
+    setIsAnonymous(false)
     setShowForm(false)
     loadIntenciones()
   }
@@ -50,6 +71,47 @@ export default function IntencionesManager() {
     if (!confirm('¿Eliminar esta intención?')) return
     await deleteIntencion(id, userId!)
     loadIntenciones()
+  }
+
+  async function handleShareToMuro(int: any) {
+    if (!userId) return
+    setSharing(int.id)
+    await createMuroPost({
+      user_id: int.is_anonymous ? null : userId,
+      author_name: int.is_anonymous ? 'Anónimo' : null,
+      content: `🙏 Intención de oración: "${int.titulo}"${int.descripcion ? `\n\n${int.descripcion}` : ''} — ${ESTADOS.find(e => e.value === int.estado)?.label || '🙏 Pidiendo'}`,
+      category: 'oracion',
+    })
+    setSharing(null)
+    setLastSharedId(int.id)
+    setTimeout(() => setLastSharedId(null), 3000)
+  }
+
+  async function toggleExpand(intId: string) {
+    if (expandedId === intId) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(intId)
+    setReplyText('')
+    const list = await getIntencionRespuestas(intId)
+    setRespuestas(prev => ({ ...prev, [intId]: list }))
+  }
+
+  async function handleAddReply(intId: string) {
+    if (!userId || !replyText.trim()) return
+    const { data } = await createIntencionRespuesta({
+      intencion_id: intId,
+      user_id: userId,
+      contenido: replyText.trim(),
+    })
+    if (data) {
+      setRespuestas(prev => ({
+        ...prev,
+        [intId]: [...(prev[intId] || []), data]
+      }))
+    }
+    setReplyText('')
   }
 
   const filtered = filter === 'todas' ? intenciones : intenciones.filter((i) => i.estado === filter)
@@ -85,7 +147,21 @@ export default function IntencionesManager() {
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-text-light">
+              <input type="checkbox" checked={isPublic} onChange={e => { setIsPublic(e.target.checked); if (!e.target.checked) setIsAnonymous(false) }}
+                className="rounded border-gray-300 text-primary focus:ring-primary" />
+              Compartir en Comunidad
+            </label>
+            {isPublic && (
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-text-light/80">
+                <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)}
+                  className="rounded border-gray-300 text-primary focus:ring-primary" />
+                Como anónimo
+              </label>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 text-xs text-text-light hover:text-text">Cancelar</button>
             <button type="submit" disabled={!titulo.trim()} className="px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 active:scale-95">
               Agregar intención
@@ -121,34 +197,79 @@ export default function IntencionesManager() {
         )}
         {filtered.map((int) => {
           const estado = ESTADOS.find((e) => e.value === int.estado) || ESTADOS[0]
+          const isExpanded = expandedId === int.id
+          const intRespuestas = respuestas[int.id] || []
           return (
-            <div key={int.id} className="flex items-start gap-3 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-primary-dark">{int.titulo}</p>
-                {int.descripcion && <p className="text-xs text-text-light mt-0.5">{int.descripcion}</p>}
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${estado.color}`}>
-                    {estado.label}
-                  </span>
-                  <span className="text-[9px] text-text-light">
-                    {new Date(int.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
-                  </span>
+            <div key={int.id} className="bg-gray-50/50 rounded-lg p-3 border border-gray-100/50 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-primary-dark">{int.titulo}</p>
+                  {int.descripcion && <p className="text-xs text-text-light mt-0.5">{int.descripcion}</p>}
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${estado.color}`}>
+                      {estado.label}
+                    </span>
+                    <span className="text-[9px] text-text-light">
+                      {new Date(int.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    {int.is_public && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/5 text-primary font-medium">🌐 Pública</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <select
+                    value={int.estado}
+                    onChange={(e) => handleChangeEstado(int.id, e.target.value)}
+                    className="text-[10px] px-1 py-0.5 rounded border border-gray-200 bg-white focus:outline-none"
+                  >
+                    {ESTADOS.map((e) => (
+                      <option key={e.value} value={e.value}>{e.label}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-1 self-end">
+                    <button onClick={() => handleShareToMuro(int)} disabled={sharing === int.id}
+                      className="text-text-light hover:text-primary transition-colors" title="Compartir en Comunidad">
+                      {lastSharedId === int.id ? <Check size={12} className="text-green-500" /> : <Share2 size={12} />}
+                    </button>
+                    <button onClick={() => toggleExpand(int.id)}
+                      className="text-text-light hover:text-primary transition-colors" title="Respuestas">
+                      <MessageCircle size={12} />
+                    </button>
+                    <button onClick={() => handleDelete(int.id)} className="text-text-light hover:text-red-500 transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 shrink-0">
-                <select
-                  value={int.estado}
-                  onChange={(e) => handleChangeEstado(int.id, e.target.value)}
-                  className="text-[10px] px-1 py-0.5 rounded border border-gray-200 bg-white focus:outline-none"
-                >
-                  {ESTADOS.map((e) => (
-                    <option key={e.value} value={e.value}>{e.label}</option>
+
+              {/* Replies */}
+              {isExpanded && (
+                <div className="pl-3 border-l-2 border-primary/20 space-y-2 mt-1">
+                  {intRespuestas.map((r: any) => (
+                    <div key={r.id} className="text-xs bg-white p-2 rounded-lg border border-gray-100">
+                      <p className="text-text leading-relaxed">{r.contenido}</p>
+                      <p className="text-[9px] text-text-light mt-1">
+                        {new Date(r.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   ))}
-                </select>
-                <button onClick={() => handleDelete(int.id)} className="text-text-light hover:text-red-500 transition-colors self-end">
-                  <Trash2 size={12} />
-                </button>
-              </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={replyText}
+                      onChange={e => setReplyText(e.target.value)}
+                      placeholder="Escribe una respuesta (ej. ¡Gracias Señor!)"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      maxLength={500}
+                      onKeyDown={e => e.key === 'Enter' && handleAddReply(int.id)}
+                    />
+                    <button onClick={() => handleAddReply(int.id)} disabled={!replyText.trim()}
+                      className="p-1.5 bg-primary text-white rounded-lg disabled:opacity-50 active:scale-90">
+                      <Send size={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

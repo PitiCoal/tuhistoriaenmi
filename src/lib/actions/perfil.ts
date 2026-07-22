@@ -48,16 +48,4 @@ export async function getUserJournalEntries(userId: string) {
   return data || []
 }
 
-export async function getUserComunidades(userId: string) {
-  const supabase = await createServerClient()
-  const { data: memberships } = await (supabase as any).from('comunidad_members').select('comunidad_id, role').eq('user_id', userId)
-  if (!memberships?.length) return []
 
-  const ids = memberships.map((m: any) => m.comunidad_id)
-  const { data: comunidades } = await (supabase as any).from('comunidades').select('id, name, photo_url, member_count').in('id', ids)
-
-  return (comunidades || []).map((c: any) => ({
-    ...c,
-    role: memberships.find((m: any) => m.comunidad_id === c.id)?.role,
-  }))
-}

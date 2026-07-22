@@ -6,35 +6,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost, supabase } from '@/lib/supabase';
 
 import { getVerseOfDay } from '@/lib/verses';
-import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles, HandHeart } from 'lucide-react';
+import { Heart, MessageCircle, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, HandHeart, BookOpen } from 'lucide-react';
 import Link from 'next/link';
-
-
-
-const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨', '🤗', '🕊️', '💪'] as const;
-const EMOJI_ICONS: Record<string, React.ReactNode> = {
-  '🙏': <span className="text-xs select-none">🙏</span>,
-  '❤️': <Heart size={12} className="text-red-500 fill-current" />,
-  '😊': <Smile size={12} />,
-  '✨': <Sparkles size={12} />,
-};
-
-export function renderContentWithBold(content: string): React.ReactNode {
-  if (!content) return '';
-  const parts = content.split(/(\*\*[\s\S]*?\*\*)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
-    }
-    const subparts = part.split(/(\*[\s\S]*?\*)/g);
-    return subparts.map((subpart, subindex) => {
-      if (subpart.startsWith('*') && subpart.endsWith('*')) {
-        return <strong key={`${index}-${subindex}`} className="font-bold">{subpart.slice(1, -1)}</strong>;
-      }
-      return subpart;
-    });
-  });
-}
+import { MURO_EMOJIS, EMOJI_ICONS, renderContentWithBold } from '@/lib/muro-utils';
 
 function ComunidadContent() {
   const { user, signIn } = useAuth();
@@ -585,16 +559,16 @@ function ComunidadContent() {
             </div>
           </div>
 
-          {/* Comunidades */}
-          <Link href="/comunidades"
+          {/* Mi Diario */}
+          <Link href="/diario"
             className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-                <Users size={18} className="text-secondary" />
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <BookOpen size={18} className="text-amber-600" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-heading font-bold text-primary-dark text-sm">Comunidades</h3>
-                <p className="text-xs text-text-light">Grupos de fe y oración</p>
+                <h3 className="font-heading font-bold text-primary-dark text-sm">Mi Diario</h3>
+                <p className="text-xs text-text-light">Escribe y reflexiona</p>
               </div>
               <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
             </div>
@@ -615,7 +589,7 @@ function ComunidadContent() {
             </div>
           </a>
 
-          {/* Mi Perfil */}
+          {/* Perfil */}
           {user && (
             <Link href="/perfil"
               className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
@@ -624,7 +598,7 @@ function ComunidadContent() {
                   <User size={18} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-heading font-bold text-primary-dark text-sm">Mi Perfil</h3>
+                  <h3 className="font-heading font-bold text-primary-dark text-sm">Perfil</h3>
                   <p className="text-xs text-text-light">Diario, actividades, bio</p>
                 </div>
                 <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
@@ -636,9 +610,9 @@ function ComunidadContent() {
 
       {/* Mobile: cards row */}
       <div className="md:hidden flex gap-3 overflow-x-auto pb-1">
-        <Link href="/comunidades"
-          className="shrink-0 bg-secondary text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
-          <Users size={14} /> Comunidades
+        <Link href="/diario"
+          className="shrink-0 bg-amber-500 text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+          <BookOpen size={14} /> Mi Diario
         </Link>
         <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
           className="shrink-0 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">

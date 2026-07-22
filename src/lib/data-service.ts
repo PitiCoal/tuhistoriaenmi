@@ -34,7 +34,7 @@ export async function saveHeroToCloud(url: string) {
   if (!SUPABASE_CONFIGURED) return;
   try {
     const { supabase } = await import('./supabase');
-    const existing = await supabase.from('settings').select('key').eq('key', 'hero_image').single();
+    const existing = await supabase.from('settings').select('key').eq('key', 'hero_image').maybeSingle();
     if (existing.data) await supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
     else await supabase.from('settings').insert({ key: 'hero_image', value: url });
   } catch {}
@@ -44,7 +44,7 @@ export async function loadHeroFromCloud(): Promise<string | null> {
   if (!SUPABASE_CONFIGURED) return null;
   try {
     const { supabase } = await import('./supabase');
-    const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
+    const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').maybeSingle();
     return data?.value || null;
   } catch { return null; }
 }

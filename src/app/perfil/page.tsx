@@ -13,12 +13,10 @@ import {
 import {
   User, Camera, Save, LogIn, Shield,
   ArrowRight, CheckCircle, AlertCircle, MessageCircle, MessageSquare,
-  Bell, FileText, Trash2, AlertTriangle, Heart, Sparkles,
+  Bell, FileText, Trash2, AlertTriangle, Sparkles,
 } from 'lucide-react';
 
 import Link from 'next/link';
-
-type ProfileTab = 'perfil' | 'publicaciones';
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob);
@@ -31,7 +29,6 @@ function calculateAge(dob: string): number {
 
 export default function PerfilPage() {
   const { user, signIn, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<ProfileTab>('perfil');
   const [profile, setProfile] = useState<any>(null);
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,8 +48,6 @@ export default function PerfilPage() {
 
   // Notification prefs
   const [notifPrefs, setNotifPrefs] = useState({ daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true });
-  const [savingNotif, setSavingNotif] = useState(false);
-
   // My publications
   const [muroPosts, setMuroPosts] = useState<any[]>([]);
   const [muroComments, setMuroComments] = useState<any[]>([]);
@@ -99,7 +94,7 @@ export default function PerfilPage() {
   }, [userId]);
 
   useEffect(() => {
-    if (activeTab !== 'publicaciones' || !userId) return;
+    if (!userId) return;
     setLoadingPubs(true);
     Promise.all([
       getMuroPostsByUser(userId),
@@ -114,7 +109,7 @@ export default function PerfilPage() {
       console.error('Error loading publications:', err);
       setLoadingPubs(false);
     });
-  }, [activeTab, userId]);
+  }, [userId]);
 
 
 
@@ -199,15 +194,6 @@ export default function PerfilPage() {
     setSaving(false);
   }
 
-  async function handleSaveNotif() {
-    if (!userId) return;
-    setSavingNotif(true);
-    await saveNotificationPreferences(userId, notifPrefs);
-    setSavingNotif(false);
-    setFeedback({ ok: true, msg: 'Preferencias de notificaciones guardadas' });
-    setTimeout(() => setFeedback(null), 3000);
-  }
-
   async function handleDeleteAccount() {
     if (!userId) return;
     setDeleting(true);
@@ -237,18 +223,6 @@ export default function PerfilPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      {/* Tabs */}
-      <div className="flex gap-2 bg-card rounded-xl p-1 border border-gray-200/70 shadow-sm">
-        <button onClick={() => setActiveTab('perfil')}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'perfil' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
-          Mi Perfil
-        </button>
-        <button onClick={() => setActiveTab('publicaciones')}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
-          Mis Publicaciones
-        </button>
-      </div>
-
       {/* Feedback global */}
       {feedback && (
         <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${
@@ -259,308 +233,314 @@ export default function PerfilPage() {
         </div>
       )}
 
-      {/* ============ TAB: MI PERFIL ============ */}
-      {activeTab === 'perfil' && (
-        <>
-          <div className="bg-card rounded-2xl p-6 md:p-8 border border-gray-200/70 shadow-md space-y-6">
-            <h1 className="font-heading text-2xl font-bold text-primary-dark">Mi Perfil</h1>
+      {/* ============ CONFIGURACIÓN ============ */}
+      <div className="bg-card rounded-2xl p-6 md:p-8 border border-gray-200/70 shadow-md space-y-6">
+        <h1 className="font-heading text-2xl font-bold text-primary-dark">Configuración</h1>
 
-            {/* Foto */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative">
-                {profile?.photo_url ? (
-                  <img src={profile.photo_url} alt="" className="w-24 h-24 rounded-full object-cover border-2 border-primary/20" />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
-                    <User size={36} className="text-primary" />
-                  </div>
-                )}
-                <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow hover:bg-primary/90 disabled:opacity-50 active:scale-90">
-                  <Camera size={14} />
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-              </div>
-              {uploading && <p className="text-xs text-text-light">Subiendo imagen...</p>}
-            </div>
-
-            {/* Validation errors */}
-            {validationErrors.length > 0 && (
-              <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-2.5 space-y-1">
-                {validationErrors.map((e, i) => (
-                  <p key={i} className="text-sm flex items-center gap-1.5"><AlertCircle size={14} /> {e}</p>
-                ))}
+        {/* Foto */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            {profile?.photo_url ? (
+              <img src={profile.photo_url} alt="" className="w-24 h-24 rounded-full object-cover border-2 border-primary/20" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
+                <User size={36} className="text-primary" />
               </div>
             )}
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow hover:bg-primary/90 disabled:opacity-50 active:scale-90">
+              <Camera size={14} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          </div>
+          {uploading && <p className="text-xs text-text-light">Subiendo imagen...</p>}
+        </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">Nombre *</label>
-                <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={60}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">Email</label>
-                <input type="email" value={email} readOnly
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-text-light cursor-not-allowed" />
-                <p className="text-[10px] text-text-light/60 mt-0.5">Sincronizado con tu cuenta de Google</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-light mb-1">Fecha de nacimiento * <span className="text-text-light/60">(+18 años)</span></label>
-                  <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-light mb-1">Teléfono</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} maxLength={20}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="+56 9 1234 5678" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-light mb-1">País *</label>
-                  <input type="text" value={country} onChange={e => setCountry(e.target.value)} maxLength={50}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Chile" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-light mb-1">Ciudad *</label>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} maxLength={50}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Santiago" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">Bio</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Cuéntanos de ti..." />
-                <p className="text-xs text-text-light/60 mt-1">{bio.length}/300</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-text-light mb-1">Tu testimonio <span className="text-text-light/60">(visible en la comunidad)</span></label>
-                <textarea value={testimonio} onChange={e => setTestimonio(e.target.value)} maxLength={500} rows={3}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="¿Cómo has visto actuar a Dios en tu vida? Tu historia puede inspirar a otros..." />
-                <p className="text-xs text-text-light/60 mt-1">{testimonio.length}/500</p>
-              </div>
+        {/* Validation errors */}
+        {validationErrors.length > 0 && (
+          <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-2.5 space-y-1">
+            {validationErrors.map((e, i) => (
+              <p key={i} className="text-sm flex items-center gap-1.5"><AlertCircle size={14} /> {e}</p>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Nombre *</label>
+            <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={60}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Email</label>
+            <input type="email" value={email} readOnly
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-text-light cursor-not-allowed" />
+            <p className="text-[10px] text-text-light/60 mt-0.5">Sincronizado con tu cuenta de Google</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Fecha de nacimiento * <span className="text-text-light/60">(+18 años)</span></label>
+              <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Teléfono</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} maxLength={20}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="+56 9 1234 5678" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">País *</label>
+              <input type="text" value={country} onChange={e => setCountry(e.target.value)} maxLength={50}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Chile" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-light mb-1">Ciudad *</label>
+              <input type="text" value={city} onChange={e => setCity(e.target.value)} maxLength={50}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Santiago" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Cuéntanos de ti..." />
+            <p className="text-xs text-text-light/60 mt-1">{bio.length}/300</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-light mb-1">Tu testimonio <span className="text-text-light/60">(visible en la comunidad)</span></label>
+            <textarea value={testimonio} onChange={e => setTestimonio(e.target.value)} maxLength={500} rows={3}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="¿Cómo has visto actuar a Dios en tu vida? Tu historia puede inspirar a otros..." />
+            <p className="text-xs text-text-light/60 mt-1">{testimonio.length}/500</p>
+          </div>
 
 
-              {/* Actividades */}
-              {activitiesOptions.length > 0 && (
-                <div className="border-t border-gray-100 pt-4 space-y-3">
+          {/* Actividades */}
+          {activitiesOptions.length > 0 && (
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-light mb-0.5">
+                  ¿A qué actividades o eventos te gustaría participar?
+                </label>
+                <p className="text-[10px] text-text-light/50">Tu selección se guarda automáticamente al hacer clic.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {activitiesOptions.map(a => {
+                  const isSelected = selectedActivities.has(a);
+                  const isSaving = savingActivity === a;
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => toggleActivity(a)}
+                      disabled={!!savingActivity}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-all active:scale-[0.99] text-left ${
+                        isSelected
+                          ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
+                          : 'bg-card border-gray-200 text-text-light hover:border-primary/20 hover:bg-primary/5'
+                      }`}
+                    >
+                      <span>{a}</span>
+                      <span className={`text-[10px] font-bold ml-2 shrink-0 ${isSelected ? 'text-primary' : 'text-text-light/40'}`}>
+                        {isSaving ? '⏳ Guardando...' : isSelected ? '✓ Inscrito' : '+ Inscribirme'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Preferencias de notificaciones */}
+          <div className="border-t border-gray-100 pt-5 space-y-4">
+            <div className="flex items-center gap-1.5">
+              <Bell size={15} className="text-primary" />
+              <h3 className="text-xs font-semibold text-primary-dark">Preferencias de Alertas</h3>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'daily_verse', label: 'Versículo del día', desc: 'Alertas del versículo matutino' },
+                { key: 'daily_reminder', label: 'Recordatorio diario', desc: 'Para escribir en tu diario espiritual' },
+                { key: 'new_episodes', label: 'Nuevos episodios', desc: 'Cuando se publique un nuevo podcast' },
+                { key: 'comments', label: 'Comentarios', desc: 'Respuestas a tus posts en el muro' },
+                { key: 'reactions', label: 'Reacciones', desc: 'Notificaciones de corazones o rezos' },
+              ].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between gap-3 py-1 text-xs">
                   <div>
-                    <label className="block text-xs font-medium text-text-light mb-0.5">
-                      ¿A qué actividades o eventos te gustaría participar?
-                    </label>
-                    <p className="text-[10px] text-text-light/50">Tu selección se guarda automáticamente al hacer clic.</p>
+                    <span className="font-semibold text-text-light">{label}</span>
+                    <p className="text-[10px] text-text-light/50">{desc}</p>
                   </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {activitiesOptions.map(a => {
-                      const isSelected = selectedActivities.has(a);
-                      const isSaving = savingActivity === a;
-                      return (
-                        <button
-                          key={a}
-                          type="button"
-                          onClick={() => toggleActivity(a)}
-                          disabled={!!savingActivity}
-                          className={`flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-all active:scale-[0.99] text-left ${
-                            isSelected
-                              ? 'bg-primary/10 border-primary/30 text-primary-dark font-medium'
-                              : 'bg-card border-gray-200 text-text-light hover:border-primary/20 hover:bg-primary/5'
-                          }`}
-                        >
-                          <span>{a}</span>
-                          <span className={`text-[10px] font-bold ml-2 shrink-0 ${isSelected ? 'text-primary' : 'text-text-light/40'}`}>
-                            {isSaving ? '⏳ Guardando...' : isSelected ? '✓ Inscrito' : '+ Inscribirme'}
-                          </span>
-                        </button>
-                      );
+                  <div
+                    onClick={() => setNotifPrefs(p => {
+                      const updated = { ...p, [key]: !p[key as keyof typeof p] };
+                      saveNotificationPreferences(userId, updated);
+                      return updated;
                     })}
+                    className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                      notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-3.5' : 'translate-x-0.5'
+                    }`} />
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleSave} disabled={saving}
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
+          <Save size={16} /> {saving ? 'Guardando...' : 'Guardar perfil'}
+        </button>
+      </div>
+
+      {/* ============ MI DIARIO ============ */}
+      <Link href="/diario"
+        className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md flex items-center gap-4 hover:shadow-lg transition-all active:scale-[0.99] bg-gradient-to-br from-purple-50 to-primary/[0.04]">
+        <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center shrink-0">
+          <Sparkles size={24} className="text-purple-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Diario</h2>
+          <p className="text-xs text-text-light">Escribe, reflexiona y guarda tus momentos espirituales con Dios</p>
+        </div>
+        <ArrowRight size={20} className="text-purple-500 shrink-0" />
+      </Link>
+
+      {/* ============ MIS PUBLICACIONES ============ */}
+      <div className="space-y-6">
+        <h2 className="font-heading text-xl font-bold text-primary-dark px-1">Publicaciones</h2>
+        {loadingPubs ? (
+          <p className="text-center text-text-light py-10">Cargando publicaciones...</p>
+        ) : (
+          <>
+            {/* Posts del muro */}
+            <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
+              <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
+                <MessageCircle size={18} className="text-primary" /> En el Muro
+              </h2>
+              {muroPosts.length === 0 ? (
+                <p className="text-xs text-text-light">Aún no has creado publicaciones en el muro.</p>
+              ) : (
+                <div className="space-y-3">
+                  {muroPosts.map(post => (
+                    <div key={post.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{post.content}</p>
+                        <p className="text-[10px] text-text-light">
+                          {new Date(post.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <button onClick={() => handleDeletePost(post.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar publicación">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
+            </section>
 
-              {/* Preferencias de notificaciones */}
-              <div className="border-t border-gray-100 pt-5 space-y-4">
-                <div className="flex items-center gap-1.5">
-                  <Bell size={15} className="text-primary" />
-                  <h3 className="text-xs font-semibold text-primary-dark">Preferencias de Alertas</h3>
-                </div>
+            {/* Comentarios del muro */}
+            <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
+              <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
+                <MessageSquare size={18} className="text-primary" /> Comentarios en el Muro
+              </h2>
+              {muroComments.length === 0 ? (
+                <p className="text-xs text-text-light">Aún no has comentado en ninguna publicación.</p>
+              ) : (
                 <div className="space-y-3">
-                  {[
-                    { key: 'daily_verse', label: 'Versículo del día', desc: 'Alertas del versículo matutino' },
-                    { key: 'daily_reminder', label: 'Recordatorio diario', desc: 'Para escribir en tu diario espiritual' },
-                    { key: 'new_episodes', label: 'Nuevos episodios', desc: 'Cuando se publique un nuevo podcast' },
-                    { key: 'comments', label: 'Comentarios', desc: 'Respuestas a tus posts en el muro' },
-                    { key: 'reactions', label: 'Reacciones', desc: 'Notificaciones de corazones o rezos' },
-                  ].map(({ key, label, desc }) => (
-                    <div key={key} className="flex items-center justify-between gap-3 py-1 text-xs">
-                      <div>
-                        <span className="font-semibold text-text-light">{label}</span>
-                        <p className="text-[10px] text-text-light/50">{desc}</p>
+                  {muroComments.map(comment => (
+                    <div key={comment.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{comment.content}</p>
+                        <p className="text-[10px] text-text-light">
+                          {new Date(comment.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
                       </div>
-                      <div
-                        onClick={() => setNotifPrefs(p => {
-                          const updated = { ...p, [key]: !p[key as keyof typeof p] };
-                          saveNotificationPreferences(userId, updated); // Guardar de forma inmediata al hacer clic
-                          return updated;
-                        })}
-                        className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                          notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
-                        }`}
-                      >
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                          notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-3.5' : 'translate-x-0.5'
-                        }`} />
+                      <button onClick={() => handleDeleteComment(comment.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar comentario">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Testimonios enviados */}
+            <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
+              <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
+                <FileText size={18} className="text-primary" /> Testimonios
+              </h2>
+              {testimoniosList.length === 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-text-light">Aún no has enviado ningún testimonio.</p>
+                  <Link href="/testimonio" className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline">
+                    Compartir mi historia <ArrowRight size={12} />
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {testimoniosList.map(t => (
+                    <div key={t.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 space-y-1">
+                      <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{t.message}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${t.public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {t.public ? 'Aprobado' : 'Pendiente de revisión'}
+                        </span>
+                        <p className="text-xs text-text-light">
+                          {new Date(t.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
 
-            <button onClick={handleSave} disabled={saving}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors active:scale-95">
-              <Save size={16} /> {saving ? 'Guardando...' : 'Guardar perfil'}
-            </button>
+      {/* ─── Nota privacidad ─── */}
+      <div className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm">
+        <p className="text-xs text-text-light text-center">
+          Tu perfil es visible para otros usuarios de la comunidad.{' '}
+          <Link href="/privacidad" className="text-primary underline">Política de Privacidad</Link>
+          {' · '}
+          <Link href="/terminos" className="text-primary underline">Términos de Uso</Link>
+        </p>
+      </div>
+
+      {/* ─── Admin shortcut ─── */}
+      {isAdminEmail(fbUser.email) && (
+        <Link href="/admin"
+          className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md flex items-center gap-4 hover:shadow-lg transition-all active:scale-[0.99] bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Shield size={22} className="text-primary" />
           </div>
-
-          {/* ─── Nota privacidad ─── */}
-          <div className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm">
-            <p className="text-xs text-text-light text-center">
-              Tu perfil es visible para otros usuarios de la comunidad.{' '}
-              <Link href="/privacidad" className="text-primary underline">Política de Privacidad</Link>
-              {' · '}
-              <Link href="/terminos" className="text-primary underline">Términos de Uso</Link>
-            </p>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-heading text-lg font-bold text-primary-dark">Panel de Administración</h2>
+            <p className="text-xs text-text-light">Gestiona episodios, auspiciadores, contenido y métricas</p>
           </div>
-
-          {/* ─── Admin shortcut ─── */}
-          {isAdminEmail(fbUser.email) && (
-            <Link href="/admin"
-              className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md flex items-center gap-4 hover:shadow-lg transition-all active:scale-[0.99] bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Shield size={22} className="text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-heading text-lg font-bold text-primary-dark">Panel de Administración</h2>
-                <p className="text-xs text-text-light">Gestiona episodios, auspiciadores, contenido y métricas</p>
-              </div>
-              <ArrowRight size={18} className="text-primary shrink-0" />
-            </Link>
-          )}
-
-          {/* ─── Zona peligrosa: Eliminar cuenta ─── */}
-          <div className="bg-card rounded-xl p-5 border border-red-200/70 shadow-sm space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-red-500" />
-              <h3 className="font-semibold text-red-700 text-sm">Zona de riesgo</h3>
-            </div>
-            <p className="text-xs text-text-light leading-relaxed">
-              Eliminar tu cuenta borrará permanentemente tu perfil, publicaciones, reacciones, testimonios y todos tus datos. Esta acción es <strong>irreversible</strong>.
-            </p>
-            <button onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors">
-              <Trash2 size={14} /> Eliminar mi cuenta y datos
-            </button>
-          </div>
-        </>
+          <ArrowRight size={18} className="text-primary shrink-0" />
+        </Link>
       )}
 
-
-
-      {/* ============ TAB: MIS PUBLICACIONES ============ */}
-      {activeTab === 'publicaciones' && (
-        <div className="space-y-6">
-          {loadingPubs ? (
-            <p className="text-center text-text-light py-10">Cargando publicaciones...</p>
-          ) : (
-            <>
-              {/* Posts del muro */}
-              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
-                <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
-                  <MessageCircle size={18} className="text-primary" /> Mis Publicaciones en el Muro
-                </h2>
-                {muroPosts.length === 0 ? (
-                  <p className="text-xs text-text-light">Aún no has creado publicaciones en el muro.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {muroPosts.map(post => (
-                      <div key={post.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{post.content}</p>
-                          <p className="text-[10px] text-text-light">
-                            {new Date(post.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                        <button onClick={() => handleDeletePost(post.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar publicación">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Comentarios del muro */}
-              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
-                <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
-                  <MessageSquare size={18} className="text-primary" /> Mis Comentarios en el Muro
-                </h2>
-                {muroComments.length === 0 ? (
-                  <p className="text-xs text-text-light">Aún no has comentado en ninguna publicación.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {muroComments.map(comment => (
-                      <div key={comment.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{comment.content}</p>
-                          <p className="text-[10px] text-text-light">
-                            {new Date(comment.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                        <button onClick={() => handleDeleteComment(comment.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar comentario">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Testimonios enviados */}
-              <section className="bg-card rounded-2xl p-5 md:p-6 border border-gray-200/70 shadow-md space-y-4">
-                <h2 className="font-heading text-lg font-bold text-primary-dark flex items-center gap-2">
-                  <FileText size={18} className="text-primary" /> Testimonios Enviados
-                </h2>
-                {testimoniosList.length === 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-text-light">Aún no has enviado ningún testimonio.</p>
-                    <Link href="/testimonio" className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline">
-                      Compartir mi historia <ArrowRight size={12} />
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {testimoniosList.map(t => (
-                      <div key={t.id} className="bg-gray-50 rounded-xl p-4 border border-gray-150 space-y-1">
-                        <p className="text-xs md:text-sm text-text leading-relaxed line-clamp-3">{t.message}</p>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${t.public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {t.public ? 'Aprobado' : 'Pendiente de revisión'}
-                          </span>
-                          <p className="text-xs text-text-light">
-                            {new Date(t.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </>
-          )}
+      {/* ─── Zona peligrosa: Eliminar cuenta ─── */}
+      <div className="bg-card rounded-xl p-5 border border-red-200/70 shadow-sm space-y-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={16} className="text-red-500" />
+          <h3 className="font-semibold text-red-700 text-sm">Zona de riesgo</h3>
         </div>
-      )}
+        <p className="text-xs text-text-light leading-relaxed">
+          Eliminar tu cuenta borrará permanentemente tu perfil, publicaciones, reacciones, testimonios y todos tus datos. Esta acción es <strong>irreversible</strong>.
+        </p>
+        <button onClick={() => setShowDeleteModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors">
+          <Trash2 size={14} /> Eliminar mi cuenta y datos
+        </button>
+      </div>
 
       {/* Modal eliminar cuenta */}
       {showDeleteModal && (

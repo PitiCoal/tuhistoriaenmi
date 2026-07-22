@@ -27,7 +27,7 @@ export default function PerfilPublicoPage() {
         <User size={48} className="mx-auto text-text-light" />
         <h1 className="font-heading text-xl font-bold text-primary-dark">Perfil no encontrado</h1>
         <p className="text-text-light text-sm">Este usuario aún no ha completado su perfil.</p>
-        <Link href="/comunidad" className="text-primary text-sm hover:underline">Volver a la comunidad</Link>
+        <Link href="/comunidad" className="text-primary text-sm hover:underline">Volver al muro</Link>
       </div>
     );
   }

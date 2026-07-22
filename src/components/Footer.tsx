@@ -34,6 +34,7 @@ export default function Footer() {
               <li><Link href="/formacion" className="hover:text-white transition-colors">Formación</Link></li>
               <li><Link href="/diario" className="hover:text-white transition-colors">Diario</Link></li>
               <li><Link href="/comunidad" className="hover:text-white transition-colors">Comunidad</Link></li>
+              <li><Link href="/recomendaciones" className="hover:text-white transition-colors">Recomendaciones</Link></li>
             </ul>
           </div>
 

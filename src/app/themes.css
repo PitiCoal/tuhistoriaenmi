@@ -1,0 +1,146 @@
+:root {
+  --color-primary: #0085C2;
+  --color-primary-dark: #1A3A5C;
+  --color-secondary: #5BA3A8;
+  --color-bg: rgba(245, 240, 235, 0.92);
+  --color-card: #FFFFFF;
+  --color-text: #1A1A1A;
+  --color-text-light: #6B6358;
+  --color-accent: #D4A843;
+  --color-gold: #C4974A;
+  --color-yt: #FF0000;
+  --color-spotify: #1DB954;
+  --color-apple: #6C3FE7;
+  --color-amazon: #FF9900;
+  --color-whatsapp: #25D366;
+  --color-instagram: #E4405F;
+  --font-heading: Georgia, serif;
+  --font-body: Inter, system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-text: #e2e8f0;
+  --color-text-light: #94a3b8;
+  --color-primary: #38bdf8;
+  --color-primary-dark: #7dd3fc;
+  --color-accent: #fbbf24;
+  --color-gold: #f59e0b;
+  --color-secondary: #6ee7b7;
+}
+
+[data-theme="dark"] body {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)), url('/images/fondo-podcast.jpg');
+}
+
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-card {
+  background-color: var(--color-card);
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #1e293b;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .border-gray-200\/70,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-100 {
+  border-color: rgba(51, 65, 85, 0.7);
+}
+
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-lg,
+[data-theme="dark"] .shadow-xl {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .text-white\/80,
+[data-theme="dark"] .text-white\/60 {
+  color: rgba(226, 232, 240, 0.8);
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-image: url('/images/fondo-podcast.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 767px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+main {
+  min-height: calc(100vh - 8rem);
+}
+
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+button, a, input, select, textarea, label {
+  min-height: 44px;
+}
+
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:active, a:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+main > * {
+  animation: fadeSlideUp 0.3s ease-out;
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out;
+}

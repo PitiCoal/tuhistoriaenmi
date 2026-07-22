@@ -105,7 +105,7 @@ export default function DailyVerse() {
           disabled={!user || user === 'loading'}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary border border-gray-200 transition-colors active:scale-95 w-full sm:w-auto"
         >
-          <Share2 size={16} /> {shared ? <Check size={16} className="text-green-500" /> : 'Compartir en Muro'}
+          <Share2 size={16} /> {shared ? <Check size={16} className="text-green-500" /> : 'Compartir en Comunidad'}
         </button>
       </div>
 

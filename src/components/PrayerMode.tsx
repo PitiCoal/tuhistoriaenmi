@@ -213,7 +213,7 @@ export default function PrayerMode() {
                 onClick={shareIntention}
                 className="w-full py-3 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                <Heart size={14} /> Compartir intención en el Muro
+                <Heart size={14} /> Compartir intención en la Comunidad
               </button>
               <button onClick={closeModal} className="text-xs text-text-light hover:text-primary transition-colors">
                 Cerrar

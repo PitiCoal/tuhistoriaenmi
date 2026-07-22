@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './themes.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
 import InstallPrompt from '@/components/InstallPrompt';
 import NotificationPrompt from '@/components/NotificationPrompt';
 import { AuthProvider } from '@/lib/AuthContext';
+import { ThemeProvider } from '@/lib/ThemeContext';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import { Suspense } from 'react';
 
@@ -26,29 +28,30 @@ export const viewport: Viewport = {
   themeColor: '#0085C2',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className="min-h-screen flex flex-col bg-bg text-text antialiased">
-        <AuthProvider>
-          <Suspense fallback={null}>
-            <AnalyticsTracker />
-          </Suspense>
-          <Header />
-          <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-20 md:pb-8">
-            {children}
-          </main>
-          <Suspense fallback={null}>
-            <MobileNav />
-          </Suspense>
-          <InstallPrompt />
-          <NotificationPrompt />
-          <Footer />
-        </AuthProvider>
+    <html lang="es" suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col antialiased">
+        <ThemeProvider>
+          <AuthProvider>
+            <Suspense fallback={null}>
+              <AnalyticsTracker />
+            </Suspense>
+            <Header />
+            <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-20 md:pb-8">
+              {children}
+            </main>
+            <Suspense fallback={null}>
+              <MobileNav />
+            </Suspense>
+            <InstallPrompt />
+            <NotificationPrompt />
+            <Footer />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

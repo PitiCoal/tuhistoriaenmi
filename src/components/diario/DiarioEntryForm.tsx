@@ -23,7 +23,7 @@ export default function DiarioEntryForm({ date, onSaved }: DiarioEntryFormProps)
   const [reflexion, setReflexion] = useState('')
   const [queMeDiceDios, setQueMeDiceDios] = useState('')
   const [proposito, setProposito] = useState('')
-  const [estadoAnimo, setEstadoAnimo] = useState('')
+  const [estadosAnimo, setEstadosAnimo] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [hasExisting, setHasExisting] = useState(false)
@@ -40,7 +40,7 @@ export default function DiarioEntryForm({ date, onSaved }: DiarioEntryFormProps)
         setReflexion(existing.reflexion || '')
         setQueMeDiceDios(existing.que_me_dice_dios || '')
         setProposito(existing.proposito || '')
-        setEstadoAnimo(existing.estado_animo || '')
+        setEstadosAnimo(existing.estado_animo ? existing.estado_animo.split(',').filter(Boolean) : [])
         setHasExisting(true)
       }
     })
@@ -57,7 +57,7 @@ export default function DiarioEntryForm({ date, onSaved }: DiarioEntryFormProps)
       reflexion: reflexion.trim() || undefined,
       que_me_dice_dios: queMeDiceDios.trim() || undefined,
       proposito: proposito.trim() || undefined,
-      estado_animo: estadoAnimo || undefined,
+      estado_animo: estadosAnimo.length > 0 ? estadosAnimo.join(',') : undefined,
     })
     setSaving(false)
     if (!error) {
@@ -148,25 +148,33 @@ export default function DiarioEntryForm({ date, onSaved }: DiarioEntryFormProps)
         </div>
       </div>
 
-      {/* Estado de ánimo */}
+      {/* Estado de ánimo (multiselección) */}
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-text-light uppercase tracking-wider">¿Cómo está tu corazón hoy?</label>
+        <label className="text-xs font-bold text-text-light uppercase tracking-wider">¿Cómo está tu corazón hoy? <span className="font-normal normal-case text-text-light/60">(elige una o más)</span></label>
         <div className="flex flex-wrap gap-2">
-          {ESTADOS_ANIMO.map((em) => (
-            <button
-              key={em}
-              type="button"
-              onClick={() => setEstadoAnimo(estadoAnimo === em ? '' : em)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
-                estadoAnimo === em
-                  ? 'bg-primary text-white border-primary shadow-sm'
-                  : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {em}
-            </button>
-          ))}
+          {ESTADOS_ANIMO.map((em) => {
+            const isSelected = estadosAnimo.includes(em)
+            return (
+              <button
+                key={em}
+                type="button"
+                onClick={() => setEstadosAnimo(prev =>
+                  isSelected ? prev.filter(e => e !== em) : [...prev, em]
+                )}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+                  isSelected
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {em}
+              </button>
+            )
+          })}
         </div>
+        {estadosAnimo.length > 0 && (
+          <p className="text-[10px] text-text-light/60">{estadosAnimo.length} seleccionado{estadosAnimo.length > 1 ? 's' : ''}</p>
+        )}
       </div>
 
       {/* Submit */}

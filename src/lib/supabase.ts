@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { FALLBACK_DEVOTIONALS } from './devotionals-data';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -21,7 +22,7 @@ export async function loadEpisodes() {
 }
 
 export async function saveEpisode(episode: any) {
-  const existing = await supabase.from('episodes').select('id').eq('id', episode.id).single();
+  const existing = await supabase.from('episodes').select('id').eq('id', episode.id).maybeSingle();
   if (existing.data) {
     return supabase.from('episodes').update(episode).eq('id', episode.id);
   }
@@ -107,7 +108,7 @@ export function mergeEpisodesWithDefaults(supabaseEpisodes: any[], defaultEpisod
 
 // ===== PROFILES =====
 export async function getProfile(userId: string) {
-  const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+  const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
   return data;
 }
 
@@ -142,6 +143,8 @@ export async function createMuroPost(post: { user_id?: string | null; author_nam
 }
 
 export async function deleteMuroPost(id: string) {
+  await supabase.from('muro_replies').delete().eq('post_id', id);
+  await supabase.from('reactions').delete().eq('target_type', 'muro_post').eq('target_id', id);
   return supabase.from('muro_posts').delete().eq('id', id);
 }
 
@@ -191,7 +194,7 @@ export async function getUserReactions(targetType: string, userId: string, emoji
 
 export async function getAllReactionCounts(targetType: string, targetId: string) {
   const { data } = await supabase.from('reactions')
-    .select('emoji, count').eq('target_type', targetType).eq('target_id', targetId);
+    .select('emoji').eq('target_type', targetType).eq('target_id', targetId);
   const counts: Record<string, number> = {};
   (data || []).forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1; });
   return counts;
@@ -212,6 +215,10 @@ export async function saveTestimonio(t: { user_id: string; name: string; email: 
 export async function getTestimonios() {
   const { data } = await supabase.from('testimonios').select('*').order('created_at', { ascending: false });
   return data || [];
+}
+
+export async function deleteTestimonio(id: string) {
+  return supabase.from('testimonios').delete().eq('id', id);
 }
 
 export async function getPublicTestimonios() {
@@ -294,14 +301,26 @@ export async function getSponsorById(id: string) {
   return data;
 }
 
+export async function saveSponsor(sponsor: any) {
+  const existing = await supabase.from('sponsors').select('id').eq('id', sponsor.id).maybeSingle();
+  if (existing.data) {
+    return supabase.from('sponsors').update(sponsor).eq('id', sponsor.id);
+  }
+  return supabase.from('sponsors').insert(sponsor);
+}
+
+export async function deleteSponsor(id: string) {
+  return supabase.from('sponsors').delete().eq('id', id);
+}
+
 // ===== HERO IMAGE =====
 export async function getHeroImage() {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
+  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').maybeSingle();
   return data?.value || null;
 }
 
 export async function saveHeroImage(url: string) {
-  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').single();
+  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').maybeSingle();
   if (existing.data) {
     return supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
   }
@@ -363,7 +382,11 @@ export async function deleteAllUserData(userId: string) {
     supabase.from('diario_intenciones').delete().eq('user_id', userId),
     supabase.from('diario_gratitud').delete().eq('user_id', userId),
     supabase.from('diario_examen').delete().eq('user_id', userId),
-    supabase.from('comunidad_members').delete().eq('user_id', userId),
+
+    supabase.from('devotional_replies').delete().eq('user_id', userId),
+    supabase.from('user_streaks').delete().eq('user_id', userId),
+    supabase.from('activity_participants').delete().eq('user_id', userId),
+    supabase.from('notifications').delete().eq('user_id', userId),
   ]);
 }
 
@@ -394,29 +417,6 @@ export async function getEpisodeClicksCountByPlatform(): Promise<Record<string, 
 }
 
 // ===== DEVOCIONALES =====
-const FALLBACK_DEVOTIONALS = [
-  {
-    id: 'fallback-1',
-    title: 'Caminando en la Luz',
-    verse: 'Si caminamos en la luz, como él está en la luz, tenemos comunión unos con otros.',
-    reference: '1 Juan 1:7',
-    reflection: 'Caminar en la luz significa vivir con transparencia ante Dios y ante nuestros hermanos. No significa ser perfectos, sino reconocer nuestras debilidades y permitir que la gracia de Dios nos guíe a diario. La comunión con la comunidad nace de esta verdad compartida.',
-    question: '¿Qué área de tu vida necesitas rendir hoy a la luz de Dios?',
-    prayer: 'Señor, guíame para caminar en verdad y amor. Que mi vida refleje tu luz y que pueda ser un puente de comunión con mis hermanos. Amén.',
-    publish_date: null
-  },
-  {
-    id: 'fallback-2',
-    title: 'La Paz en la Tormenta',
-    verse: 'La paz les dejo, mi paz les doy; no como el mundo la da, yo se la doy.',
-    reference: 'Juan 14:27',
-    reflection: 'La paz de Dios no es la ausencia de problemas, sino la presencia de Su Espíritu consolándonos en medio de ellos. Mientras el mundo busca seguridad externa, Jesús nos ofrece una paz inquebrantable en el corazón.',
-    question: '¿Qué tormenta necesitas entregarle a Jesús hoy para recibir Su paz?',
-    prayer: 'Jesús, descanso en tu promesa. Silencia mis temores y llena mi corazón con tu paz que sobrepasa todo entendimiento. Amén.',
-    publish_date: null
-  }
-];
-
 export async function getDailyDevotional() {
   const today = new Date().toISOString().split('T')[0];
   const { data: scheduled } = await supabase.from('devotionals').select('*').eq('publish_date', today).maybeSingle();
@@ -717,7 +717,7 @@ export async function completePlanDay(userId: string, planId: string, dayNumber:
     .from('devotional_plans')
     .select('duration')
     .eq('id', planId)
-    .single();
+    .maybeSingle();
 
   const isComplete = newCompleted.length >= (plan?.duration || 999);
 
@@ -760,35 +760,49 @@ export async function getCatechismBySource(source: string) {
   return data || [];
 }
 
-// ===== COMUNIDADES =====
-export async function getComunidades() {
-  const { data } = await supabase.from('comunidades').select('*').order('member_count', { ascending: false });
-  return data || [];
+// ===== RECOMENDACIONES (page_content CRUD) =====
+export async function getRecomendaciones() {
+  const obj = await getPageContent('recomendaciones');
+  try {
+    const raw = obj['items'];
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
-export async function getComunidadById(id: string) {
-  const { data } = await supabase.from('comunidades').select('*').eq('id', id).single();
-  return data;
+export async function saveRecomendaciones(items: any[]) {
+  return upsertPageContent('recomendaciones', 'items', JSON.stringify(items));
 }
 
-export async function getUserComunidades(userId: string) {
-  const { data: memberships } = await supabase
-    .from('comunidad_members')
-    .select('comunidad_id, role')
-    .eq('user_id', userId);
+// ===== ORACIONES GUIADAS (page_content CRUD) =====
+export async function getOracionesGuiadas() {
+  const obj = await getPageContent('oraciones_guiadas');
+  try {
+    const raw = obj['items'];
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
-  if (!memberships?.length) return [];
+export async function saveOracionesGuiadas(items: any[]) {
+  return upsertPageContent('oraciones_guiadas', 'items', JSON.stringify(items));
+}
 
-  const ids = memberships.map((m: any) => m.comunidad_id);
-  const { data: comunidades } = await supabase
-    .from('comunidades')
-    .select('id, name, photo_url, member_count')
-    .in('id', ids);
+// ===== RECURSOS CATOLICOS (page_content CRUD) =====
+export async function getRecursosCatolicos() {
+  const obj = await getPageContent('recursos_catolicos');
+  try {
+    const raw = obj['items'];
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
-  return (comunidades || []).map((c: any) => ({
-    ...c,
-    role: memberships.find((m: any) => m.comunidad_id === c.id)?.role,
-  }));
+export async function saveRecursosCatolicos(items: any[]) {
+  return upsertPageContent('recursos_catolicos', 'items', JSON.stringify(items));
 }
 
 // ===== DIARIO (Pilar 1) =====
@@ -845,12 +859,22 @@ export async function createIntencion(intencion: {
   titulo: string;
   descripcion?: string;
   estado?: string;
+  is_public?: boolean;
+  is_anonymous?: boolean;
 }) {
   return supabase
     .from('diario_intenciones')
     .insert({ ...intencion, estado: intencion.estado || 'pidiendo' })
     .select()
     .single();
+}
+
+export async function updateIntencionPrivacy(id: string, userId: string, data: { is_public?: boolean; is_anonymous?: boolean }) {
+  return supabase
+    .from('diario_intenciones')
+    .update(data)
+    .eq('id', id)
+    .eq('user_id', userId);
 }
 
 export async function updateIntencionEstado(id: string, userId: string, estado: string) {
@@ -863,6 +887,49 @@ export async function updateIntencionEstado(id: string, userId: string, estado: 
 
 export async function deleteIntencion(id: string, userId: string) {
   return supabase.from('diario_intenciones').delete().eq('id', id).eq('user_id', userId);
+}
+
+// ===== INTENCION REPLIES =====
+export async function getIntencionRespuestas(intencionId: string) {
+  const { data } = await supabase
+    .from('diario_intencion_respuestas')
+    .select('*')
+    .eq('intencion_id', intencionId)
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+export async function createIntencionRespuesta({
+  intencion_id, user_id, contenido
+}: {
+  intencion_id: string;
+  user_id: string;
+  contenido: string;
+}) {
+  return supabase
+    .from('diario_intencion_respuestas')
+    .insert({ intencion_id, user_id, contenido })
+    .select()
+    .single();
+}
+
+// ===== NOTIFICATION PREFERENCES =====
+export async function getNotifPrefs(userId: string) {
+  const { data } = await supabase.from('notification_prefs')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
+}
+
+export async function setNotifPrefs(userId: string, prefs: {
+  prayer_reminder: boolean;
+  reminder_hour: number;
+  reminder_minute: number;
+}) {
+  return supabase
+    .from('notification_prefs')
+    .upsert({ user_id: userId, ...prefs }, { onConflict: 'user_id' });
 }
 
 export async function getGratitudByDate(userId: string, date: string) {
@@ -1007,8 +1074,7 @@ export async function getDiarioPin(userId: string): Promise<string | null> {
 export async function setDiarioPin(userId: string, pin: string) {
   return supabase
     .from('profiles')
-    .update({ diario_pin: pin })
-    .eq('user_id', userId)
+    .upsert({ user_id: userId, diario_pin: pin }, { onConflict: 'user_id' })
 }
 
 // ===== PERSONAL JOURNAL (legacy, used by ExportarDiarioPDF) =====

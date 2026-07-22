@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Heart, Send, LogIn, User } from 'lucide-react';
+import Link from 'next/link'
+import { Heart, Send, LogIn, User, BookOpen } from 'lucide-react';
 
 type Intention = { id: string; text: string; name: string | null; createdAt: number; reactions: number; prayedCount?: number; prayedBy: string[]; };
 
@@ -33,6 +34,23 @@ export default function OracionPage() {
         <h1 className="font-heading text-xl md:text-3xl font-bold text-primary-dark">Muro de Oración</h1>
         <p className="text-text-light text-xs md:text-sm mt-1">Deja tu intención para que otros oren por ti.</p>
       </div>
+
+      {/* Link al Rosario */}
+      <Link href="/rosario"
+        className="block bg-card rounded-xl p-4 md:p-5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98] bg-gradient-to-r from-primary/[0.03] to-secondary/[0.03]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-heading font-bold text-primary-dark text-sm md:text-base">Santo Rosario</h2>
+            <p className="text-[10px] md:text-xs text-text-light">Medita los misterios de la vida de Cristo</p>
+          </div>
+          <BookOpen size={16} className="text-primary shrink-0" />
+        </div>
+      </Link>
 
       {!user ? (
         <div className="bg-card rounded-xl p-6 md:p-8 border border-gray-200/70 shadow-md text-center space-y-3">
