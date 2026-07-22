@@ -30,10 +30,10 @@ export default function Footer() {
           <div className="hidden md:block">
             <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Navegar</h4>
             <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm text-white/60">
-              <li><Link href="/episodios" className="hover:text-white transition-colors">Episodios</Link></li>
-              <li><Link href="/testimonios" className="hover:text-white transition-colors">Testimonios</Link></li>
+              <li><Link href="/el-en-mi" className="hover:text-white transition-colors">Él en mí</Link></li>
+              <li><Link href="/formacion" className="hover:text-white transition-colors">Formación</Link></li>
+              <li><Link href="/diario" className="hover:text-white transition-colors">Diario</Link></li>
               <li><Link href="/comunidad" className="hover:text-white transition-colors">Comunidad</Link></li>
-              <li><Link href="/proyectos" className="hover:text-white transition-colors">Proyectos</Link></li>
             </ul>
           </div>
 

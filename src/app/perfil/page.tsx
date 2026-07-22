@@ -2,24 +2,23 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { isAdminEmail } from '@/lib/adminAuth';
 import {
-  getProfile, upsertProfile, uploadFile, getUserActivities, setUserActivities, getActivities,
+  getProfile, upsertProfile, uploadFile, getUserActivities, getActivities,
   getNotificationPreferences, saveNotificationPreferences,
   getMuroPostsByUser, getTestimoniosByUser, deleteAllUserData,
-  getMuroRepliesByUser, getDevotionalRepliesByUser, deleteDevotionalReply, deleteMuroPost, deleteMuroReply,
-  getPersonalJournal, createJournalEntry, deleteJournalEntry,
+  getMuroRepliesByUser, deleteMuroPost, deleteMuroReply,
   joinActivity, leaveActivity,
-
 } from '@/lib/supabase';
 import {
-  User, Camera, Save, LogIn, Shield, FolderKanban, Mic, Image as ImageIcon,
-  MessageSquare, Handshake, ArrowRight, CheckCircle, AlertCircle, MessageCircle,
-  Bell, FileText, Trash2, AlertTriangle, Heart, Sparkles, Megaphone, BookOpen,
+  User, Camera, Save, LogIn, Shield,
+  ArrowRight, CheckCircle, AlertCircle, MessageCircle, MessageSquare,
+  Bell, FileText, Trash2, AlertTriangle, Heart, Sparkles,
 } from 'lucide-react';
 
 import Link from 'next/link';
 
-type ProfileTab = 'perfil' | 'publicaciones' | 'diario';
+type ProfileTab = 'perfil' | 'publicaciones';
 
 function calculateAge(dob: string): number {
   const birth = new Date(dob);
@@ -51,7 +50,7 @@ export default function PerfilPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Notification prefs
-  const [notifPrefs, setNotifPrefs] = useState({ daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true });
+  const [notifPrefs, setNotifPrefs] = useState({ daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true });
   const [savingNotif, setSavingNotif] = useState(false);
 
   // My publications
@@ -67,126 +66,7 @@ export default function PerfilPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // My diary & Personal Journal states
-  const [devotionalReplies, setDevotionalReplies] = useState<any[]>([]);
-  const [journalEntries, setJournalEntries] = useState<any[]>([]);
-  const [journalText, setJournalText] = useState('');
-  const [savingJournal, setSavingJournal] = useState(false);
-  const [loadingDiario, setLoadingDiario] = useState(false);
-  const [diaryFeedback, setDiaryFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
-
   const userId = user && user !== 'loading' ? (user as any).uid : null;
-
-  // Load diary/journal data when activeTab becomes 'diario' or user logs in
-  useEffect(() => {
-    if (activeTab !== 'diario' || !userId) return;
-
-    let localEntries: any[] = [];
-    try {
-      const saved = localStorage.getItem('tg_local_journal');
-      if (saved) localEntries = JSON.parse(saved);
-    } catch (e) {
-      console.error('Error loading local journal:', e);
-    }
-
-    setLoadingDiario(true);
-    Promise.all([
-      getPersonalJournal(userId),
-      getDevotionalRepliesByUser(userId)
-    ]).then(([journal, devReplies]) => {
-      setJournalEntries([...localEntries, ...journal]);
-      setDevotionalReplies(devReplies);
-      setLoadingDiario(false);
-    }).catch(err => {
-      console.error('Error loading diary/journal data:', err);
-      setJournalEntries(localEntries);
-      setLoadingDiario(false);
-    });
-  }, [userId, activeTab]);
-
-  async function handleSaveJournalEntry(e: React.FormEvent) {
-    e.preventDefault();
-    const text = journalText.trim();
-    if (!text) return;
-    setSavingJournal(true);
-    setDiaryFeedback(null);
-
-    if (!userId) {
-      try {
-        const newEntry = {
-          id: 'local_' + Date.now(),
-          content: text,
-          created_at: new Date().toISOString(),
-          is_local: true
-        };
-        const saved = localStorage.getItem('tg_local_journal');
-        const list = saved ? JSON.parse(saved) : [];
-        list.unshift(newEntry);
-        localStorage.setItem('tg_local_journal', JSON.stringify(list));
-        
-        setJournalEntries(prev => [newEntry, ...prev]);
-        setJournalText('');
-        setDiaryFeedback({ ok: true, msg: 'Entrada guardada localmente' });
-        setTimeout(() => setDiaryFeedback(null), 3000);
-      } catch (err: any) {
-        setDiaryFeedback({ ok: false, msg: `Error al guardar localmente: ${err.message}` });
-      } finally {
-        setSavingJournal(false);
-      }
-      return;
-    }
-
-    try {
-      const { data, error } = await createJournalEntry(userId, text);
-      if (error) {
-        setDiaryFeedback({ ok: false, msg: `Error al guardar en la nube: ${error.message}` });
-      } else if (data) {
-        setJournalEntries(prev => [data, ...prev]);
-        setJournalText('');
-        setDiaryFeedback({ ok: true, msg: 'Entrada guardada en tu diario (Nube)' });
-        setTimeout(() => setDiaryFeedback(null), 3000);
-      }
-    } catch (err: any) {
-      setDiaryFeedback({ ok: false, msg: `Error: ${err.message}` });
-    } finally {
-      setSavingJournal(false);
-    }
-  }
-
-  async function handleDeleteJournalEntry(id: string) {
-    if (!confirm('¿Eliminar esta entrada de tu diario personal?')) return;
-    if (String(id).startsWith('local_')) {
-      try {
-        const saved = localStorage.getItem('tg_local_journal');
-        if (saved) {
-          const list = JSON.parse(saved);
-          const filtered = list.filter((item: any) => item.id !== id);
-          localStorage.setItem('tg_local_journal', JSON.stringify(filtered));
-        }
-        setJournalEntries(prev => prev.filter(item => item.id !== id));
-      } catch (err) {
-        console.error('Error deleting local entry:', err);
-      }
-      return;
-    }
-
-    const { error } = await deleteJournalEntry(id);
-    if (error) {
-      alert(`Error al eliminar: ${error.message}`);
-    } else {
-      setJournalEntries(prev => prev.filter(item => item.id !== id));
-    }
-  }
-
-  async function handleDeleteDiaryEntry(entryId: string) {
-    if (!confirm('¿Eliminar esta reflexión de tu diario?')) return;
-    const { error } = await deleteDevotionalReply(entryId);
-    if (error) {
-      alert(`Error al eliminar: ${error.message}`);
-    } else {
-      setDevotionalReplies(prev => prev.filter(e => e.id !== entryId));
-    }
-  }
 
   useEffect(() => {
     if (!userId || !user || user === 'loading') return;
@@ -205,7 +85,7 @@ export default function PerfilPage() {
         setDisplayName((user as any).displayName || '');
       }
     });
-    getUserActivities(userId).then(setSelectedActivities);
+    getUserActivities(userId).then(list => setSelectedActivities(new Set(list)));
     getActivities(true).then(list => setActivitiesOptions(list.map((a: any) => a.name)));
     getNotificationPreferences(userId).then(prefs => setNotifPrefs({
       daily_verse: prefs.daily_verse ?? true,
@@ -213,6 +93,8 @@ export default function PerfilPage() {
       comments: prefs.comments ?? true,
       reactions: prefs.reactions ?? true,
       announcements: prefs.announcements ?? true,
+      daily_reminder: prefs.daily_reminder ?? false,
+      new_episodes: prefs.new_episodes ?? true,
     }));
   }, [userId]);
 
@@ -312,7 +194,7 @@ export default function PerfilPage() {
       testimonio: testimonio.trim() || undefined,
     });
     if (error) { setFeedback({ ok: false, msg: 'Error al guardar: ' + error.message }); setSaving(false); return; }
-    setFeedback({ ok: true, msg: 'Perfil guardado correctamente' });
+    setFeedback({ ok: true, msg: 'Tu historia está siendo escrita. Dios continúa obrando en ti.' });
     setProfile((p: any) => ({ ...p, display_name: displayName.trim() }));
     setSaving(false);
   }
@@ -360,10 +242,6 @@ export default function PerfilPage() {
         <button onClick={() => setActiveTab('perfil')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'perfil' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
           Mi Perfil
-        </button>
-        <button onClick={() => setActiveTab('diario')}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'diario' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
-          Mi Diario
         </button>
         <button onClick={() => setActiveTab('publicaciones')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'publicaciones' ? 'bg-primary text-white shadow' : 'text-text-light hover:text-primary'}`}>
@@ -510,6 +388,8 @@ export default function PerfilPage() {
                 <div className="space-y-3">
                   {[
                     { key: 'daily_verse', label: 'Versículo del día', desc: 'Alertas del versículo matutino' },
+                    { key: 'daily_reminder', label: 'Recordatorio diario', desc: 'Para escribir en tu diario espiritual' },
+                    { key: 'new_episodes', label: 'Nuevos episodios', desc: 'Cuando se publique un nuevo podcast' },
                     { key: 'comments', label: 'Comentarios', desc: 'Respuestas a tus posts en el muro' },
                     { key: 'reactions', label: 'Reacciones', desc: 'Notificaciones de corazones o rezos' },
                   ].map(({ key, label, desc }) => (
@@ -555,34 +435,18 @@ export default function PerfilPage() {
           </div>
 
           {/* ─── Admin shortcut ─── */}
-          {['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'].includes(fbUser.email || '') && (
-            <div className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
-              <div className="flex items-center gap-2">
-                <Shield size={18} className="text-primary" />
-                <h2 className="font-heading text-xl font-bold text-primary-dark">Administración</h2>
+          {isAdminEmail(fbUser.email) && (
+            <Link href="/admin"
+              className="bg-card rounded-2xl p-6 md:p-8 border border-primary/20 shadow-md flex items-center gap-4 hover:shadow-lg transition-all active:scale-[0.99] bg-gradient-to-br from-primary/[0.02] to-primary/[0.06]">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Shield size={22} className="text-primary" />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[
-                  { href: '/admin/proyectos', icon: FolderKanban, label: 'Proyectos' },
-                  { href: '/admin/proyectos', icon: Mic, label: 'Episodios' },
-                  { href: '/admin/proyectos', icon: ImageIcon, label: 'Inicio' },
-                  { href: '/admin/proyectos', icon: MessageSquare, label: 'Participa' },
-                  { href: '/admin/proyectos', icon: Handshake, label: 'Auspiciadores' },
-                ].map(({ href, icon: Icon, label }) => (
-                  <Link key={label} href={href}
-                    className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow space-y-2 text-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                      <Icon size={18} className="text-primary" />
-                    </div>
-                    <span className="text-xs font-medium text-primary-dark">{label}</span>
-                  </Link>
-                ))}
+              <div className="min-w-0 flex-1">
+                <h2 className="font-heading text-lg font-bold text-primary-dark">Panel de Administración</h2>
+                <p className="text-xs text-text-light">Gestiona episodios, auspiciadores, contenido y métricas</p>
               </div>
-              <Link href="/admin/proyectos"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors w-full justify-center">
-                Ir al panel completo <ArrowRight size={14} />
-              </Link>
-            </div>
+              <ArrowRight size={18} className="text-primary shrink-0" />
+            </Link>
           )}
 
           {/* ─── Zona peligrosa: Eliminar cuenta ─── */}
@@ -694,126 +558,6 @@ export default function PerfilPage() {
                 )}
               </section>
             </>
-          )}
-        </div>
-      )}
-
-      {/* ============ TAB: MI DIARIO ============ */}
-      {activeTab === 'diario' && (
-        <div className="space-y-6">
-          <div className="bg-card rounded-2xl p-6 border border-gray-200/70 shadow-md space-y-4 bg-gradient-to-br from-primary/[0.01] to-secondary/[0.03]">
-            <div className="flex items-center gap-2">
-              <BookOpen size={20} className="text-primary" />
-              <h2 className="font-heading text-lg font-bold text-primary-dark">Mi Diario Personal</h2>
-            </div>
-            <p className="text-xs md:text-sm text-text-light leading-relaxed">
-              Este es tu rincón íntimo de intimidad con Dios. Escribe tus pensamientos, oraciones, notas y reflexiones del día. Todo lo que escribas aquí es completamente privado y solo visible para ti.
-            </p>
-
-            <form onSubmit={handleSaveJournalEntry} className="space-y-3 pt-2">
-              <textarea
-                placeholder="Querido Señor, hoy quiero entregarte..."
-                value={journalText}
-                onChange={e => setJournalText(e.target.value)}
-                rows={5}
-                className="w-full px-3.5 py-3 rounded-xl border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white shadow-inner leading-relaxed"
-                required
-              />
-              {diaryFeedback && (
-                <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                  diaryFeedback.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {diaryFeedback.msg}
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={savingJournal || !journalText.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs md:text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95 shadow-md shadow-primary/20"
-              >
-                <Save size={14} /> {savingJournal ? 'Guardando...' : 'Guardar en mi diario'}
-              </button>
-            </form>
-          </div>
-
-          {loadingDiario ? (
-            <div className="text-center py-12 text-xs text-text-light flex flex-col items-center justify-center gap-2">
-              <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Cargando tu diario...
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Bitácora Personal */}
-              <div className="space-y-3">
-                <h3 className="font-heading font-bold text-primary-dark text-sm flex items-center gap-2 px-1">
-                  ✍️ Mis Notas y Oraciones Privadas
-                </h3>
-                {journalEntries.length === 0 ? (
-                  <div className="bg-card rounded-xl p-6 border border-gray-200/70 shadow-sm text-center">
-                    <p className="text-xs text-text-light">Aún no has escrito notas personales. Comienza redactando tu primera entrada arriba.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {journalEntries.map(entry => (
-                      <div key={entry.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-2 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                            {entry.is_local && (
-                              <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[8px] font-bold">Local</span>
-                            )}
-                            {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <button onClick={() => handleDeleteJournalEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar entrada">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                        <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Devocionales contestados */}
-              {devotionalReplies.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <h3 className="font-heading font-bold text-primary-dark text-sm flex items-center gap-2 px-1">
-                    🕊️ Mis Respuestas a Devocionales
-                  </h3>
-                  <div className="space-y-3">
-                    {devotionalReplies.map(entry => (
-                      <div key={entry.id} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                              {new Date(entry.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </span>
-                            <h4 className="font-heading font-semibold text-primary-dark text-xs md:text-sm">
-                              Devocional: {entry.devotionals?.title || 'Devocional Diario'}
-                            </h4>
-                          </div>
-                          <button onClick={() => handleDeleteDiaryEntry(entry.id)} className="p-1 text-text-light hover:text-red-500 transition-colors shrink-0" title="Eliminar reflexión">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-
-                        {entry.devotionals?.verse && (
-                          <blockquote className="bg-gray-50 border-l-4 border-primary/20 px-3 py-1.5 text-[11px] text-text-light italic rounded-r-lg leading-relaxed">
-                            &ldquo;{entry.devotionals.verse}&rdquo;
-                            <span className="block text-[9px] font-medium text-text-light/70 mt-0.5">— {entry.devotionals.reference}</span>
-                          </blockquote>
-                        )}
-
-                        <div className="space-y-1">
-                          <span className="text-[9px] font-bold text-text-light/60 uppercase tracking-wider">Mi Reflexión</span>
-                          <p className="text-xs md:text-sm text-text leading-relaxed whitespace-pre-wrap">{entry.answer}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           )}
         </div>
       )}

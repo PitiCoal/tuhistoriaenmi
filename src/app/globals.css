@@ -45,8 +45,34 @@ input, textarea, select {
   font-size: 16px !important;
 }
 
+/* WCAG AA: tamaño mínimo táctil (pulgar móvil) */
+button, a, input, select, textarea, label {
+  min-height: 44px;
+}
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* WCAG AA: focus visible */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 button:active, a:active {
   transform: scale(0.97);
+}
+
+/* prefers-reduced-motion: respetar preferencia del usuario */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @keyframes fadeSlideUp {
@@ -62,4 +88,15 @@ button:active, a:active {
 
 main > * {
   animation: fadeSlideUp 0.3s ease-out;
+}
+
+/* Animación bounce-in para celebraciones */
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out;
 }

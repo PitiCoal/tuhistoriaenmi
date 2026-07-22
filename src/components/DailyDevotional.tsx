@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { getDailyDevotional, createDevotionalReply, getDevotionalReplies, getDevotionalReplyByUser, getSponsorById } from '@/lib/supabase';
 import { BookOpen, Send, CheckCircle, HelpCircle, Users, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { useCelebration, CelebrationBanner } from '@/components/Celebration';
 
 export default function DailyDevotional() {
   const { user, signIn } = useAuth();
+  const celebration = useCelebration();
   const [devotional, setDevotional] = useState<any>(null);
   const [sponsor, setSponsor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,8 @@ export default function DailyDevotional() {
     if (error) {
       setFeedback('Error al guardar: ' + error.message);
     } else {
-      setFeedback('Reflexión guardada correctamente.');
+      setFeedback('Amén 🙏 Has llegado hasta aquí. Dios se alegra de tu perseverancia.');
+      celebration.celebrate('¡Amén! 🙏 Dios se alegra de tu perseverancia');
       // Refresh replies if open
       if (showReplies) {
         const data = await getDevotionalReplies(devotional.id);
@@ -191,7 +194,7 @@ export default function DailyDevotional() {
               {userId ? (
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <textarea
-                    placeholder="Escribe aquí tu respuesta, compromiso o lo que Dios te habló hoy..."
+                    placeholder="Señor, hoy quiero decirte..."
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
                     maxLength={1000}
@@ -293,6 +296,7 @@ export default function DailyDevotional() {
           </div>
         )}
       </div>
+      <CelebrationBanner show={celebration.show} message={celebration.message} onClose={() => celebration.setShow(false)} />
     </section>
   );
 }

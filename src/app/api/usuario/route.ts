@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteAllUserData } from '@/lib/supabase';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function DELETE(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const check = rateLimit(ip, 3, 60_000);
+    if (!check.ok) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta en un minuto.' }, { status: 429 });
+    }
+
     const { userId } = await req.json();
     if (!userId) {
       return NextResponse.json({ error: 'userId requerido' }, { status: 400 });

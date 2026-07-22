@@ -5,19 +5,18 @@ import { LogIn, LogOut, Shield, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useState, useEffect } from 'react';
 import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/lib/supabase';
+import { isAdminEmail } from '@/lib/adminAuth';
 
-const episodesDropdown = [
+const formacionDropdown = [
+  { href: '/formacion', label: 'Formación' },
   { href: '/episodios', label: 'Episodios (Podcast)' },
-  { href: '/testimonios', label: 'Testimonios de Fe' },
+  { href: '/oraciones-guiadas', label: 'Oraciones Guiadas' },
 ];
 
 const dropdownLinks = [
   { href: '/comunidad', label: 'Muro' },
-  { href: '/proyectos', label: 'Proyectos' },
-  { href: '/tienda', label: 'Tienda Solidaria' },
+  { href: '/comunidades', label: 'Comunidades' },
 ];
-
-const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
 
 export default function Header() {
   const { user, signIn, signOut } = useAuth();
@@ -29,7 +28,7 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
 
-  const isAdmin = typeof user === 'object' && user && ADMIN_EMAILS.includes(user.email || '');
+  const isAdmin = typeof user === 'object' && user && isAdminEmail(user.email);
   const fbUser = typeof user === 'object' && user ? user : null;
 
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function Header() {
             Inicio
           </Link>
 
-          {/* Menú Desplegable Episodios */}
+          {/* Menú Desplegable Formación */}
           <div
             className="relative py-2"
             onMouseEnter={() => setEpisodesMenuOpen(true)}
@@ -92,13 +91,13 @@ export default function Header() {
               onClick={() => setEpisodesMenuOpen(!episodesMenuOpen)}
               className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none"
             >
-              Episodios
+              Formación
               <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {episodesMenuOpen && (
-              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-44 transition-all duration-200 z-[100]">
-                {episodesDropdown.map(link => (
+              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
+                {formacionDropdown.map(link => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -112,8 +111,8 @@ export default function Header() {
             )}
           </div>
 
-          <Link href="/nosotros" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
-            Nosotros
+          <Link href="/el-en-mi" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+            Él en mí
           </Link>
 
           {/* Menú Desplegable Comunidad */}
@@ -157,7 +156,7 @@ export default function Header() {
           )}
 
           {isAdmin && (
-            <Link href="/admin/proyectos" className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 text-primary font-semibold hover:bg-primary/20 text-xs whitespace-nowrap">
+            <Link href="/admin" className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary/10 text-primary font-semibold hover:bg-primary/20 text-xs whitespace-nowrap">
               <Shield size={14} /> Admin
             </Link>
           )}

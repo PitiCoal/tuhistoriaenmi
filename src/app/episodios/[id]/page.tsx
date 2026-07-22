@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getAllEpisodes, getEpisodeById } from '@/lib/episodes';
 import { createClient } from '@supabase/supabase-js';
 import PlatformLinks from '@/components/PlatformLinks';
+import YouTubeEmbed from '@/components/YouTubeEmbed';
 import Link from 'next/link';
 import { ArrowLeft, Share2, Handshake } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -83,9 +84,14 @@ export default async function EpisodeDetailPage({ params }: { params: Promise<{ 
         <ArrowLeft size={16} /> Volver a episodios
       </Link>
 
-      <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
-        <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" style={{ objectPosition: episode.image_position || 'center' }} />
-      </div>
+      {/* YouTube player embebido si hay link */}
+      {episode.links.youtube ? (
+        <YouTubeEmbed url={episode.links.youtube} title={episode.title} />
+      ) : (
+        <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
+          <img src={episode.image} alt={episode.title} className="w-full h-full object-cover" style={{ objectPosition: episode.image_position || 'center' }} />
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

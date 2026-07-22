@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { getPageContent, upsertPageContent } from '@/lib/supabase';
 import { HandHeart, Pencil, X, Save, Check, Heart } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { isAdminEmail } from '@/lib/adminAuth';
 import Link from 'next/link';
 
 export default function DonationGoal() {
   const { user } = useAuth();
-  const ADMIN_EMAILS = ['piti.coal@gmail.com', 'contacto.tuhistoriaenmi@gmail.com'];
-  const isAdmin = user && user !== 'loading' && ADMIN_EMAILS.includes(user.email || '');
+  const isAdmin = user && user !== 'loading' && isAdminEmail(user.email);
 
   const [goal, setGoal] = useState({ active: false, target: 0, current: 0, title: '', description: '', goal_btn_url: '/donar' });
   const [loading, setLoading] = useState(true);

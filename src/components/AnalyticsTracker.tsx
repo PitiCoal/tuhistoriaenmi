@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { logPageView } from '@/lib/supabase';
+import { trackPageView } from '@/lib/analytics';
 
 export default function AnalyticsTracker() {
   const pathname = usePathname();
@@ -14,17 +15,14 @@ export default function AnalyticsTracker() {
   const userId = user && user !== 'loading' ? (user as any).uid : null;
 
   useEffect(() => {
-    // Avoid double logging the exact same path/query/user combination in the same render cycle
     const fullPath = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     const logKey = `${fullPath}:${userId || 'anonymous'}`;
 
     if (lastLogged.current === logKey) return;
     lastLogged.current = logKey;
 
-    // Log the page view in Supabase
-    logPageView(fullPath, userId).catch((err) => {
-      console.error('Error logging page view:', err);
-    });
+    logPageView(fullPath, userId).catch(() => {});
+    trackPageView(fullPath);
   }, [pathname, searchParams, userId]);
 
   return null;

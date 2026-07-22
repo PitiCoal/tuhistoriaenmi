@@ -70,11 +70,17 @@ export default function NotificationPrompt() {
             <X size={16} />
           </button>
         </div>
-        <p className="text-xs text-text-light leading-relaxed">
-          Activa las notificaciones para recibir avisos de nuevos episodios, eventos y oraciones.
-        </p>
+        <div className="space-y-2 text-xs text-text-light leading-relaxed">
+          <p>Recibe avisos de:</p>
+          <ul className="space-y-1 pl-1">
+            <li className="flex items-center gap-1.5">🕊️ Nuevos episodios del podcast</li>
+            <li className="flex items-center gap-1.5">📖 Recordatorio diario para escribir en tu diario</li>
+            <li className="flex items-center gap-1.5">💬 Respuestas a tus publicaciones</li>
+            <li className="flex items-center gap-1.5">🙏 Oraciones de la comunidad</li>
+          </ul>
+        </div>
         <button onClick={handleAllow}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors active:scale-95">
+          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors active:scale-95 shadow-md shadow-primary/20">
           <Bell size={16} /> Activar notificaciones
         </button>
       </div>

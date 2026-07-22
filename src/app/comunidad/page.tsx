@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost } from '@/lib/supabase';
+import { uploadFile, createMuroPost, getMuroPosts, deleteMuroPost, createMuroReply, getMuroReplies, deleteMuroReply, getAllProfiles, toggleReaction, getAllReactionCounts, getUserReactions, ensureDailyVerseMuroPost, supabase } from '@/lib/supabase';
 
 import { getVerseOfDay } from '@/lib/verses';
 import { Heart, MessageCircle, Mic, Grid3X3, Send, User, LogIn, ImageIcon, X, Trash2, Reply, Camera, Users, ArrowRight, MessageCircle as WhatsAppIcon, Smile, Sparkles, HandHeart } from 'lucide-react';
@@ -11,7 +11,7 @@ import Link from 'next/link';
 
 
 
-const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨'] as const;
+const MURO_EMOJIS = ['🙏', '❤️', '😊', '✨', '🤗', '🕊️', '💪'] as const;
 const EMOJI_ICONS: Record<string, React.ReactNode> = {
   '🙏': <span className="text-xs select-none">🙏</span>,
   '❤️': <Heart size={12} className="text-red-500 fill-current" />,
@@ -44,8 +44,8 @@ function ComunidadContent() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [muroText, setMuroText] = useState('');
   const [muroAnonymous, setMuroAnonymous] = useState(false);
-  const [muroCategory, setMuroCategory] = useState<'general' | 'oracion' | 'reflexion' | 'sugerencia'>('general');
-  const [selectedFilter, setSelectedFilter] = useState<'todos' | 'general' | 'oracion' | 'reflexion' | 'sugerencia'>('todos');
+  const [muroCategory, setMuroCategory] = useState<'general' | 'oracion' | 'reflexion' | 'sugerencia' | 'gracias'>('general');
+  const [selectedFilter, setSelectedFilter] = useState<'todos' | 'general' | 'oracion' | 'reflexion' | 'sugerencia' | 'gracias'>('todos');
   const [muroImage, setMuroImage] = useState<File | null>(null);
   const [muroImagePreview, setMuroImagePreview] = useState<string | null>(null);
   const [muroUploading, setMuroUploading] = useState(false);
@@ -63,7 +63,7 @@ function ComunidadContent() {
   const filterParam = searchParams.get('filter');
 
   useEffect(() => {
-    if (filterParam && ['oracion', 'reflexion', 'sugerencia', 'general'].includes(filterParam)) {
+    if (filterParam && ['oracion', 'reflexion', 'sugerencia', 'general', 'gracias'].includes(filterParam)) {
       setSelectedFilter(filterParam as any);
     } else if (filterParam === null || filterParam === '') {
       setSelectedFilter('todos');
@@ -91,8 +91,23 @@ function ComunidadContent() {
 
   useEffect(() => { loadMuro(); }, []);
 
+  // Realtime: actualizar conteos de reacciones en vivo
+  useEffect(() => {
+    const channel = supabase.channel('reactions_live')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'reactions' },
+        async (payload: any) => {
+          const targetId = payload.new?.target_id || payload.old?.target_id;
+          if (targetId && muroPosts.some(p => p.id === targetId)) {
+            const counts = await getAllReactionCounts('muro_post', targetId);
+            setMuroReactionCounts(prev => ({ ...prev, [targetId]: counts }));
+          }
+        }
+      )
+      .subscribe();
 
-
+    return () => { supabase.removeChannel(channel); };
+  }, [muroPosts]);
 
 
 
@@ -102,7 +117,13 @@ function ComunidadContent() {
       await ensureDailyVerseMuroPost(verse.verse, verse.reference);
     }
     const posts = await getMuroPosts();
-    setMuroPosts(posts);
+    // Destacados al inicio, luego por fecha
+    const sorted = [...posts].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    setMuroPosts(sorted);
     const all = await getAllProfiles();
     setProfiles(all);
     for (const p of posts) {
@@ -299,7 +320,7 @@ function ComunidadContent() {
         <form onSubmit={handleMuroSubmit} className="bg-card rounded-xl p-4 md:p-5 border border-gray-200/70 shadow-md space-y-4">
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-text-light uppercase tracking-wider">¿Qué deseas compartir hoy?</label>
-            <textarea placeholder="Escribe tu oración, reflexión, sugerencia o saludo..." value={muroText} onChange={e => setMuroText(e.target.value)} maxLength={1000} rows={3}
+            <textarea placeholder="Comparte con tus hermanos lo que Dios ponga en tu corazón..." value={muroText} onChange={e => setMuroText(e.target.value)} maxLength={1000} rows={3}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs md:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" required />
           </div>
 
@@ -310,6 +331,7 @@ function ComunidadContent() {
                 { id: 'general', label: '📝 General' },
                 { id: 'oracion', label: '🙏 Oración' },
                 { id: 'reflexion', label: '💬 Reflexión' },
+                { id: 'gracias', label: '💛 Gracias' },
                 { id: 'sugerencia', label: '🎤 Sugerencia (Pública)' },
               ].map(cat => (
                 <button
@@ -365,6 +387,7 @@ function ComunidadContent() {
           { id: 'todos', label: 'Todos' },
           { id: 'oracion', label: '🙏 Oraciones' },
           { id: 'reflexion', label: '💬 Reflexiones' },
+          { id: 'gracias', label: '💛 Gracias' },
           { id: 'sugerencia', label: '🎤 Sugerencias' },
           { id: 'general', label: '📝 General' },
         ].map(f => (
@@ -418,14 +441,21 @@ function ComunidadContent() {
                         className="text-xs md:text-sm font-semibold text-primary-dark hover:underline truncate">
                         {authorName}
                       </Link>
+                      {post.is_pinned && (
+                        <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          📌 Destacado
+                        </span>
+                      )}
                       {post.category && post.category !== 'general' && (
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                           post.category === 'oracion' ? 'bg-red-50 text-red-600 border border-red-100' :
                           post.category === 'reflexion' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                          post.category === 'gracias' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
                           'bg-green-50 text-green-600 border border-green-100'
                         }`}>
                           {post.category === 'oracion' ? '🙏 Oración' :
                            post.category === 'reflexion' ? '💬 Reflexión' :
+                           post.category === 'gracias' ? '💛 Gracias' :
                            '🎤 Sugerencia'}
                         </span>
                       )}
@@ -457,8 +487,8 @@ function ComunidadContent() {
                       <button
                         key={emoji}
                         onClick={() => handleMuroReact(post.id, emoji)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors active:scale-90 ${
-                          reacted ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary hover:border-primary/20 border border-gray-200'
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all active:scale-75 ${
+                          reacted ? 'bg-primary/10 text-primary border border-primary/20 scale-110' : 'bg-gray-100 text-text-light hover:bg-primary/10 hover:text-primary hover:border-primary/20 border border-gray-200'
                         }`}>
                         {Icon}
                         <span className="text-[10px]">{count > 0 ? count : ''}</span>
@@ -555,6 +585,21 @@ function ComunidadContent() {
             </div>
           </div>
 
+          {/* Comunidades */}
+          <Link href="/comunidades"
+            className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-secondary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-heading font-bold text-primary-dark text-sm">Comunidades</h3>
+                <p className="text-xs text-text-light">Grupos de fe y oración</p>
+              </div>
+              <ArrowRight size={14} className="ml-auto text-text-light shrink-0" />
+            </div>
+          </Link>
+
           {/* WhatsApp */}
           <a href="https://chat.whatsapp.com/HlF62d1pyiD3Ac98Oe2EKH" target="_blank" rel="noopener noreferrer"
             className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow block active:scale-[0.98]">
@@ -591,6 +636,10 @@ function ComunidadContent() {
 
       {/* Mobile: cards row */}
       <div className="md:hidden flex gap-3 overflow-x-auto pb-1">
+        <Link href="/comunidades"
+          className="shrink-0 bg-secondary text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+          <Users size={14} /> Comunidades
+        </Link>
         <a href="https://instagram.com/tuhistoria.enmi" target="_blank" rel="noopener noreferrer"
           className="shrink-0 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] text-white rounded-xl p-3 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
           <Camera size={14} /> Instagram

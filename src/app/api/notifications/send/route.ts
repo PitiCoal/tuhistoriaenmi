@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,6 +17,12 @@ webpush.setVapidDetails(
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const check = rateLimit(ip, 10, 60_000);
+    if (!check.ok) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta en un minuto.' }, { status: 429 });
+    }
+
     const payloadJson = await req.json();
     const { 
       title, 

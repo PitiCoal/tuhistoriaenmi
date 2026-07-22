@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const check = rateLimit(ip, 5, 60_000);
+    if (!check.ok) {
+      return NextResponse.json({ ok: false, error: 'Demasiadas solicitudes. Intenta en un minuto.' }, { status: 429 });
+    }
+
     const body = await req.json();
     const { name, email } = body;
 

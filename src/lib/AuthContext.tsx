@@ -5,6 +5,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { upsertProfile, hasUserConsented, saveUserConsent } from '@/lib/supabase';
 import Link from 'next/link';
+import OnboardingWizard, { hasCompletedOnboarding } from '@/components/OnboardingWizard';
 
 interface AuthContextType {
   user: FirebaseUser | null | 'loading';
@@ -46,9 +47,9 @@ function ConsentModal({ userId, name, email, onAccept }: { userId: string; name:
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
             <img src="/images/logo.png" alt="" className="h-8 w-8" />
           </div>
-          <h2 className="font-heading text-xl font-bold text-primary-dark">Bienvenida/o a Tu Historia en Mí</h2>
+          <h2 className="font-heading text-xl font-bold text-primary-dark">Bienvenido a la Familia — Queremos caminar contigo</h2>
           <p className="text-text-light text-xs md:text-sm leading-relaxed">
-            Para continuar y crear tu cuenta de comunidad, necesitamos que leas y aceptes explícitamente nuestros términos legales.
+            Para ser parte de nuestra comunidad, lee y acepta nuestros términos. Es un pequeño paso para empezar este camino juntos.
           </p>
         </div>
 
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null | 'loading'>('loading');
   const [showConsent, setShowConsent] = useState(false);
   const [pendingConsentUserId, setPendingConsentUserId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -105,14 +107,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Sync profile
         upsertProfile({ user_id: u.uid, display_name: u.displayName || undefined, email: u.email || undefined }).catch(() => {});
         // Check consent
-        const consented = await hasUserConsented(u.uid).catch(() => true); // fail-safe: true = no mostrar modal
+        const consented = await hasUserConsented(u.uid).catch(() => true);
         if (!consented) {
           setPendingConsentUserId(u.uid);
           setShowConsent(true);
+        } else if (!hasCompletedOnboarding()) {
+          setShowOnboarding(true);
+          setPendingConsentUserId(u.uid);
         }
       } else {
         setShowConsent(false);
         setPendingConsentUserId(null);
+        setShowOnboarding(false);
       }
     });
     return unsub;
@@ -123,12 +129,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, signIn: () => signInWithGoogle(), signOut: () => signOutUser() }}>
       {children}
+      {showOnboarding && pendingConsentUserId && (
+        <OnboardingWizard
+          userId={pendingConsentUserId}
+          onComplete={() => setShowOnboarding(false)}
+        />
+      )}
       {showConsent && pendingConsentUserId && fbUser && (
         <ConsentModal
           userId={pendingConsentUserId}
           name={fbUser.displayName || ''}
           email={fbUser.email || ''}
-          onAccept={() => { setShowConsent(false); setPendingConsentUserId(null); }}
+          onAccept={() => { setShowConsent(false); setShowOnboarding(true); }}
         />
       )}
     </AuthContext.Provider>

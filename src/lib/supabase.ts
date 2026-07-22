@@ -14,6 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// ===== EPISODES =====
 export async function loadEpisodes() {
   const { data } = await supabase.from('episodes').select('*').order('season').order('episode');
   return data || [];
@@ -29,6 +30,79 @@ export async function saveEpisode(episode: any) {
 
 export async function deleteEpisode(id: string) {
   return supabase.from('episodes').delete().eq('id', id);
+}
+
+export async function saveEpisodeToSupabase(episode: {
+  id: string; season: number; episode: number;
+  title: string; guest: string; description?: string;
+  image?: string; image_position?: string;
+  youtube?: string; spotify?: string; apple?: string; amazon?: string;
+}) {
+  return supabase.from('episodes').upsert(episode, { onConflict: 'id' });
+}
+
+export async function loadEpisodesFromSupabase() {
+  const { data } = await supabase.from('episodes').select('*').order('season').order('episode');
+  return data || [];
+}
+
+export async function deleteEpisodeFromSupabase(id: string) {
+  return supabase.from('episodes').delete().eq('id', id);
+}
+
+export async function searchEpisodesSemantic(query: string) {
+  const { data } = await supabase
+    .from('episodes')
+    .select('*')
+    .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+    .limit(10);
+  return data || [];
+}
+
+export function mergeEpisodesWithDefaults(supabaseEpisodes: any[], defaultEpisodes: any[]) {
+  const merged = defaultEpisodes.map(d => {
+    const cloud = supabaseEpisodes.find((s: any) => s.id === d.id);
+    if (cloud) {
+      return {
+        ...d,
+        title: cloud.title || d.title,
+        guest: cloud.guest || d.guest,
+        season: cloud.season || d.season,
+        episode: cloud.episode || d.episode,
+        image: cloud.image || d.image,
+        image_position: cloud.image_position || 'center',
+        description: cloud.description || d.description,
+        links: {
+          youtube: cloud.youtube || d.links.youtube,
+          spotify: cloud.spotify || d.links.spotify,
+          apple: cloud.apple || d.links.apple,
+          amazon: cloud.amazon || d.links.amazon,
+        },
+      };
+    }
+    return d;
+  });
+  for (const cloud of supabaseEpisodes) {
+    if (!merged.find((m: any) => m.id === cloud.id)) {
+      merged.push({
+        id: cloud.id,
+        season: cloud.season,
+        episode: cloud.episode,
+        title: cloud.title,
+        guest: cloud.guest,
+        description: cloud.description || '',
+        image: cloud.image || '/images/logo.png',
+        links: {
+          youtube: cloud.youtube || '',
+          spotify: cloud.spotify || '',
+          apple: cloud.apple || '',
+          amazon: cloud.amazon || '',
+        },
+        tags: [],
+      });
+    }
+  }
+  return merged;
 }
 
 // ===== PROFILES =====
@@ -57,137 +131,13 @@ export async function getAllProfiles() {
   return data || [];
 }
 
-// ===== USER ACTIVITIES =====
-export async function getUserActivities(userId: string) {
-  const { data } = await supabase.from('user_activities').select('activity').eq('user_id', userId);
-  return new Set(data?.map(r => r.activity) || []);
-}
-
-export async function setUserActivities(userId: string, activities: string[]) {
-  await supabase.from('user_activities').delete().eq('user_id', userId);
-  if (activities.length > 0) {
-    const rows = activities.map(a => ({ user_id: userId, activity: a }));
-    return supabase.from('user_activities').insert(rows);
-  }
-  return { error: null };
-}
-
-export async function getAllUserActivities() {
-  const { data } = await supabase.from('user_activities').select('user_id, activity');
-  return data || [];
-}
-
-// ===== PAGE CONTENT (CMS via settings table fallback) =====
-export async function getPageContent(page: string) {
-  const { data } = await supabase.from('settings').select('key, value').like('key', `${page}_%`);
-  const map: Record<string, string> = {};
-  (data || []).forEach(r => {
-    const section = r.key.replace(`${page}_`, '');
-    map[section] = r.value || '';
-  });
-  return map;
-}
-
-export async function upsertPageContent(page: string, section: string, content: string) {
-  const key = `${page}_${section}`;
-  const { data: existing } = await supabase.from('settings').select('key').eq('key', key).maybeSingle();
-  if (existing) {
-    return supabase.from('settings').update({ value: content, updated_at: new Date().toISOString() }).eq('key', key);
-  } else {
-    return supabase.from('settings').insert({ key, value: content });
-  }
-}
-
-export async function getAllPagesContent() {
-  const { data } = await supabase.from('settings').select('*').order('key');
-  return (data || []).map(r => {
-    const parts = r.key.split('_');
-    const page = parts[0] || 'settings';
-    const section = parts.slice(1).join('_') || '';
-    return {
-      id: r.key,
-      page,
-      section,
-      content: r.value,
-      updated_at: r.updated_at
-    };
-  });
-}
-
-// ===== IMPACT METRICS =====
-export async function getImpactMetrics() {
-  const { data } = await supabase.from('impact_metrics').select('*').order('sort_order');
-  return data || [];
-}
-
-export async function createImpactMetric(m: { label: string; value: string; icon?: string; sort_order?: number }) {
-  return supabase.from('impact_metrics').insert(m).select().single();
-}
-
-export async function updateImpactMetric(id: string, m: { label?: string; value?: string; icon?: string; sort_order?: number }) {
-  return supabase.from('impact_metrics').update(m).eq('id', id);
-}
-
-export async function deleteImpactMetric(id: string) {
-  return supabase.from('impact_metrics').delete().eq('id', id);
-}
-
-// ===== COUNTS (for auto-metrics) =====
-export async function countProfiles() {
-  const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-  return count || 0;
-}
-
-export async function countEpisodes() {
-  const { count } = await supabase.from('episodes').select('*', { count: 'exact', head: true });
-  return count || 0;
-}
-
-export async function countTestimonios() {
-  const { count } = await supabase.from('testimonios').select('*', { count: 'exact', head: true });
-  return count || 0;
-}
-
-export async function countSponsors() {
-  const { count } = await supabase.from('sponsors').select('*', { count: 'exact', head: true });
-  return count || 0;
-}
-
-// ===== ACTIVITIES (eventos dinámicos) =====
-export async function getActivities(onlyActive = false) {
-  let q = supabase.from('activities').select('*').order('sort_order');
-  if (onlyActive) q = q.eq('active', true);
-  const { data } = await q;
-  return data || [];
-}
-
-export async function getActivitiesWithCounts() {
-  const activities = await getActivities(true);
-  const { data: userActivities } = await supabase.from('user_activities').select('activity');
-  const counts: Record<string, number> = {};
-  (userActivities || []).forEach(r => { counts[r.activity] = (counts[r.activity] || 0) + 1; });
-  return activities.map(a => ({ ...a, participants: counts[a.name] || 0 }));
-}
-
-export async function createActivity(a: { name: string; description?: string; active?: boolean; sort_order?: number }) {
-  return supabase.from('activities').insert(a).select().single();
-}
-
-export async function updateActivity(id: string, a: { name?: string; description?: string; active?: boolean; sort_order?: number }) {
-  return supabase.from('activities').update(a).eq('id', id);
-}
-
-export async function deleteActivity(id: string) {
-  return supabase.from('activities').delete().eq('id', id);
-}
-
 // ===== MURO POSTS =====
 export async function getMuroPosts() {
   const { data } = await supabase.from('muro_posts').select('*').order('created_at', { ascending: false });
   return data || [];
 }
 
-export async function createMuroPost(post: { user_id?: string | null; author_name?: string | null; content: string; image_url?: string | null; category?: string }) {
+export async function createMuroPost(post: { user_id?: string | null; author_name?: string | null; content: string; image_url?: string | null; category?: string; comunidad_id?: string | null }) {
   return supabase.from('muro_posts').insert(post).select().single();
 }
 
@@ -236,44 +186,22 @@ export async function getUserReactions(targetType: string, userId: string, emoji
     .select('target_id, emoji').eq('target_type', targetType).eq('user_id', userId);
   if (emoji) query = query.eq('emoji', emoji);
   const { data } = await query;
-  // Return set of "targetId:emoji" for easy checking
   return new Set((data || []).map(r => `${r.target_id}:${r.emoji}`));
 }
 
-// Get all reaction counts grouped by emoji for a target
 export async function getAllReactionCounts(targetType: string, targetId: string) {
   const { data } = await supabase.from('reactions')
     .select('emoji, count').eq('target_type', targetType).eq('target_id', targetId);
-  // Manual count since we can't easily do GROUP BY with supabase-js
   const counts: Record<string, number> = {};
   (data || []).forEach(r => { counts[r.emoji] = (counts[r.emoji] || 0) + 1; });
   return counts;
 }
 
-// Get total reaction count for a target type across ALL targets
 export async function getTotalReactionCount(targetType: string) {
   const { count } = await supabase.from('reactions')
     .select('*', { count: 'exact', head: true })
     .eq('target_type', targetType);
   return count || 0;
-}
-
-// ===== SPONSORS =====
-export async function getSponsors() {
-  const { data } = await supabase.from('sponsors').select('*').order('sort_order');
-  return data || [];
-}
-
-export async function createSponsor(sponsor: { name: string; logo_url?: string; website_url?: string; sort_order?: number }) {
-  return supabase.from('sponsors').insert(sponsor).select().single();
-}
-
-export async function updateSponsor(id: string, sponsor: { name?: string; logo_url?: string; website_url?: string; sort_order?: number }) {
-  return supabase.from('sponsors').update(sponsor).eq('id', id);
-}
-
-export async function deleteSponsor(id: string) {
-  return supabase.from('sponsors').delete().eq('id', id);
 }
 
 // ===== TESTIMONIOS =====
@@ -284,6 +212,30 @@ export async function saveTestimonio(t: { user_id: string; name: string; email: 
 export async function getTestimonios() {
   const { data } = await supabase.from('testimonios').select('*').order('created_at', { ascending: false });
   return data || [];
+}
+
+export async function getPublicTestimonios() {
+  const { data } = await supabase.from('testimonios_publicos').select('*').eq('public', true).order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createTestimonioPublico(t: { user_id: string; display_name?: string; content: string; public?: boolean }) {
+  return supabase.from('testimonios_publicos').insert({ ...t, public: t.public ?? true }).select().single();
+}
+
+export async function updateTestimonioPublico(id: string, t: { content?: string; public?: boolean }) {
+  return supabase.from('testimonios_publicos').update(t).eq('id', id);
+}
+
+export async function deleteTestimonioPublico(id: string) {
+  return supabase.from('testimonios_publicos').delete().eq('id', id);
+}
+
+export async function approveTestimonio(t: { source_id: string; user_id: string; display_name?: string; content: string }) {
+  return supabase.from('testimonios_publicos').upsert(
+    { user_id: t.user_id, display_name: t.display_name || 'Anónimo', content: t.content, public: true, approved: true, approved_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  ).select().single();
 }
 
 // ===== PUSH SUBSCRIPTIONS =====
@@ -304,133 +256,14 @@ export async function getPushSubscriptionCount() {
   return count || 0;
 }
 
-// ===== EPISODES (cloud) =====
-export async function saveEpisodeToSupabase(episode: {
-  id: string; season: number; episode: number;
-  title: string; guest: string; description?: string;
-  image?: string; image_position?: string;
-  youtube?: string; spotify?: string; apple?: string; amazon?: string;
-}) {
-  return supabase.from('episodes').upsert(episode, { onConflict: 'id' });
-}
-
-export async function loadEpisodesFromSupabase() {
-  const { data } = await supabase.from('episodes').select('*').order('season').order('episode');
-  return data || [];
-}
-
-export async function deleteEpisodeFromSupabase(id: string) {
-  return supabase.from('episodes').delete().eq('id', id);
-}
-
-// Merge Supabase episodes with hardcoded defaults (Supabase takes precedence)
-export function mergeEpisodesWithDefaults(supabaseEpisodes: any[], defaultEpisodes: any[]) {
-  const merged = defaultEpisodes.map(d => {
-    const cloud = supabaseEpisodes.find((s: any) => s.id === d.id);
-    if (cloud) {
-      return {
-        ...d,
-        image: cloud.image || d.image,
-        image_position: cloud.image_position || 'center',
-        description: cloud.description || d.description,
-        links: {
-          youtube: cloud.youtube || d.links.youtube,
-          spotify: cloud.spotify || d.links.spotify,
-          apple: cloud.apple || d.links.apple,
-          amazon: cloud.amazon || d.links.amazon,
-        },
-      };
-    }
-    return d;
-  });
-  for (const cloud of supabaseEpisodes) {
-    if (!merged.find((m: any) => m.id === cloud.id)) {
-      merged.push({
-        id: cloud.id,
-        season: cloud.season,
-        episode: cloud.episode,
-        title: cloud.title,
-        guest: cloud.guest,
-        description: cloud.description || '',
-        image: cloud.image || '/images/logo.png',
-        links: {
-          youtube: cloud.youtube || '',
-          spotify: cloud.spotify || '',
-          apple: cloud.apple || '',
-          amazon: cloud.amazon || '',
-        },
-        tags: [],
-      });
-    }
-  }
-  return merged;
-}
-
 // ===== STORAGE UPLOAD =====
-export async function uploadFile(bucket: 'profile-photos' | 'muro-images' | 'episode-images', folder: string, file: File): Promise<string | null> {
+export async function uploadFile(bucket: 'profile-photos' | 'muro-images', folder: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop() || 'jpg';
   const path = `${folder}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file);
   if (error) { console.error('Upload error:', error); return null; }
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
   return publicUrl;
-}
-
-// ===== PROJECTS =====
-export async function getProjects() {
-  const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-  if (error) { console.error('getProjects error:', error); }
-  return data || [];
-}
-
-export async function createProject(p: { title: string; description?: string; date?: string; status?: string; image?: string; participants?: number; max_participants?: number }) {
-  const { data, error } = await supabase.from('projects').insert(p).select().single();
-  if (error) { console.error('createProject error:', error); }
-  return { data, error };
-}
-
-export async function updateProject(id: string, p: { title?: string; description?: string; date?: string; status?: string; image?: string; participants?: number; max_participants?: number }) {
-  const { data, error } = await supabase.from('projects').update(p).eq('id', id).select().single();
-  if (error) { console.error('updateProject error:', error); }
-  return { data, error };
-}
-
-export async function deleteProject(id: string) {
-  const { error } = await supabase.from('projects').delete().eq('id', id);
-  if (error) { console.error('deleteProject error:', error); }
-  return { error };
-}
-
-// ===== HERO IMAGE =====
-export async function getHeroImage() {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
-  return data?.value || null;
-}
-
-export async function saveHeroImage(url: string) {
-  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').single();
-  if (existing.data) {
-    return supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
-  }
-  return supabase.from('settings').insert({ key: 'hero_image', value: url });
-}
-
-// ===== PARTICIPA ENTRIES =====
-export async function getParticipaEntries() {
-  const { data } = await supabase.from('participa_entries').select('*').order('created_at', { ascending: false });
-  return data || [];
-}
-
-export async function createParticipaEntry(entry: { tab: string; text: string; name?: string | null; anonymous: boolean }) {
-  return supabase.from('participa_entries').insert(entry).select().single();
-}
-
-export async function deleteParticipaEntry(id: string) {
-  return supabase.from('participa_entries').delete().eq('id', id);
-}
-
-export async function clearAllParticipaEntries() {
-  return supabase.from('participa_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 }
 
 // ===== DAILY VERSE MURO POST =====
@@ -450,73 +283,39 @@ export async function ensureDailyVerseMuroPost(verse: string, reference: string)
   return data;
 }
 
-// ===== TESTIMONIOS PUBLICOS =====
-export async function getPublicTestimonios() {
-  const { data } = await supabase.from('testimonios_publicos').select('*').eq('public', true).order('created_at', { ascending: false });
+// ===== SPONSORS =====
+export async function getSponsors() {
+  const { data } = await supabase.from('sponsors').select('*').order('sort_order');
   return data || [];
 }
 
-export async function createTestimonioPublico(t: { user_id: string; display_name?: string; content: string; public?: boolean }) {
-  return supabase.from('testimonios_publicos').insert({ ...t, public: t.public ?? true }).select().single();
+export async function getSponsorById(id: string) {
+  const { data } = await supabase.from('sponsors').select('*').eq('id', id).maybeSingle();
+  return data;
 }
 
-export async function updateTestimonioPublico(id: string, t: { content?: string; public?: boolean }) {
-  return supabase.from('testimonios_publicos').update(t).eq('id', id);
+// ===== HERO IMAGE =====
+export async function getHeroImage() {
+  const { data } = await supabase.from('settings').select('value').eq('key', 'hero_image').single();
+  return data?.value || null;
 }
 
-export async function deleteTestimonioPublico(id: string) {
-  return supabase.from('testimonios_publicos').delete().eq('id', id);
-}
-
-// Approve a testimonio → upsert into testimonios_publicos with approved=true
-export async function approveTestimonio(t: { source_id: string; user_id: string; display_name?: string; content: string }) {
-  return supabase.from('testimonios_publicos').upsert(
-    { user_id: t.user_id, display_name: t.display_name || 'Anónimo', content: t.content, public: true, approved: true, approved_at: new Date().toISOString() },
-    { onConflict: 'user_id' }
-  ).select().single();
-}
-
-// ===== PROJECT PARTICIPANTS =====
-export async function joinProject(projectId: string, userId: string) {
-  return supabase.from('project_participants').insert({ project_id: projectId, user_id: userId });
-}
-
-export async function leaveProject(projectId: string, userId: string) {
-  return supabase.from('project_participants').delete().eq('project_id', projectId).eq('user_id', userId);
-}
-
-export async function isUserInProject(projectId: string, userId: string): Promise<boolean> {
-  const { data } = await supabase.from('project_participants').select('id').eq('project_id', projectId).eq('user_id', userId).maybeSingle();
-  return !!data;
-}
-
-export async function getProjectParticipantCount(projectId: string): Promise<number> {
-  const { count } = await supabase.from('project_participants').select('*', { count: 'exact', head: true }).eq('project_id', projectId);
-  return count || 0;
-}
-
-export async function getUserProjects(userId: string): Promise<string[]> {
-  const { data } = await supabase.from('project_participants').select('project_id').eq('user_id', userId);
-  return (data || []).map(r => r.project_id);
-}
-
-// Get all projects with real participant count from project_participants
-export async function getProjectsWithCounts() {
-  const projects = await getProjects();
-  const { data: pp } = await supabase.from('project_participants').select('project_id');
-  const counts: Record<string, number> = {};
-  (pp || []).forEach(r => { counts[r.project_id] = (counts[r.project_id] || 0) + 1; });
-  return projects.map((p: any) => ({ ...p, participant_count: counts[p.id] || 0 }));
+export async function saveHeroImage(url: string) {
+  const existing = await supabase.from('settings').select('id').eq('key', 'hero_image').single();
+  if (existing.data) {
+    return supabase.from('settings').update({ value: url }).eq('key', 'hero_image');
+  }
+  return supabase.from('settings').insert({ key: 'hero_image', value: url });
 }
 
 // ===== NOTIFICATION PREFERENCES =====
 export async function getNotificationPreferences(userId: string) {
   const { data } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
-  return data || { daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true };
+  return data || { daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true };
 }
 
 export async function saveNotificationPreferences(userId: string, prefs: {
-  daily_verse?: boolean; daily_phrase?: boolean; comments?: boolean; reactions?: boolean; announcements?: boolean;
+  daily_verse?: boolean; daily_phrase?: boolean; comments?: boolean; reactions?: boolean; announcements?: boolean; daily_reminder?: boolean; new_episodes?: boolean;
 }) {
   return supabase.from('notification_preferences').upsert(
     { user_id: userId, ...prefs, updated_at: new Date().toISOString() },
@@ -543,11 +342,6 @@ export async function getMuroPostsByUser(userId: string) {
   return data || [];
 }
 
-export async function getParticipaEntriesByUser(userId: string) {
-  const { data } = await supabase.from('participa_entries').select('*').eq('name', userId).order('created_at', { ascending: false });
-  return data || [];
-}
-
 export async function getTestimoniosByUser(userId: string) {
   const { data } = await supabase.from('testimonios').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   return data || [];
@@ -559,15 +353,17 @@ export async function deleteAllUserData(userId: string) {
     supabase.from('muro_posts').delete().eq('user_id', userId),
     supabase.from('muro_replies').delete().eq('user_id', userId),
     supabase.from('reactions').delete().eq('user_id', userId),
-    supabase.from('participa_entries').delete().eq('name', userId),
     supabase.from('testimonios').delete().eq('user_id', userId),
     supabase.from('testimonios_publicos').delete().eq('user_id', userId),
     supabase.from('push_subscriptions').delete().eq('user_id', userId),
     supabase.from('notification_preferences').delete().eq('user_id', userId),
     supabase.from('user_consents').delete().eq('user_id', userId),
-    supabase.from('user_activities').delete().eq('user_id', userId),
-    supabase.from('project_participants').delete().eq('user_id', userId),
     supabase.from('profiles').delete().eq('user_id', userId),
+    supabase.from('diario_entries').delete().eq('user_id', userId),
+    supabase.from('diario_intenciones').delete().eq('user_id', userId),
+    supabase.from('diario_gratitud').delete().eq('user_id', userId),
+    supabase.from('diario_examen').delete().eq('user_id', userId),
+    supabase.from('comunidad_members').delete().eq('user_id', userId),
   ]);
 }
 
@@ -597,7 +393,7 @@ export async function getEpisodeClicksCountByPlatform(): Promise<Record<string, 
   return counts;
 }
 
-// ===== DEVOCIONALES (DAILY DEVOTIONALS) =====
+// ===== DEVOCIONALES =====
 const FALLBACK_DEVOTIONALS = [
   {
     id: 'fallback-1',
@@ -623,11 +419,9 @@ const FALLBACK_DEVOTIONALS = [
 
 export async function getDailyDevotional() {
   const today = new Date().toISOString().split('T')[0];
-  // 1. Intentar buscar programado para hoy
   const { data: scheduled } = await supabase.from('devotionals').select('*').eq('publish_date', today).maybeSingle();
   if (scheduled) return scheduled;
 
-  // 2. Si no hay hoy, buscar rotativos (publish_date is null)
   const { data: rotating } = await supabase.from('devotionals').select('*').is('publish_date', null);
   if (rotating && rotating.length > 0) {
     const now = new Date();
@@ -639,7 +433,6 @@ export async function getDailyDevotional() {
     return rotating[index];
   }
 
-  // 3. Fallback estático
   const now = new Date();
   const dayOfYear = now.getDate() + now.getMonth() * 31;
   return FALLBACK_DEVOTIONALS[dayOfYear % FALLBACK_DEVOTIONALS.length];
@@ -712,13 +505,11 @@ export async function createDevotionalReply(reply: {
   }, { onConflict: 'devotional_id,user_id' }).select().single();
   if (error) return { data: null, error };
 
-  // Si eligió compartir en el muro, creamos un comentario en el post de "Versículo del Día" de hoy
   if (reply.shared_to_muro && data) {
     const { data: dev } = await supabase.from('devotionals').select('title, verse, reference').eq('id', reply.devotional_id).maybeSingle();
     const verseText = dev?.verse || 'El Señor es mi pastor, nada me faltará.';
     const verseRef = dev?.reference || 'Salmo 23,1';
     
-    // Obtener o asegurar el MuroPost del versículo de hoy
     const versePost = await ensureDailyVerseMuroPost(verseText, verseRef);
     if (versePost) {
       await createMuroReply({
@@ -749,12 +540,20 @@ export async function deleteDevotional(id: string) {
   return supabase.from('devotionals').delete().eq('id', id);
 }
 
-export async function getSponsorById(id: string) {
-  const { data } = await supabase.from('sponsors').select('*').eq('id', id).maybeSingle();
-  return data;
+export async function getDevotionalRepliesByUser(userId: string) {
+  const { data } = await supabase
+    .from('devotional_replies')
+    .select('*, devotionals(title, verse, reference)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return data || [];
 }
 
-// ===== IN-APP NOTIFICATIONS CENTER =====
+export async function deleteDevotionalReply(id: string) {
+  return supabase.from('devotional_replies').delete().eq('id', id);
+}
+
+// ===== NOTIFICATIONS CENTER =====
 export async function getUserNotifications(userId: string) {
   const { data } = await supabase
     .from('notifications')
@@ -779,6 +578,387 @@ export async function markAllNotificationsAsRead(userId: string) {
     .eq('user_id', userId);
 }
 
+// ─── STREAKS ───
+export async function getUserStreak(userId: string) {
+  const { data } = await supabase
+    .from('user_streaks')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
+}
+
+export async function upsertUserStreak(userId: string, updates: {
+  current_streak?: number;
+  longest_streak?: number;
+  last_activity_date?: string;
+  grace_day_used_this_week?: boolean;
+}) {
+  const { data, error } = await supabase
+    .from('user_streaks')
+    .upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) console.error('upsertUserStreak error:', error);
+  return { data, error };
+}
+
+export async function recordDailyActivity(userId: string) {
+  const today = new Date().toISOString().split('T')[0];
+  const existing = await getUserStreak(userId);
+
+  if (!existing) {
+    return upsertUserStreak(userId, {
+      current_streak: 1,
+      longest_streak: 1,
+      last_activity_date: today,
+      grace_day_used_this_week: false,
+    });
+  }
+
+  if (existing.last_activity_date === today) {
+    return { data: existing, error: null };
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  let newStreak = existing.current_streak;
+  let graceUsed = existing.grace_day_used_this_week;
+
+  if (existing.last_activity_date === yesterdayStr) {
+    newStreak += 1;
+  } else {
+    if (!graceUsed) {
+      graceUsed = true;
+      newStreak += 1;
+    } else {
+      newStreak = 1;
+    }
+  }
+
+  const newLongest = Math.max(newStreak, existing.longest_streak);
+
+  return upsertUserStreak(userId, {
+    current_streak: newStreak,
+    longest_streak: newLongest,
+    last_activity_date: today,
+    grace_day_used_this_week: graceUsed,
+  });
+}
+
+// ─── INTENCIÓN DEL DÍA (desde muro_posts) ───
+export async function getDailyIntention() {
+  const { data } = await supabase
+    .from('muro_posts')
+    .select('id, content, author_name, created_at, user_id')
+    .eq('category', 'oracion')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+export async function prayForIntention(postId: string, userId: string) {
+  return toggleReaction('muro_post', postId, userId, '🙏');
+}
+
+// ─── PLANES LECTIO DIVINA ───
+export async function getDevotionalPlans() {
+  const { data } = await supabase
+    .from('devotional_plans')
+    .select('*')
+    .eq('is_active', true)
+    .order('duration');
+  return data || [];
+}
+
+export async function getPlanDevotionals(planId: string) {
+  const { data } = await supabase
+    .from('plan_devotionals')
+    .select('*')
+    .eq('plan_id', planId)
+    .order('day_number');
+  return data || [];
+}
+
+export async function getUserPlanProgress(userId: string, planId: string) {
+  const { data } = await supabase
+    .from('user_plan_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('plan_id', planId)
+    .maybeSingle();
+  return data;
+}
+
+export async function startPlan(userId: string, planId: string) {
+  const { data, error } = await supabase
+    .from('user_plan_progress')
+    .upsert({ user_id: userId, plan_id: planId, current_day: 1, completed_days: [], started_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) console.error('startPlan error:', error);
+  return { data, error };
+}
+
+export async function completePlanDay(userId: string, planId: string, dayNumber: number) {
+  const progress = await getUserPlanProgress(userId, planId);
+  if (!progress) return { data: null, error: 'Plan not started' };
+
+  const alreadyCompleted = progress.completed_days || [];
+  if (alreadyCompleted.includes(dayNumber)) return { data: progress, error: null };
+
+  const newCompleted = [...alreadyCompleted, dayNumber];
+  const newCurrentDay = Math.max(progress.current_day, dayNumber + 1);
+
+  const { data: plan } = await supabase
+    .from('devotional_plans')
+    .select('duration')
+    .eq('id', planId)
+    .single();
+
+  const isComplete = newCompleted.length >= (plan?.duration || 999);
+
+  const updates: any = {
+    completed_days: newCompleted,
+    current_day: newCurrentDay,
+  };
+  if (isComplete) {
+    updates.completed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from('user_plan_progress')
+    .update(updates)
+    .eq('user_id', userId)
+    .eq('plan_id', planId)
+    .select()
+    .single();
+  if (error) console.error('completePlanDay error:', error);
+  return { data, error };
+}
+
+// ─── CATECISMO ───
+export async function searchCatechism(query: string) {
+  const { data } = await supabase
+    .from('catechism_entries')
+    .select('*')
+    .textSearch('search_vector', query, { config: 'spanish' })
+    .limit(20);
+  return data || [];
+}
+
+export async function getCatechismBySource(source: string) {
+  const { data } = await supabase
+    .from('catechism_entries')
+    .select('*')
+    .eq('source', source)
+    .order('chapter')
+    .limit(50);
+  return data || [];
+}
+
+// ===== COMUNIDADES =====
+export async function getComunidades() {
+  const { data } = await supabase.from('comunidades').select('*').order('member_count', { ascending: false });
+  return data || [];
+}
+
+export async function getComunidadById(id: string) {
+  const { data } = await supabase.from('comunidades').select('*').eq('id', id).single();
+  return data;
+}
+
+export async function getUserComunidades(userId: string) {
+  const { data: memberships } = await supabase
+    .from('comunidad_members')
+    .select('comunidad_id, role')
+    .eq('user_id', userId);
+
+  if (!memberships?.length) return [];
+
+  const ids = memberships.map((m: any) => m.comunidad_id);
+  const { data: comunidades } = await supabase
+    .from('comunidades')
+    .select('id, name, photo_url, member_count')
+    .in('id', ids);
+
+  return (comunidades || []).map((c: any) => ({
+    ...c,
+    role: memberships.find((m: any) => m.comunidad_id === c.id)?.role,
+  }));
+}
+
+// ===== DIARIO (Pilar 1) =====
+export async function getDiarioEntryByDate(userId: string, date: string) {
+  const { data } = await supabase
+    .from('diario_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('entry_date', date)
+    .maybeSingle();
+  return data;
+}
+
+export async function upsertDiarioEntry(entry: {
+  user_id: string;
+  entry_date: string;
+  evangelio?: string;
+  reflexion?: string;
+  que_me_dice_dios?: string;
+  proposito?: string;
+  estado_animo?: string;
+}) {
+  return supabase
+    .from('diario_entries')
+    .upsert(entry, { onConflict: 'user_id,entry_date' })
+    .select()
+    .single();
+}
+
+export async function getDiarioEntriesByMonth(userId: string, year: number, month: number) {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const end = `${year}-${String(month).padStart(2, '0')}-31`;
+  const { data } = await supabase
+    .from('diario_entries')
+    .select('entry_date, estado_animo')
+    .eq('user_id', userId)
+    .gte('entry_date', start)
+    .lte('entry_date', end)
+    .order('entry_date', { ascending: false });
+  return data || [];
+}
+
+export async function getIntenciones(userId: string) {
+  const { data } = await supabase
+    .from('diario_intenciones')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+export async function createIntencion(intencion: {
+  user_id: string;
+  titulo: string;
+  descripcion?: string;
+  estado?: string;
+}) {
+  return supabase
+    .from('diario_intenciones')
+    .insert({ ...intencion, estado: intencion.estado || 'pidiendo' })
+    .select()
+    .single();
+}
+
+export async function updateIntencionEstado(id: string, userId: string, estado: string) {
+  return supabase
+    .from('diario_intenciones')
+    .update({ estado })
+    .eq('id', id)
+    .eq('user_id', userId);
+}
+
+export async function deleteIntencion(id: string, userId: string) {
+  return supabase.from('diario_intenciones').delete().eq('id', id).eq('user_id', userId);
+}
+
+export async function getGratitudByDate(userId: string, date: string) {
+  const { data } = await supabase
+    .from('diario_gratitud')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('entry_date', date)
+    .maybeSingle();
+  return data;
+}
+
+export async function upsertGratitud(entry: {
+  user_id: string;
+  entry_date: string;
+  gratitud_1: string;
+  gratitud_2?: string;
+  gratitud_3?: string;
+}) {
+  return supabase
+    .from('diario_gratitud')
+    .upsert(entry, { onConflict: 'user_id,entry_date' })
+    .select()
+    .single();
+}
+
+export async function getExamenByDate(userId: string, date: string) {
+  const { data } = await supabase
+    .from('diario_examen')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('entry_date', date)
+    .maybeSingle();
+  return data;
+}
+
+export async function upsertExamen(examen: {
+  user_id: string;
+  entry_date: string;
+  gracias: string;
+  dificultad: string;
+  perdon: string;
+  proposito: string;
+}) {
+  return supabase
+    .from('diario_examen')
+    .upsert(examen, { onConflict: 'user_id,entry_date' })
+    .select()
+    .single();
+}
+
+// ===== PAGE CONTENT (about, donation, etc) =====
+export async function getPageContent(page: string) {
+  const { data } = await supabase
+    .from('page_content')
+    .select('key, value')
+    .eq('page', page);
+  const obj: Record<string, string> = {};
+  (data || []).forEach((r) => { obj[r.key] = r.value; });
+  return obj;
+}
+
+export async function upsertPageContent(page: string, key: string, value: string) {
+  return supabase.from('page_content').upsert(
+    { page, key, value },
+    { onConflict: 'page,key' }
+  );
+}
+
+// ===== ACTIVITIES (encuentros) =====
+export async function getActivities(onlyNames = false) {
+  if (onlyNames) {
+    const { data } = await supabase.from('activities').select('name').order('date', { ascending: false });
+    return data || [];
+  }
+  const { data } = await supabase.from('activities').select('*').order('date', { ascending: false });
+  return data || [];
+}
+
+export async function joinActivity(userId: string, activityName: string) {
+  return supabase.from('activity_participants').insert({ user_id: userId, activity_name: activityName });
+}
+
+export async function leaveActivity(userId: string, activityName: string) {
+  return supabase.from('activity_participants').delete().eq('user_id', userId).eq('activity_name', activityName);
+}
+
+export async function getUserActivities(userId: string) {
+  const { data } = await supabase
+    .from('activity_participants')
+    .select('activity_name')
+    .eq('user_id', userId);
+  return (data || []).map((r: any) => r.activity_name);
+}
+
+// ===== PER-USER MURO REPLIES =====
 export async function getMuroRepliesByUser(userId: string) {
   const { data } = await supabase
     .from('muro_replies')
@@ -788,20 +968,50 @@ export async function getMuroRepliesByUser(userId: string) {
   return data || [];
 }
 
-export async function getDevotionalRepliesByUser(userId: string) {
-  const { data } = await supabase
-    .from('devotional_replies')
-    .select('*, devotionals(title, verse, reference)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+// ===== IMPACT METRICS =====
+export async function getImpactMetrics() {
+  const { data } = await supabase.from('impact_metrics').select('*').order('sort_order');
   return data || [];
 }
 
-export async function deleteDevotionalReply(id: string) {
-  return supabase.from('devotional_replies').delete().eq('id', id);
+export async function countProfiles() {
+  const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  return count || 0;
 }
 
-// ===== PERSONAL JOURNAL =====
+export async function countEpisodes() {
+  const { count } = await supabase.from('episodes').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function countTestimonios() {
+  const { count } = await supabase.from('testimonios').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+export async function countSponsors() {
+  const { count } = await supabase.from('sponsors').select('*', { count: 'exact', head: true });
+  return count || 0;
+}
+
+// ===== DIARIO PIN (código personal de acceso) =====
+export async function getDiarioPin(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('diario_pin')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data?.diario_pin || null
+}
+
+export async function setDiarioPin(userId: string, pin: string) {
+  return supabase
+    .from('profiles')
+    .update({ diario_pin: pin })
+    .eq('user_id', userId)
+}
+
+// ===== PERSONAL JOURNAL (legacy, used by ExportarDiarioPDF) =====
 export async function getPersonalJournal(userId: string) {
   const { data } = await supabase
     .from('personal_journal')
@@ -809,135 +1019,4 @@ export async function getPersonalJournal(userId: string) {
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   return data || [];
-}
-
-export async function createJournalEntry(userId: string, content: string) {
-  return supabase.from('personal_journal').insert({ user_id: userId, content }).select().single();
-}
-
-export async function deleteJournalEntry(id: string) {
-  return supabase.from('personal_journal').delete().eq('id', id);
-}
-
-// ===== INDIVIDUAL ACTIVITY ENROLLMENT =====
-export async function joinActivity(userId: string, activityName: string) {
-  return supabase.from('user_activities').upsert(
-    { user_id: userId, activity: activityName },
-    { onConflict: 'user_id,activity' }
-  );
-}
-
-export async function leaveActivity(userId: string, activityName: string) {
-  return supabase.from('user_activities').delete()
-    .eq('user_id', userId)
-    .eq('activity', activityName);
-}
-
-export async function isUserInActivity(userId: string, activityName: string): Promise<boolean> {
-  const { data } = await supabase.from('user_activities').select('id')
-    .eq('user_id', userId)
-    .eq('activity', activityName)
-    .maybeSingle();
-  return !!data;
-}
-
-export async function getProducts() {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'tienda_products').maybeSingle();
-  if (!data?.value) {
-    // Default products seeded if database is empty
-    return [
-      {
-        id: 'polera-atreverse',
-        name: 'Polera "Atreverse"',
-        type: 'polera',
-        phrase: 'Cuando alguien se atreve a decirlo, otro se atreve a sentirlo',
-        price: 12990,
-        colors: 'Negro, Blanco',
-        sizes: 'S, M, L, XL',
-        description: 'Polera de calce clásico unisex confeccionada en 100% Algodón Premium peinado de 180g. Estampa en serigrafía de alta definición con la frase icónica del podcast. Tacto ultrasuave y costuras reforzadas.',
-        image_placeholder: '/images/logo.png'
-      },
-      {
-        id: 'poleron-eco',
-        name: 'Polerón "Eco"',
-        type: 'poleron',
-        phrase: 'Donde tu historia encuentra eco',
-        price: 24990,
-        colors: 'Azul Marino, Gris Melange',
-        sizes: 'M, L, XL',
-        description: 'Polerón de calce relajado con capucha y bolsillo canguro. Interior de felpa perchada premium de 320g para máxima suavidad y abrigo. Frase bordada delicadamente en el centro del pecho.',
-        image_placeholder: '/images/logo.png'
-      },
-      {
-        id: 'polera-proposito',
-        name: 'Polera "Propósito"',
-        type: 'polera',
-        phrase: 'Cada historia tiene un propósito. La tuya también.',
-        price: 12990,
-        colors: 'Blanco, Verde Botella',
-        sizes: 'S, M, L',
-        description: 'Polera minimalista confeccionada en algodón orgánico. Estampado suave al tacto con una tipografía elegante inspiradora en el pecho. Diseño versátil para el día a día o encuentros de comunidad.',
-        image_placeholder: '/images/logo.png'
-      }
-    ];
-  }
-  try {
-    return JSON.parse(data.value);
-  } catch (e) {
-    console.error('Error parsing products:', e);
-    return [];
-  }
-}
-
-export async function saveProducts(products: any[]) {
-  const existing = await supabase.from('settings').select('id').eq('key', 'tienda_products').maybeSingle();
-  const value = JSON.stringify(products);
-  if (existing.data) {
-    return supabase.from('settings').update({ value }).eq('key', 'tienda_products');
-  }
-  return supabase.from('settings').insert({ key: 'tienda_products', value });
-}
-
-export async function createProduct(p: {
-  name: string;
-  type: string;
-  phrase: string;
-  price: number;
-  colors?: string;
-  sizes?: string;
-  description: string;
-  image_placeholder?: string;
-}) {
-  const list = await getProducts();
-  const newId = 'prod-' + Date.now();
-  const newProduct = { id: newId, ...p };
-  list.unshift(newProduct);
-  const { error } = await saveProducts(list);
-  return { data: error ? null : newProduct, error };
-}
-
-export async function updateProduct(id: string, p: {
-  name?: string;
-  type?: string;
-  phrase?: string;
-  price?: number;
-  colors?: string;
-  sizes?: string;
-  description?: string;
-  image_placeholder?: string;
-}) {
-  const list = await getProducts();
-  const idx = list.findIndex((item: any) => item.id === id);
-  if (idx === -1) return { error: { message: 'Producto no encontrado' } };
-  
-  list[idx] = { ...list[idx], ...p };
-  const { error } = await saveProducts(list);
-  return { error };
-}
-
-export async function deleteProduct(id: string) {
-  const list = await getProducts();
-  const filtered = list.filter((item: any) => item.id !== id);
-  const { error } = await saveProducts(filtered);
-  return { error };
 }
