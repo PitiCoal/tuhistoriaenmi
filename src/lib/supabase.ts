@@ -143,9 +143,12 @@ export async function createMuroPost(post: { user_id?: string | null; author_nam
 }
 
 export async function deleteMuroPost(id: string) {
-  await supabase.from('muro_replies').delete().eq('post_id', id);
-  await supabase.from('reactions').delete().eq('target_type', 'muro_post').eq('target_id', id);
-  return supabase.from('muro_posts').delete().eq('id', id);
+  const { error: repliesErr } = await supabase.from('muro_replies').delete().eq('post_id', id);
+  if (repliesErr) throw new Error(`Error al eliminar respuestas: ${repliesErr.message}`);
+  const { error: reactionsErr } = await supabase.from('reactions').delete().eq('target_type', 'muro_post').eq('target_id', id);
+  if (reactionsErr) throw new Error(`Error al eliminar reacciones: ${reactionsErr.message}`);
+  const { error: postErr } = await supabase.from('muro_posts').delete().eq('id', id);
+  if (postErr) throw new Error(`Error al eliminar publicación: ${postErr.message}`);
 }
 
 // ===== MURO REPLIES =====
@@ -330,11 +333,12 @@ export async function saveHeroImage(url: string) {
 // ===== NOTIFICATION PREFERENCES =====
 export async function getNotificationPreferences(userId: string) {
   const { data } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
-  return data || { daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true };
+  return data || { daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true, reminder_hour: 8, reminder_minute: 0, verse_hour: 6, verse_minute: 0 };
 }
 
 export async function saveNotificationPreferences(userId: string, prefs: {
   daily_verse?: boolean; daily_phrase?: boolean; comments?: boolean; reactions?: boolean; announcements?: boolean; daily_reminder?: boolean; new_episodes?: boolean;
+  reminder_hour?: number; reminder_minute?: number; verse_hour?: number; verse_minute?: number;
 }) {
   return supabase.from('notification_preferences').upsert(
     { user_id: userId, ...prefs, updated_at: new Date().toISOString() },

@@ -20,7 +20,7 @@ import {
 import {
   Shield, Mic, Image as ImageIcon, Handshake,
   MessageSquare, BarChart3, ArrowLeft, Save, Trash2,
-  Plus, ExternalLink, Eye, Heart, Users, BookOpen, Sparkles, Church, Headphones,
+  Plus, ExternalLink, Eye, Heart, Users, BookOpen, Sparkles, Church, Headphones, Loader,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -389,18 +389,29 @@ function AdminTestimonios() {
 // ===== MURO (lista + eliminar publicaciones) =====
 function AdminMuro() {
   const [posts, setPosts] = useState<any[]>([])
+  const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => { getMuroPosts().then(setPosts) }, [])
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar esta publicación del muro?')) return
-    await deleteMuroPost(id)
-    getMuroPosts().then(setPosts)
+    setDeletingId(id)
+    setError('')
+    try {
+      await deleteMuroPost(id)
+      getMuroPosts().then(setPosts)
+    } catch (e: any) {
+      setError(e.message || 'Error al eliminar')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
     <div className="space-y-4">
       <h2 className="font-heading font-bold text-primary-dark">Muro Comunitario ({posts.length})</h2>
+      {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
       <div className="space-y-2">
         {posts.map(p => (
           <div key={p.id} className="bg-card rounded-xl p-4 border border-gray-200/70 shadow-sm flex items-start justify-between gap-4 hover:shadow-md transition-shadow">
@@ -410,8 +421,8 @@ function AdminMuro() {
               <p className="text-xs text-text-light leading-relaxed">{p.content}</p>
               <p className="text-[10px] text-text-light/60">{new Date(p.created_at).toLocaleDateString('es-CL')}</p>
             </div>
-            <button onClick={() => handleDelete(p.id)} className="p-1.5 text-text-light hover:text-red-500 shrink-0">
-              <Trash2 size={14} />
+            <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id} className="p-1.5 text-text-light hover:text-red-500 disabled:opacity-30 shrink-0">
+              {deletingId === p.id ? <Loader size={14} className="animate-spin" /> : <Trash2 size={14} />}
             </button>
           </div>
         ))}

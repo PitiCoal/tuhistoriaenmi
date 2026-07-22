@@ -15,7 +15,7 @@ const formacionDropdown = [
 ];
 
 const dropdownLinks = [
-  { href: '/comunidad', label: 'Comunidad' },
+  { href: '/comunidad', label: 'Muro' },
   { href: '/recomendaciones', label: 'Recomendaciones' },
 ];
 

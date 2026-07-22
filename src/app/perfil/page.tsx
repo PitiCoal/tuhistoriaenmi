@@ -13,7 +13,7 @@ import {
 import {
   User, Camera, Save, LogIn, Shield,
   ArrowRight, CheckCircle, AlertCircle, MessageCircle, MessageSquare,
-  Bell, FileText, Trash2, AlertTriangle, Sparkles,
+  Bell, Clock, FileText, Trash2, AlertTriangle, Sparkles,
 } from 'lucide-react';
 
 import Link from 'next/link';
@@ -47,7 +47,7 @@ export default function PerfilPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Notification prefs
-  const [notifPrefs, setNotifPrefs] = useState({ daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true });
+  const [notifPrefs, setNotifPrefs] = useState({ daily_verse: true, daily_phrase: true, comments: true, reactions: true, announcements: true, daily_reminder: false, new_episodes: true, reminder_hour: 8, reminder_minute: 0, verse_hour: 6, verse_minute: 0 });
   // My publications
   const [muroPosts, setMuroPosts] = useState<any[]>([]);
   const [muroComments, setMuroComments] = useState<any[]>([]);
@@ -90,6 +90,10 @@ export default function PerfilPage() {
       announcements: prefs.announcements ?? true,
       daily_reminder: prefs.daily_reminder ?? false,
       new_episodes: prefs.new_episodes ?? true,
+      reminder_hour: prefs.reminder_hour ?? 8,
+      reminder_minute: prefs.reminder_minute ?? 0,
+      verse_hour: prefs.verse_hour ?? 6,
+      verse_minute: prefs.verse_minute ?? 0,
     }));
   }, [userId]);
 
@@ -359,31 +363,61 @@ export default function PerfilPage() {
             </div>
             <div className="space-y-3">
               {[
-                { key: 'daily_verse', label: 'Versículo del día', desc: 'Alertas del versículo matutino' },
-                { key: 'daily_reminder', label: 'Recordatorio diario', desc: 'Para escribir en tu diario espiritual' },
-                { key: 'new_episodes', label: 'Nuevos episodios', desc: 'Cuando se publique un nuevo podcast' },
-                { key: 'comments', label: 'Comentarios', desc: 'Respuestas a tus posts en el muro' },
-                { key: 'reactions', label: 'Reacciones', desc: 'Notificaciones de corazones o rezos' },
-              ].map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between gap-3 py-1 text-xs">
-                  <div>
-                    <span className="font-semibold text-text-light">{label}</span>
-                    <p className="text-[10px] text-text-light/50">{desc}</p>
+                { key: 'daily_verse' as const, label: 'Versículo del día', desc: 'Alertas del versículo matutino', hasTime: true, hourKey: 'verse_hour' as const, minKey: 'verse_minute' as const },
+                { key: 'daily_reminder' as const, label: 'Recordatorio diario', desc: 'Para escribir en tu diario espiritual', hasTime: true, hourKey: 'reminder_hour' as const, minKey: 'reminder_minute' as const },
+                { key: 'new_episodes' as const, label: 'Nuevos episodios', desc: 'Cuando se publique un nuevo podcast', hasTime: false },
+                { key: 'comments' as const, label: 'Comentarios', desc: 'Respuestas a tus posts en el muro', hasTime: false },
+                { key: 'reactions' as const, label: 'Reacciones', desc: 'Notificaciones de corazones o rezos', hasTime: false },
+              ].map(({ key, label, desc, hasTime, hourKey, minKey }) => (
+                <div key={key}>
+                  <div className="flex items-center justify-between gap-3 py-1 text-xs">
+                    <div>
+                      <span className="font-semibold text-text-light">{label}</span>
+                      <p className="text-[10px] text-text-light/50">{desc}</p>
+                    </div>
+                    <div
+                      onClick={() => setNotifPrefs(p => {
+                        const updated = { ...p, [key]: !p[key] };
+                        saveNotificationPreferences(userId, updated);
+                        return updated;
+                      })}
+                      className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                        notifPrefs[key] ? 'bg-primary' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                        notifPrefs[key] ? 'translate-x-3.5' : 'translate-x-0.5'
+                      }`} />
+                    </div>
                   </div>
-                  <div
-                    onClick={() => setNotifPrefs(p => {
-                      const updated = { ...p, [key]: !p[key as keyof typeof p] };
-                      saveNotificationPreferences(userId, updated);
-                      return updated;
-                    })}
-                    className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'bg-primary' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                      notifPrefs[key as keyof typeof notifPrefs] ? 'translate-x-3.5' : 'translate-x-0.5'
-                    }`} />
-                  </div>
+                  {hasTime && notifPrefs[key] && (
+                    <div className="ml-4 mt-1 mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center gap-2">
+                      <Clock size={12} className="text-text-light" />
+                      <select value={notifPrefs[hourKey!]}
+                        onChange={e => setNotifPrefs(p => {
+                          const updated = { ...p, [hourKey!]: Number(e.target.value) };
+                          saveNotificationPreferences(userId, updated);
+                          return updated;
+                        })}
+                        className="text-xs px-2 py-1 rounded border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 text-text-light">
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                      <span className="text-xs text-text-light">:</span>
+                      <select value={notifPrefs[minKey!]}
+                        onChange={e => setNotifPrefs(p => {
+                          const updated = { ...p, [minKey!]: Number(e.target.value) };
+                          saveNotificationPreferences(userId, updated);
+                          return updated;
+                        })}
+                        className="text-xs px-2 py-1 rounded border border-gray-200 bg-white dark:bg-gray-700 dark:border-gray-600 text-text-light">
+                        {[0, 15, 30, 45].map(m => (
+                          <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
