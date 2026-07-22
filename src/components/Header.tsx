@@ -103,39 +103,6 @@ export default function Header() {
             Inicio
           </Link>
 
-          {/* Menú Desplegable Formación */}
-          <div
-            className="relative"
-            onMouseEnter={() => { if (episodesTimer.current) clearTimeout(episodesTimer.current); setEpisodesMenuOpen(true); }}
-            onMouseLeave={() => { episodesTimer.current = setTimeout(() => setEpisodesMenuOpen(false), 200); }}
-          >
-            <button 
-              onClick={() => setEpisodesMenuOpen(!episodesMenuOpen)}
-              className="flex items-center gap-1 h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap font-medium focus:outline-none"
-            >
-              Formación
-              <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {episodesMenuOpen && (
-              <div className="absolute top-full left-0 bg-card border border-gray-200/70 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]"
-                onMouseEnter={() => { if (episodesTimer.current) clearTimeout(episodesTimer.current); setEpisodesMenuOpen(true); }}
-                onMouseLeave={() => { episodesTimer.current = setTimeout(() => setEpisodesMenuOpen(false), 200); }}
-              >
-                {formacionDropdown.map(link => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="block px-4 py-2 text-xs text-text-light hover:text-primary hover:bg-primary/5 transition-colors font-medium"
-                    onClick={() => setEpisodesMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
           <Link href="/el-en-mi" className="flex items-center h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap">
             Él en mí
           </Link>
@@ -165,6 +132,39 @@ export default function Header() {
                     href={link.href}
                     className="block px-4 py-2 text-xs text-text-light hover:text-primary hover:bg-primary/5 transition-colors font-medium"
                     onClick={() => setMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Menú Desplegable Formación */}
+          <div
+            className="relative"
+            onMouseEnter={() => { if (episodesTimer.current) clearTimeout(episodesTimer.current); setEpisodesMenuOpen(true); }}
+            onMouseLeave={() => { episodesTimer.current = setTimeout(() => setEpisodesMenuOpen(false), 200); }}
+          >
+            <button 
+              onClick={() => setEpisodesMenuOpen(!episodesMenuOpen)}
+              className="flex items-center gap-1 h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap font-medium focus:outline-none"
+            >
+              Formación
+              <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {episodesMenuOpen && (
+              <div className="absolute top-full left-0 bg-card border border-gray-200/70 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]"
+                onMouseEnter={() => { if (episodesTimer.current) clearTimeout(episodesTimer.current); setEpisodesMenuOpen(true); }}
+                onMouseLeave={() => { episodesTimer.current = setTimeout(() => setEpisodesMenuOpen(false), 200); }}
+              >
+                {formacionDropdown.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-4 py-2 text-xs text-text-light hover:text-primary hover:bg-primary/5 transition-colors font-medium"
+                    onClick={() => setEpisodesMenuOpen(false)}
                   >
                     {link.label}
                   </Link>

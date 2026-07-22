@@ -517,7 +517,7 @@ function ComunidadContent() {
     <div className="space-y-4 md:space-y-6 max-w-4xl mx-auto">
       {/* Hero */}
       <div className="bg-card rounded-xl md:rounded-2xl p-5 md:p-8 border border-gray-200/70 shadow-md text-center">
-        <h1 className="font-heading text-xl md:text-3xl font-bold text-primary-dark">Comunidad</h1>
+        <h1 className="font-heading text-xl md:text-3xl font-bold text-primary-dark">Muro</h1>
         <p className="text-text-light text-xs md:text-sm mt-1">Comparte, reflexiona y construye este espacio.</p>
       </div>
 
