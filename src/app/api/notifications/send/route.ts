@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import nodemailer from 'nodemailer';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _supabase: SupabaseClient | null = null
+function getSupabase(): SupabaseClient {
+  if (_supabase) return _supabase
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error('NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY deben estar configuradas en las Environment Variables de Vercel')
+  _supabase = createClient(url, key)
+  return _supabase
+}
 
 webpush.setVapidDetails(
   'mailto:contacto.tuhistoriaenmi@gmail.com',
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
       // 1. Verify User's Preferences
       // Column names in DB: 'comments', 'reactions', 'announcements', 'daily_verse', 'daily_phrase'
       const preferenceKey = type || 'announcements';
-      const { data: pref } = await supabase
+      const { data: pref } = await getSupabase()
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -53,7 +58,7 @@ export async function POST(req: NextRequest) {
 
       // Guardar en la tabla de notificaciones internas de la App
       try {
-        await supabase.from('notifications').insert({
+        await       getSupabase().from('notifications').insert({
           user_id: userId,
           title: title || 'Nueva interacción',
           body: body || 'Tienes una nueva notificación en la plataforma.',
@@ -65,14 +70,14 @@ export async function POST(req: NextRequest) {
       }
 
       // 2. Fetch Recipient Profile
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
         .from('profiles')
         .select('email, display_name')
         .eq('user_id', userId)
         .maybeSingle();
 
       // 3. Fetch Push Subscriptions
-      const { data: subscriptions } = await supabase
+      const { data: subscriptions } = await getSupabase()
         .from('push_subscriptions')
         .select('endpoint, keys')
         .eq('user_id', userId);
@@ -96,7 +101,7 @@ export async function POST(req: NextRequest) {
             pushSent++;
           } catch (err: any) {
             if (err.statusCode === 410 || err.statusCode === 404) {
-              await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+              await       getSupabase().from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
             }
             pushFailed++;
           }
@@ -174,12 +179,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'title es requerido' }, { status: 400 });
     }
 
-    let subscriptionsQuery = supabase.from('push_subscriptions').select('endpoint, keys, user_id');
+    let subscriptionsQuery =       getSupabase().from('push_subscriptions').select('endpoint, keys, user_id');
 
     // Filter by type preference if specified
     if (type) {
       // Get user IDs with this preference enabled
-      const { data: prefUsers } = await (supabase
+      const { data: prefUsers } = await (getSupabase()
         .from('notification_preferences') as any)
         .select('user_id')
         .eq(type, true);
@@ -218,7 +223,7 @@ export async function POST(req: NextRequest) {
         sent++;
       } catch (err: any) {
         if (err.statusCode === 410 || err.statusCode === 404) {
-          await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+          await       getSupabase().from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
         }
         failed++;
       }

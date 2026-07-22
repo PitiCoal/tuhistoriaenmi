@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getAllEpisodes, getEpisodeById } from '@/lib/episodes';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import PlatformLinks from '@/components/PlatformLinks';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import Link from 'next/link';
@@ -11,10 +11,15 @@ import { getSponsorById } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _supabase: SupabaseClient | null = null
+function getSupabase(): SupabaseClient {
+  if (_supabase) return _supabase
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) throw new Error('NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY deben estar configuradas')
+  _supabase = createClient(url, key)
+  return _supabase
+}
 
 export async function generateStaticParams() {
   return getAllEpisodes().map(e => ({ id: e.id }));
@@ -22,7 +27,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const { data: cloudEp } = await supabase.from('episodes').select('*').eq('id', id).single();
+  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).single();
   const defaultEp = getEpisodeById(id);
 
   if (!cloudEp && !defaultEp) return {};
@@ -52,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function EpisodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { data: cloudEp } = await supabase.from('episodes').select('*').eq('id', id).single();
+  const { data: cloudEp } = await getSupabase().from('episodes').select('*').eq('id', id).single();
   const defaultEp = getEpisodeById(id);
 
   if (!cloudEp && !defaultEp) notFound();
