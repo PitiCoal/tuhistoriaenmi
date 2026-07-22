@@ -76,27 +76,27 @@ export default function Header() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
-          <Link href="/" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+          <Link href="/" className="flex items-center h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap">
             Inicio
           </Link>
 
           {/* Menú Desplegable Formación */}
           <div
-            className="relative py-2"
+            className="relative"
             onMouseEnter={() => setEpisodesMenuOpen(true)}
             onMouseLeave={() => setEpisodesMenuOpen(false)}
           >
             <button 
               onClick={() => setEpisodesMenuOpen(!episodesMenuOpen)}
-              className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none"
+              className="flex items-center gap-1 h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap font-medium focus:outline-none"
             >
               Formación
               <ChevronDown size={14} className={`transition-transform duration-200 ${episodesMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {episodesMenuOpen && (
-              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
                 {formacionDropdown.map(link => (
                   <Link
                     key={link.href}
@@ -111,26 +111,26 @@ export default function Header() {
             )}
           </div>
 
-          <Link href="/el-en-mi" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+          <Link href="/el-en-mi" className="flex items-center h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap">
             Él en mí
           </Link>
 
           {/* Menú Desplegable Comunidad */}
           <div
-            className="relative py-2"
+            className="relative"
             onMouseEnter={() => setMenuOpen(true)}
             onMouseLeave={() => setMenuOpen(false)}
           >
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-1 text-text-light hover:text-primary transition-colors whitespace-nowrap font-medium focus:outline-none"
+              className="flex items-center gap-1 h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap font-medium focus:outline-none"
             >
               Comunidad
               <ChevronDown size={14} className={`transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {menuOpen && (
-              <div className="absolute top-full left-0 mt-0 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 shadow-lg rounded-xl py-2 w-48 transition-all duration-200 z-[100]">
                 {dropdownLinks.map(link => (
                   <Link
                     key={link.href}
@@ -145,7 +145,7 @@ export default function Header() {
             )}
           </div>
 
-          <Link href="/donar" className="text-text-light hover:text-primary transition-colors whitespace-nowrap">
+          <Link href="/donar" className="flex items-center h-8 px-3 text-text-light hover:text-primary hover:bg-primary/5 rounded-lg transition-colors whitespace-nowrap">
             Donar
           </Link>
 
