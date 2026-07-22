@@ -87,18 +87,20 @@ Plataformas: YT `#FF0000`, Spotify `#1DB954`, Apple `#6C3FE7`, Amazon `#FF9900`,
 
 ## Modo Oscuro
 
-**LEARNED: NO DEPENDAR del CSS import para variables de tema.**  
-Next.js 16 + TW v4 + `@tailwindcss/postcss` dropea el CSS posterior a `@import "tailwindcss"` en el build estático. Estrategia que funciona:
+**LEARNED: `themes.css` SÍ se compila correctamente (`[data-theme="dark"]` selectores aparecen en el CSS build).**  
+El problema NO era el build — era que `data-theme` se seteaba en React useEffect (post-hydration), causando flash y potencialmente no funcionando si el bundle no se cargaba a tiempo.
 
-1. `ThemeContext.tsx` inyecta `<style id="thm-theme-vars">` con TODAS las variables CSS light + dark + overrides con `!important`
-2. Cambia `document.documentElement.setAttribute('data-theme', theme)`
-3. `themes.css` se importa aparte como respaldo adicional
+**Estrategia actual (funciona):**
+
+1. `themes.css` (import estático) tiene `:root { --color-*}`, `[data-theme="dark"] { --color-* }`, y todos los overrides de dark mode
+2. `layout.tsx` inyecta inline `<script>` como primer hijo de `<body>` que lee localStorage y setea `data-theme` + `fontSize` en `<html>` **antes del primer paint**
+3. `ThemeContext.tsx` solo maneja toggle de estado y persistencia — NO inyecta CSS (es redundante)
 
 ## Lecciones Aprendidas (NO repetir errores)
 
 1. **Tailwind v4 `@theme` no genera utilidades confiables en build** → las clases `bg-primary`, `text-text`, `border-border`, `bg-card` NO existen en el CSS compilado. Usar colores estándar (`bg-white`, `text-gray-800`) + variables CSS directas (`var(--color-primary)`) en inline styles si es necesario.
 
-2. **`@import "tailwindcss"` dropea todo el CSS posterior** → separar en dos archivos CSS (`globals.css` solo para Tailwind, `themes.css` para todo lo demás) NO resuelve el problema en el build estático. La solución robusta es inyección JS de `<style>`.
+2. **`@import "tailwindcss"` dropea TODO el CSS posterior en el mismo archivo**, pero un CSS IMPORTADO (`./themes.css`) SÍ se compila y aparece en el build. El problema de drop solo ocurre dentro del mismo archivo después de `@import "tailwindcss"`, no para CSS importados separadamente.
 
 3. **`next export` está deprecado** → usar `output: 'export'` en next.config o deploy directo a Vercel.
 
