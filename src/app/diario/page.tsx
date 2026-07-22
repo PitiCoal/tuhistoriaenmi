@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import { getDiarioEntriesByMonth, getDiarioEntryByDate, getNotifPrefs, setNotifPrefs } from '@/lib/supabase'
+import { getDiarioEntriesByMonth, getDiarioEntryByDate, getNotifPrefs, setNotifPrefs, getNotificationPreferences, saveNotificationPreferences } from '@/lib/supabase'
 import DiarioEntryForm from '@/components/diario/DiarioEntryForm'
 import GratitudDiaria from '@/components/diario/GratitudDiaria'
 import IntencionesManager from '@/components/diario/IntencionesManager'
@@ -29,7 +29,13 @@ export default function DiarioPage() {
   const [prayerReminder, setPrayerReminder] = useState(false)
   const [reminderHour, setReminderHour] = useState(20)
   const [reminderMinute, setReminderMinute] = useState(0)
-  const [showNotifConfig, setShowNotifConfig] = useState(false)
+  const [showNotifConfig, setShowNotifConfig] = useState<string | false>(false)
+  const [dailyVerse, setDailyVerse] = useState(true)
+  const [dailyReminder, setDailyReminder] = useState(true)
+  const [verseHour, setVerseHour] = useState(6)
+  const [verseMinute, setVerseMinute] = useState(0)
+  const [notifHour, setNotifHour] = useState(8)
+  const [notifMinute, setNotifMinute] = useState(0)
   const [activeTab, setActiveTab] = useState<'escribir' | 'examen'>('escribir')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [monthEntries, setMonthEntries] = useState<{ entry_date: string; estado_animo: string | null }[]>([])
@@ -43,6 +49,14 @@ export default function DiarioPage() {
         setReminderHour(prefs.reminder_hour ?? 20)
         setReminderMinute(prefs.reminder_minute ?? 0)
       }
+    }).catch(() => {})
+    getNotificationPreferences(userId).then(prefs => {
+      setDailyVerse(prefs.daily_verse ?? true)
+      setDailyReminder(prefs.daily_reminder ?? false)
+      setVerseHour(prefs.verse_hour ?? 6)
+      setVerseMinute(prefs.verse_minute ?? 0)
+      setNotifHour(prefs.reminder_hour ?? 8)
+      setNotifMinute(prefs.reminder_minute ?? 0)
     }).catch(() => {})
   }, [userId])
 
@@ -136,13 +150,13 @@ export default function DiarioPage() {
             {prayerReminder ? 'Recordatorio activo' : 'Recordatorio'}
           </button>
           {prayerReminder && (
-            <button onClick={() => setShowNotifConfig(!showNotifConfig)}
+            <button onClick={() => setShowNotifConfig(prev => prev === 'prayer' ? false : 'prayer')}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-text-light hover:bg-gray-50 transition-all active:scale-95">
               <Clock size={12} /> {String(reminderHour).padStart(2, '0')}:{String(reminderMinute).padStart(2, '0')}
             </button>
           )}
         </div>
-        {showNotifConfig && prayerReminder && (
+        {showNotifConfig === 'prayer' && prayerReminder && (
           <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-flex items-center gap-3">
             <span className="text-xs text-text-light">Recordar a las:</span>
             <select value={reminderHour} onChange={e => saveReminderTime(Number(e.target.value), reminderMinute)}
@@ -156,6 +170,100 @@ export default function DiarioPage() {
               className="text-xs px-2 py-1 rounded border border-gray-200 bg-white">
               {[0, 15, 30, 45].map(m => (
                 <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Versículo del día toggle + hora */}
+        <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+          <button onClick={() => {
+            const next = !dailyVerse
+            setDailyVerse(next)
+            if (userId) saveNotificationPreferences(userId, { daily_verse: next, verse_hour: verseHour, verse_minute: verseMinute }).catch(() => {})
+          }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+              dailyVerse ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <Bell size={12} /> {dailyVerse ? 'Versículo del día activo' : 'Versículo del día'}
+          </button>
+          {dailyVerse && (
+            <button onClick={() => setShowNotifConfig(prev => prev === 'verse' ? false : 'verse')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+                showNotifConfig === 'verse' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
+              }`}>
+              <Clock size={12} /> {String(verseHour).padStart(2, '0')}:{String(verseMinute).padStart(2, '0')}
+            </button>
+          )}
+          <button onClick={() => {
+            const next = !dailyReminder
+            setDailyReminder(next)
+            if (userId) saveNotificationPreferences(userId, { daily_reminder: next, reminder_hour: notifHour, reminder_minute: notifMinute }).catch(() => {})
+          }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+              dailyReminder ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <Bell size={12} /> {dailyReminder ? 'Recordatorio diario activo' : 'Recordatorio diario'}
+          </button>
+          {dailyReminder && (
+            <button onClick={() => setShowNotifConfig(prev => prev === 'notif' ? false : 'notif')}
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
+                showNotifConfig === 'notif' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white text-text-light border-gray-200 hover:bg-gray-50'
+              }`}>
+              <Clock size={12} /> {String(notifHour).padStart(2, '0')}:{String(notifMinute).padStart(2, '0')}
+            </button>
+          )}
+        </div>
+        {showNotifConfig === 'verse' && dailyVerse && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-flex items-center gap-3">
+            <span className="text-xs text-text-light">Versículo a las:</span>
+            <select value={verseHour} onChange={e => {
+              const h = Number(e.target.value)
+              setVerseHour(h)
+              if (userId) saveNotificationPreferences(userId, { daily_verse: dailyVerse, verse_hour: h, verse_minute: verseMinute }).catch(() => {})
+            }}
+              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white">
+              {Array.from({ length: 24 }, (_, i) => (
+                <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+              ))}
+            </select>
+            <span className="text-xs text-text-light">:</span>
+            <select value={verseMinute} onChange={e => {
+              const m = Number(e.target.value)
+              setVerseMinute(m)
+              if (userId) saveNotificationPreferences(userId, { daily_verse: dailyVerse, verse_hour: verseHour, verse_minute: m }).catch(() => {})
+            }}
+              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white">
+              {[0, 15, 30, 45].map(mm => (
+                <option key={mm} value={mm}>{String(mm).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {showNotifConfig === 'notif' && dailyReminder && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100 inline-flex items-center gap-3">
+            <span className="text-xs text-text-light">Recordar a las:</span>
+            <select value={notifHour} onChange={e => {
+              const h = Number(e.target.value)
+              setNotifHour(h)
+              if (userId) saveNotificationPreferences(userId, { daily_reminder: dailyReminder, reminder_hour: h, reminder_minute: notifMinute }).catch(() => {})
+            }}
+              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white">
+              {Array.from({ length: 24 }, (_, i) => (
+                <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+              ))}
+            </select>
+            <span className="text-xs text-text-light">:</span>
+            <select value={notifMinute} onChange={e => {
+              const m = Number(e.target.value)
+              setNotifMinute(m)
+              if (userId) saveNotificationPreferences(userId, { daily_reminder: dailyReminder, reminder_hour: notifHour, reminder_minute: m }).catch(() => {})
+            }}
+              className="text-xs px-2 py-1 rounded border border-gray-200 bg-white">
+              {[0, 15, 30, 45].map(mm => (
+                <option key={mm} value={mm}>{String(mm).padStart(2, '0')}</option>
               ))}
             </select>
           </div>
