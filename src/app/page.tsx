@@ -45,6 +45,11 @@ export default function HomePage() {
               <img src="/images/logo-tm.png" alt="TM" className="w-20 h-20 md:w-28 md:h-28" />
             </div>
             <button
+              onClick={async () => {
+                const p = (window as any).__installPrompt;
+                if (p) { p.prompt(); await p.userChoice; }
+                else alert('Para instalar, abre el menú del navegador y selecciona "Agregar a pantalla de inicio".');
+              }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-primary-dark font-semibold rounded-xl text-xs md:text-sm hover:bg-white/90 transition-all active:scale-95 shadow-md">
               <Download size={14} /> Descargar app
             </button>

@@ -28,6 +28,7 @@ export default function InstallPrompt() {
     }
     const handler = (e: Event) => {
       e.preventDefault();
+      (window as any).__installPrompt = e;
       setDeferredPrompt(e);
       setShow(true);
     };

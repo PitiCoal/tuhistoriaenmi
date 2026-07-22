@@ -38,7 +38,6 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
-  const prefsRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = typeof user === 'object' && user && isAdminEmail(user.email);
   const fbUser = typeof user === 'object' && user ? user : null;
@@ -63,9 +62,8 @@ export default function Header() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (prefsRef.current && !prefsRef.current.contains(e.target as Node)) {
-        setShowPrefs(false);
-      }
+      const t = e.target as Element | null
+      if (!t?.closest('[data-prefs-root]')) setShowPrefs(false)
     }
     if (showPrefs) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -179,7 +177,7 @@ export default function Header() {
 
           <div className="flex items-center gap-2 pl-4 border-l border-gray-200/70">
             {/* Preferencias: tema + fuente */}
-            <div className="relative" ref={prefsRef}>
+            <div className="relative" data-prefs-root>
               <button 
                 onClick={() => setShowPrefs(!showPrefs)} 
                 className="p-1.5 text-text-light hover:text-primary transition-colors active:scale-90 focus:outline-none"
@@ -300,7 +298,7 @@ export default function Header() {
         {fbUser ? (
           <div className="md:hidden flex items-center gap-2">
             {/* Prefs móvil */}
-            <div className="relative" ref={prefsRef}>
+            <div className="relative" data-prefs-root>
               <button onClick={() => setShowPrefs(!showPrefs)} className="p-1.5 text-text-light active:scale-90 focus:outline-none" title="Personalizar">
                 {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
               </button>
@@ -371,7 +369,7 @@ export default function Header() {
           </div>
         ) : (
           <div className="md:hidden flex items-center gap-2">
-            <div className="relative" ref={prefsRef}>
+            <div className="relative" data-prefs-root>
               <button onClick={() => setShowPrefs(!showPrefs)} className="p-1.5 text-text-light active:scale-90 focus:outline-none" title="Personalizar">
                 {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
               </button>
