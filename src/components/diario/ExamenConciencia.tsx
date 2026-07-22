@@ -35,7 +35,7 @@ export default function ExamenConciencia({ date, onSaved }: ExamenConcienciaProp
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!userId || !gracias.trim() || !dificultad.trim() || !perdon.trim() || !proposito.trim() || saving) return
+    if (!userId || saving) return
     setSaving(true)
     const { error } = await upsertExamen({
       user_id: userId,
@@ -74,7 +74,6 @@ export default function ExamenConciencia({ date, onSaved }: ExamenConcienciaProp
             placeholder="Señor, gracias por..."
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-            required
           />
         </div>
 
@@ -86,7 +85,6 @@ export default function ExamenConciencia({ date, onSaved }: ExamenConcienciaProp
             placeholder="Hoy fue difícil cuando..."
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-            required
           />
         </div>
 
@@ -98,7 +96,6 @@ export default function ExamenConciencia({ date, onSaved }: ExamenConcienciaProp
             placeholder="Perdóname, Señor, por..."
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-            required
           />
         </div>
 
@@ -110,14 +107,13 @@ export default function ExamenConciencia({ date, onSaved }: ExamenConcienciaProp
             placeholder="Mañana quiero..."
             rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-            required
           />
         </div>
 
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={saving || !gracias.trim() || !dificultad.trim() || !perdon.trim() || !proposito.trim()}
+            disabled={saving}
             className="inline-flex items-center gap-1.5 px-5 py-2 bg-indigo-500 text-white rounded-lg text-sm font-semibold hover:bg-indigo-600 disabled:opacity-50 active:scale-95 transition-all shadow-sm"
           >
             {saved ? <CheckCircle size={16} /> : <Save size={16} />}

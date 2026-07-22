@@ -184,13 +184,46 @@ export default function DiarioPage() {
       {/* Contenido del diario (solo cuando está desbloqueado) */}
       {userId && unlocked && (
         <>
-          {/* 1. INTENCIONES DE ORACIÓN (arriba de todo) */}
-          <IntencionesManager />
-
-          {/* 2. EVANGELIO DEL DÍA */}
+          {/* 1. EVANGELIO DEL DÍA */}
           <DailyDevotional />
 
-          {/* 3. CALENDARIO */}
+          {/* 2. TABS: Escribir / Examen */}
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            {[
+              { id: 'escribir' as const, label: '📝 Escribir', icon: BookOpen },
+              { id: 'examen' as const, label: '🌙 Examen', icon: Moon },
+            ].map((tab) => {
+              const active = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    active ? 'bg-white text-primary shadow-sm' : 'text-text-light hover:text-primary'
+                  }`}
+                >
+                  <tab.icon size={14} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {activeTab === 'escribir' && (
+            <div className="space-y-4">
+              <DiarioEntryForm date={today} />
+              <GratitudDiaria date={today} />
+            </div>
+          )}
+
+          {activeTab === 'examen' && (
+            <ExamenConciencia date={today} />
+          )}
+
+          {/* 3. INTENCIONES DE ORACIÓN */}
+          <IntencionesManager />
+
+          {/* 4. CALENDARIO */}
           <div className="bg-card rounded-xl p-3 md:p-4 border border-gray-200/70 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <button onClick={() => handleMonthChange(-1)} className="p-1 text-text-light hover:text-primary active:scale-90">
@@ -238,7 +271,7 @@ export default function DiarioPage() {
             </div>
           </div>
 
-          {/* 4. VISOR DE ENTRADA (registros de otros días) */}
+          {/* 5. VISOR DE ENTRADA (registros de otros días) */}
           {selectedDate && (
             <div className="bg-card rounded-xl p-4 md:p-5 border border-primary/20 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
@@ -290,39 +323,6 @@ export default function DiarioPage() {
                 <p className="text-xs text-text-light">No hay entrada para esta fecha.</p>
               )}
             </div>
-          )}
-
-          {/* Tabs: Escribir / Examen */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-            {[
-              { id: 'escribir' as const, label: '📝 Escribir', icon: BookOpen },
-              { id: 'examen' as const, label: '🌙 Examen', icon: Moon },
-            ].map((tab) => {
-              const active = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
-                    active ? 'bg-white text-primary shadow-sm' : 'text-text-light hover:text-primary'
-                  }`}
-                >
-                  <tab.icon size={14} />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {activeTab === 'escribir' && (
-            <div className="space-y-4">
-              <DiarioEntryForm date={today} />
-              <GratitudDiaria date={today} />
-            </div>
-          )}
-
-          {activeTab === 'examen' && (
-            <ExamenConciencia date={today} />
           )}
 
           {/* Cerrar diario */}

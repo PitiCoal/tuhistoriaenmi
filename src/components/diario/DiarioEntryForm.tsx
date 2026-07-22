@@ -63,6 +63,11 @@ export default function DiarioEntryForm({ date, onSaved }: DiarioEntryFormProps)
     if (!error) {
       setSaved(true)
       onSaved?.()
+      setEvangelio('')
+      setReflexion('')
+      setQueMeDiceDios('')
+      setProposito('')
+      setEstadosAnimo([])
       setTimeout(() => setSaved(false), 3000)
     }
   }

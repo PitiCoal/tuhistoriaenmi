@@ -42,7 +42,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col items-center gap-3 shrink-0">
             <div className="drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
-              <img src="/images/logo.png" alt="TM" className="w-20 h-20 md:w-28 md:h-28 brightness-0 invert" />
+              <img src="/images/logo-tm.png" alt="TM" className="w-20 h-20 md:w-28 md:h-28" />
             </div>
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-primary-dark font-semibold rounded-xl text-xs md:text-sm hover:bg-white/90 transition-all active:scale-95 shadow-md">
