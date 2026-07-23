@@ -31,7 +31,7 @@
 }
 
 [data-theme="dark"] body {
-  background-image: linear-gradient(rgba(17, 24, 39, 0.85), rgba(17, 24, 39, 0.85)), url('/images/fondo-podcast.jpg');
+  background-image: linear-gradient(rgba(8, 14, 28, 0.85), rgba(8, 14, 28, 0.85)), url('/images/fondo-podcast.jpg');
 }
 
 [data-theme="dark"] .bg-white,
@@ -60,6 +60,10 @@
 [data-theme="dark"] .shadow-xl,
 [data-theme="dark"] .shadow-2xl {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .ring-card {
+  --tw-ring-color: var(--color-card);
 }
 
 [data-theme="dark"] .ring-card {
