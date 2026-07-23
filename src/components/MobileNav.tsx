@@ -34,13 +34,13 @@ export default function MobileNav() {
     <>
       {/* More links overlay */}
       {showMore && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setShowMore(false)}>
-          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-200/70 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="md:hidden fixed inset-0 z-40 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setShowMore(false)}>
+          <div className="absolute bottom-20 left-4 right-4 bg-card border border-gray-200/70 dark:border-gray-700/70 shadow-2xl rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-2 space-y-0.5">
               {moreLinks.map(link => (
                 <Link key={link.href} href={link.href} onClick={() => setShowMore(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    isActive(link.href) ? 'bg-primary/10 text-primary' : 'text-text-light hover:bg-gray-50'
+                    isActive(link.href) ? 'bg-primary/10 text-primary' : 'text-text-light hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                 >
                   {link.label}
@@ -51,7 +51,7 @@ export default function MobileNav() {
         </div>
       )}
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200/70 pb-[env(safe-area-inset-bottom,0px)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-gray-200/70 dark:border-gray-700/70 pb-[env(safe-area-inset-bottom,0px)]">
         <div className="flex items-center justify-around h-14">
           {tabs.map(tab => {
             const active = isActive(tab.href);
